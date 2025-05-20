@@ -71,7 +71,7 @@ void main(List<String> arguments) {
 
   final classes = <String, ClassInfo>{};
 
-  // First pass: collect all class names
+  // First pass: collect all class names and their definition locations
   collectClassNames(projectDir, classes, showProgress);
 
   if (verbose) {
@@ -79,7 +79,7 @@ void main(List<String> arguments) {
     print('Finding class usages...');
   }
 
-  // Second pass: find usages
+  // Second pass: find usages - completely revamped to count actual occurrences
   findUsages(projectDir, classes, showProgress);
 
   // Print results and save to file
@@ -96,12 +96,17 @@ void _printUsage(ArgParser parser) {
 
 class ClassInfo {
   final String definedInFile;
-  final List<String> internalUsages = []; // Usage within own file
-  final List<String> externalUsages = []; // Usage in other files
+  int internalUsageCount = 0; // Usage count within own file (excluding definition)
+  final Map<String, int> externalUsages = {}; // Map of file path to usage count
 
   ClassInfo(this.definedInFile);
   
-  int get totalUsages => internalUsages.length + externalUsages.length;
+  int get totalExternalUsages => 
+      externalUsages.values.fold(0, (sum, count) => sum + count);
+  
+  int get totalUsages => internalUsageCount + totalExternalUsages;
+  
+  List<String> get externalUsageFiles => externalUsages.keys.toList();
 }
 
 /// Progress bar display class
@@ -226,15 +231,31 @@ void findUsages(
         final className = entry.key;
         final classInfo = entry.value;
 
-        // Look for usages (references to the class name)
+        // More accurate usage detection with word boundaries
         final usageRegex = RegExp('\\b$className\\b');
-        if (usageRegex.hasMatch(content)) {
-          // Check if this is the file where the class is defined
-          if (filePath == classInfo.definedInFile) {
-            classInfo.internalUsages.add(filePath);
-          } else {
-            classInfo.externalUsages.add(filePath);
-          }
+        final matches = usageRegex.allMatches(content);
+        
+        // Count occurrences but exclude the definition line for the defining file
+        int usageCount = matches.length;
+        
+        // If this is the defining file, subtract occurrences that are part of the class definition
+        if (filePath == classInfo.definedInFile) {
+          // Look for class definitions (may have multiple occurrences in inheritance, interfaces, etc.)
+          final defRegex = RegExp('\\bclass\\s+$className\\b');
+          final defMatches = defRegex.allMatches(content);
+          
+          // Also look for constructor definitions which repeat the class name
+          final constructorRegex = RegExp('\\b$className\\s*\\([^)]*\\)\\s*[:{]');
+          final constructorMatches = constructorRegex.allMatches(content);
+          
+          // Remove these from the count as they're not "usages"
+          usageCount -= (defMatches.length + constructorMatches.length);
+          
+          // Store the actual usage count (may be negative if there's a bug, so ensure it's at least 0)
+          classInfo.internalUsageCount = max(0, usageCount);
+        } else if (usageCount > 0) {
+          // External file with usages - store the usage count
+          classInfo.externalUsages[filePath] = usageCount;
         }
       }
     } catch (e) {
@@ -266,21 +287,17 @@ void printResults(
     final classInfo = entry.value;
 
     // Format locations for easier reading
-    final formattedExternalLocations = classInfo.externalUsages.map((loc) {
+    final formattedExternalLocations = classInfo.externalUsageFiles.map((loc) {
       final relativePath =
           path.relative(loc, from: path.dirname(classInfo.definedInFile));
-      return relativePath;
+      return '$relativePath (${classInfo.externalUsages[loc]} uses)';
     }).toList();
-    
-    // Count internal references (minus 1 for the definition itself)
-    final internalReferences = classInfo.internalUsages.length > 0 ? 
-        classInfo.internalUsages.length - 1 : 0;
 
     results[className] = {
       'defined_in': path.basename(classInfo.definedInFile),
-      'internal_usage_count': internalReferences,
-      'external_usage_count': classInfo.externalUsages.length,
-      'total_usages': internalReferences + classInfo.externalUsages.length,
+      'internal_usage_count': classInfo.internalUsageCount,
+      'external_usage_count': classInfo.totalExternalUsages,
+      'total_usages': classInfo.totalUsages,
       'external_locations': verbose ? formattedExternalLocations : null,
     };
   }
@@ -294,9 +311,9 @@ void printResults(
   for (final entry in sortedClasses) {
     final className = entry.key;
     final classInfo = entry.value;
-    final internalUsages = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-    final externalUsages = classInfo.externalUsages.length;
-    final totalUsages = internalUsages + externalUsages;
+    final internalUsages = classInfo.internalUsageCount;
+    final externalUsages = classInfo.totalExternalUsages;
+    final totalUsages = classInfo.totalUsages;
 
     if (totalUsages == 0) {
       unusedClasses.add(className);
@@ -382,12 +399,11 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     final sortedClasses = classes.entries.toList()
       ..sort((a, b) {
         // First compare external usage
-        final externalComparison = a.value.externalUsages.length.compareTo(b.value.externalUsages.length);
+        final externalComparison = a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
         if (externalComparison != 0) return externalComparison;
         
         // If external usage is same, compare total usage
-        return (a.value.internalUsages.length - 1 + a.value.externalUsages.length)
-            .compareTo(b.value.internalUsages.length - 1 + b.value.externalUsages.length);
+        return a.value.totalUsages.compareTo(b.value.totalUsages);
       });
 
     // First list all unused classes (0 usages)
@@ -429,8 +445,8 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
 
       if (totalUses == 0) {
@@ -451,8 +467,8 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
 
       if (totalUses == 0) {
@@ -474,8 +490,8 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
 
       if (internalUses > 0 && externalUses == 0) {
         internalOnlyCount++;
@@ -496,16 +512,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
 
       if (externalUses > 0 && externalUses <= 2) {
         rarelyUsedCount++;
         final definedIn = path.basename(classInfo.definedInFile);
         
-        // Format the usage files list
-        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
-        final usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+        // Format the usage files list with counts
+        final usageFiles = classInfo.externalUsageFiles.map((filePath) {
+          final fileName = path.basename(filePath);
+          final count = classInfo.externalUsages[filePath] ?? 0;
+          return '$fileName ($count uses)';
+        }).toList();
+        final usageFilesStr = usageFiles.toString();
         
         buffer.writeln(
             ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses) $usageFilesStr');
@@ -524,16 +544,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
 
       if (externalUses > 0 && externalUses <= 2) {
         rarelyUsedStateCount++;
         final definedIn = path.basename(classInfo.definedInFile);
         
-        // Format the usage files list
-        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
-        final usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+        // Format the usage files list with counts
+        final usageFiles = classInfo.externalUsageFiles.map((filePath) {
+          final fileName = path.basename(filePath);
+          final count = classInfo.externalUsages[filePath] ?? 0;
+          return '$fileName ($count uses)';
+        }).toList();
+        final usageFilesStr = usageFiles.toString();
         
         buffer.writeln(
             ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses) $usageFilesStr');
@@ -550,15 +574,15 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
 
     // Sort by external usage first, then total usage for the complete listing
     mainClassEntries.sort((a, b) {
-      final externalA = a.value.externalUsages.length;
-      final externalB = b.value.externalUsages.length;
+      final externalA = a.value.totalExternalUsages;
+      final externalB = b.value.totalExternalUsages;
       
       if (externalB != externalA) {
         return externalB.compareTo(externalA); // Primary sort: external usages descending
       }
       
-      final internalA = a.value.internalUsages.isEmpty ? 0 : a.value.internalUsages.length - 1;
-      final internalB = b.value.internalUsages.isEmpty ? 0 : b.value.internalUsages.length - 1;
+      final internalA = a.value.internalUsageCount;
+      final internalB = b.value.internalUsageCount;
       
       return (internalB + externalB).compareTo(internalA + externalA); // Secondary sort: total usages descending
     });
@@ -566,16 +590,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
       final definedIn = path.basename(classInfo.definedInFile);
       
       // Format the usage files list - empty for unused classes
       String usageFilesStr = '';
       if (externalUses > 0) {
-        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
-        usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+        final usageFiles = classInfo.externalUsageFiles.map((filePath) {
+          final fileName = path.basename(filePath);
+          final count = classInfo.externalUsages[filePath] ?? 0;
+          return '$fileName ($count uses)';
+        }).toList();
+        usageFilesStr = usageFiles.toString();
       }
       
       buffer.writeln(
@@ -588,15 +616,15 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
 
     // Sort state classes by usage similarly to main classes
     stateClassEntries.sort((a, b) {
-      final externalA = a.value.externalUsages.length;
-      final externalB = b.value.externalUsages.length;
+      final externalA = a.value.totalExternalUsages;
+      final externalB = b.value.totalExternalUsages;
       
       if (externalB != externalA) {
         return externalB.compareTo(externalA); // Primary sort: external usages descending
       }
       
-      final internalA = a.value.internalUsages.isEmpty ? 0 : a.value.internalUsages.length - 1;
-      final internalB = b.value.internalUsages.isEmpty ? 0 : b.value.internalUsages.length - 1;
+      final internalA = a.value.internalUsageCount;
+      final internalB = b.value.internalUsageCount;
       
       return (internalB + externalB).compareTo(internalA + externalA); // Secondary sort: total usages descending
     });
@@ -604,16 +632,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
-      final externalUses = classInfo.externalUsages.length;
+      final internalUses = classInfo.internalUsageCount;
+      final externalUses = classInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
       final definedIn = path.basename(classInfo.definedInFile);
       
       // Format the usage files list - empty for unused classes
       String usageFilesStr = '';
       if (externalUses > 0) {
-        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
-        usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+        final usageFiles = classInfo.externalUsageFiles.map((filePath) {
+          final fileName = path.basename(filePath);
+          final count = classInfo.externalUsages[filePath] ?? 0;
+          return '$fileName ($count uses)';
+        }).toList();
+        usageFilesStr = usageFiles.toString();
       }
       
       buffer.writeln(
