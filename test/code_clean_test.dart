@@ -1,4 +1,4 @@
-// import 'package:code_de/code_de.dart';
+// import 'package:code_clean/code_clean.dart';
 // import 'package:test/test.dart';
 
 // void main() {
