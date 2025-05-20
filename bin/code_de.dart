@@ -366,8 +366,39 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     buffer.writeln('\nUNUSED CLASSES (0 usages):');
     buffer.writeln('-' * 30);
     int unusedCount = 0;
+    int stateClassCount = 0;
+
+    // First, separate regular classes and state classes
+    final List<MapEntry<String, ClassInfo>> mainClassEntries = [];
+    final List<MapEntry<String, ClassInfo>> stateClassEntries = [];
 
     for (final entry in sortedClasses) {
+      final className = entry.key;
+      
+      // Check if this is a State class, which either:
+      // 1. Ends with "State" and has a corresponding class without "State" suffix
+      // 2. Starts with an underscore and ends with "State"
+      bool isStateClass = false;
+      
+      if (className.endsWith('State')) {
+        // Check if there's a corresponding widget class
+        final possibleWidgetName = className.substring(0, className.length - 5);
+        if (classes.containsKey(possibleWidgetName)) {
+          isStateClass = true;
+        } else if (className.startsWith('_')) {
+          isStateClass = true;
+        }
+      }
+      
+      if (isStateClass) {
+        stateClassEntries.add(entry);
+      } else {
+        mainClassEntries.add(entry);
+      }
+    }
+
+    // Process main classes (unused)
+    for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
 
@@ -379,15 +410,34 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     }
 
     if (unusedCount == 0) {
-      buffer.writeln('No unused classes found.');
+      buffer.writeln('No unused regular classes found.');
+    }
+
+    // Process state classes (unused) - separate section
+    buffer.writeln('\nUNUSED STATE CLASSES (0 usages):');
+    buffer.writeln('-' * 30);
+    
+    for (final entry in stateClassEntries) {
+      final className = entry.key;
+      final classInfo = entry.value;
+
+      if (classInfo.usages.isEmpty) {
+        stateClassCount++;
+        final definedIn = path.basename(classInfo.definedInFile);
+        buffer.writeln(' - $className (defined in $definedIn, called 0 times)');
+      }
+    }
+
+    if (stateClassCount == 0) {
+      buffer.writeln('No unused state classes found.');
     }
 
     // Next list rarely used classes (1-2 usages)
-    buffer.writeln('\nRARELY USED CLASSES (1-2 usages):');
+    buffer.writeln('\nRARELY USED MAIN CLASSES (1-2 usages):');
     buffer.writeln('-' * 30);
     int rarelyUsedCount = 0;
 
-    for (final entry in sortedClasses) {
+    for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
       final usageCount = classInfo.usages.length;
@@ -406,14 +456,62 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     }
 
     if (rarelyUsedCount == 0) {
-      buffer.writeln('No rarely used classes found.');
+      buffer.writeln('No rarely used main classes found.');
     }
 
-    // Finally add full class listing
-    buffer.writeln('\nCOMPLETE CLASS USAGE LIST:');
+    // Next list rarely used state classes (1-2 usages)
+    buffer.writeln('\nRARELY USED STATE CLASSES (1-2 usages):');
+    buffer.writeln('-' * 30);
+    int rarelyUsedStateCount = 0;
+
+    for (final entry in stateClassEntries) {
+      final className = entry.key;
+      final classInfo = entry.value;
+      final usageCount = classInfo.usages.length;
+
+      if (usageCount > 0 && usageCount <= 2) {
+        rarelyUsedStateCount++;
+        final definedIn = path.basename(classInfo.definedInFile);
+        
+        // Format the usage files list
+        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+        final usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+        
+        buffer.writeln(
+            ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'}) $usageFilesStr');
+      }
+    }
+
+    if (rarelyUsedStateCount == 0) {
+      buffer.writeln('No rarely used state classes found.');
+    }
+
+    // Complete class listing - main classes
+    buffer.writeln('\nCOMPLETE MAIN CLASS USAGE LIST:');
     buffer.writeln('-' * 30);
 
-    for (final entry in sortedClasses) {
+    for (final entry in mainClassEntries) {
+      final className = entry.key;
+      final classInfo = entry.value;
+      final usageCount = classInfo.usages.length;
+      final definedIn = path.basename(classInfo.definedInFile);
+      
+      // Format the usage files list - empty for unused classes
+      String usageFilesStr = '';
+      if (usageCount > 0) {
+        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+        usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
+      }
+      
+      buffer.writeln(
+          ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'})${usageCount > 0 ? ' $usageFilesStr' : ''}');
+    }
+
+    // Complete class listing - state classes
+    buffer.writeln('\nCOMPLETE STATE CLASS USAGE LIST:');
+    buffer.writeln('-' * 30);
+
+    for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
       final usageCount = classInfo.usages.length;
@@ -434,10 +532,16 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     buffer.writeln('\nSUMMARY:');
     buffer.writeln('-' * 30);
     buffer.writeln('Total classes: ${classes.length}');
+    buffer.writeln('Main classes: ${mainClassEntries.length}');
+    buffer.writeln('State classes: ${stateClassEntries.length}');
     buffer.writeln(
-        'Unused classes: $unusedCount (${(unusedCount / classes.length * 100).toStringAsFixed(1)}%)');
+        'Unused main classes: $unusedCount (${(unusedCount / mainClassEntries.length * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Rarely used classes (1-2 usages): $rarelyUsedCount (${(rarelyUsedCount / classes.length * 100).toStringAsFixed(1)}%)');
+        'Unused state classes: $stateClassCount (${(stateClassCount / (stateClassEntries.length > 0 ? stateClassEntries.length : 1) * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Rarely used main classes (1-2 usages): $rarelyUsedCount (${(rarelyUsedCount / mainClassEntries.length * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Rarely used state classes (1-2 usages): $rarelyUsedStateCount (${(rarelyUsedStateCount / (stateClassEntries.length > 0 ? stateClassEntries.length : 1) * 100).toStringAsFixed(1)}%)');
 
     // Write to file
     final file = File(filePath);
