@@ -96,9 +96,12 @@ void _printUsage(ArgParser parser) {
 
 class ClassInfo {
   final String definedInFile;
-  final List<String> usages = [];
+  final List<String> internalUsages = []; // Usage within own file
+  final List<String> externalUsages = []; // Usage in other files
 
   ClassInfo(this.definedInFile);
+  
+  int get totalUsages => internalUsages.length + externalUsages.length;
 }
 
 /// Progress bar display class
@@ -223,15 +226,15 @@ void findUsages(
         final className = entry.key;
         final classInfo = entry.value;
 
-        // Skip self-references (where class is only referenced in its own file)
-        if (filePath == classInfo.definedInFile) {
-          continue;
-        }
-
         // Look for usages (references to the class name)
         final usageRegex = RegExp('\\b$className\\b');
         if (usageRegex.hasMatch(content)) {
-          classInfo.usages.add(filePath);
+          // Check if this is the file where the class is defined
+          if (filePath == classInfo.definedInFile) {
+            classInfo.internalUsages.add(filePath);
+          } else {
+            classInfo.externalUsages.add(filePath);
+          }
         }
       }
     } catch (e) {
@@ -254,7 +257,7 @@ void printResults(
     Map<String, ClassInfo> classes, bool verbose, String outputDir) {
   // Convert to sorted list
   final sortedClasses = classes.entries.toList()
-    ..sort((a, b) => b.value.usages.length.compareTo(a.value.usages.length));
+    ..sort((a, b) => b.value.totalUsages.compareTo(a.value.totalUsages));
 
   final results = <String, dynamic>{};
 
@@ -263,33 +266,45 @@ void printResults(
     final classInfo = entry.value;
 
     // Format locations for easier reading
-    final formattedLocations = classInfo.usages.map((loc) {
+    final formattedExternalLocations = classInfo.externalUsages.map((loc) {
       final relativePath =
           path.relative(loc, from: path.dirname(classInfo.definedInFile));
       return relativePath;
     }).toList();
+    
+    // Count internal references (minus 1 for the definition itself)
+    final internalReferences = classInfo.internalUsages.length > 0 ? 
+        classInfo.internalUsages.length - 1 : 0;
 
     results[className] = {
       'defined_in': path.basename(classInfo.definedInFile),
-      'usage_count': classInfo.usages.length,
-      'locations': verbose ? formattedLocations : null,
+      'internal_usage_count': internalReferences,
+      'external_usage_count': classInfo.externalUsages.length,
+      'total_usages': internalReferences + classInfo.externalUsages.length,
+      'external_locations': verbose ? formattedExternalLocations : null,
     };
   }
 
   // Generate usage categories
   final unusedClasses = <String>[];
+  final internalOnlyClasses = <String>[];
   final rarelyUsedClasses = <String>[];
   final frequentlyUsedClasses = <String>[];
 
   for (final entry in sortedClasses) {
     final className = entry.key;
-    final usageCount = entry.value.usages.length;
+    final classInfo = entry.value;
+    final internalUsages = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+    final externalUsages = classInfo.externalUsages.length;
+    final totalUsages = internalUsages + externalUsages;
 
-    if (usageCount == 0) {
+    if (totalUsages == 0) {
       unusedClasses.add(className);
-    } else if (usageCount <= 2) {
+    } else if (externalUsages == 0) {
+      internalOnlyClasses.add(className);
+    } else if (externalUsages <= 2) {
       rarelyUsedClasses.add(className);
-    } else if (usageCount > 10) {
+    } else if (totalUsages > 10) {
       frequentlyUsedClasses.add(className);
     }
   }
@@ -305,9 +320,10 @@ void printResults(
   print('Total classes: ${classes.length}');
   print(
       'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / classes.length * 100).toStringAsFixed(1)}%)');
-  print('Rarely used classes (1-2 usages): ${rarelyUsedClasses.length}');
+  print('Internal-only classes: ${internalOnlyClasses.length}');
+  print('Rarely used externally (1-2 external usages): ${rarelyUsedClasses.length}');
   print(
-      'Frequently used classes (>10 usages): ${frequentlyUsedClasses.length}');
+      'Frequently used classes (>10 total usages): ${frequentlyUsedClasses.length}');
 
   // Print potentially dead classes
   if (unusedClasses.isNotEmpty) {
@@ -330,6 +346,10 @@ void printResults(
   print('\nRecommendations:');
   if (unusedClasses.isNotEmpty) {
     print('- Consider removing the unused classes listed above');
+  }
+  if (internalOnlyClasses.isNotEmpty) {
+    print(
+        '- Review classes used only internally to determine if their scope can be reduced');
   }
   if (rarelyUsedClasses.isNotEmpty) {
     print(
@@ -358,12 +378,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     buffer.writeln('POTENTIALLY UNUSED OR DEAD CLASSES:');
     buffer.writeln('=' * 50);
 
-    // Sort classes by usage count (ascending)
+    // Sort classes by total usage count (ascending)
     final sortedClasses = classes.entries.toList()
-      ..sort((a, b) => a.value.usages.length.compareTo(b.value.usages.length));
+      ..sort((a, b) {
+        // First compare external usage
+        final externalComparison = a.value.externalUsages.length.compareTo(b.value.externalUsages.length);
+        if (externalComparison != 0) return externalComparison;
+        
+        // If external usage is same, compare total usage
+        return (a.value.internalUsages.length - 1 + a.value.externalUsages.length)
+            .compareTo(b.value.internalUsages.length - 1 + b.value.externalUsages.length);
+      });
 
     // First list all unused classes (0 usages)
-    buffer.writeln('\nUNUSED CLASSES (0 usages):');
+    buffer.writeln('\nUNUSED CLASSES (0 total usages):');
     buffer.writeln('-' * 30);
     int unusedCount = 0;
     int stateClassCount = 0;
@@ -401,11 +429,14 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
+      final totalUses = internalUses + externalUses;
 
-      if (classInfo.usages.isEmpty) {
+      if (totalUses == 0) {
         unusedCount++;
         final definedIn = path.basename(classInfo.definedInFile);
-        buffer.writeln(' - $className (defined in $definedIn, called 0 times)');
+        buffer.writeln(' - $className (defined in $definedIn, internal uses: 0, external uses: 0)');
       }
     }
 
@@ -414,17 +445,20 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     }
 
     // Process state classes (unused) - separate section
-    buffer.writeln('\nUNUSED STATE CLASSES (0 usages):');
+    buffer.writeln('\nUNUSED STATE CLASSES (0 total usages):');
     buffer.writeln('-' * 30);
     
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
+      final totalUses = internalUses + externalUses;
 
-      if (classInfo.usages.isEmpty) {
+      if (totalUses == 0) {
         stateClassCount++;
         final definedIn = path.basename(classInfo.definedInFile);
-        buffer.writeln(' - $className (defined in $definedIn, called 0 times)');
+        buffer.writeln(' - $className (defined in $definedIn, internal uses: 0, external uses: 0)');
       }
     }
 
@@ -432,100 +466,158 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
       buffer.writeln('No unused state classes found.');
     }
 
-    // Next list rarely used classes (1-2 usages)
-    buffer.writeln('\nRARELY USED MAIN CLASSES (1-2 usages):');
+    // Next list internal-only classes (only used in same file)
+    buffer.writeln('\nINTERNAL-ONLY MAIN CLASSES (used only in the file they are defined):');
+    buffer.writeln('-' * 30);
+    int internalOnlyCount = 0;
+
+    for (final entry in mainClassEntries) {
+      final className = entry.key;
+      final classInfo = entry.value;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
+
+      if (internalUses > 0 && externalUses == 0) {
+        internalOnlyCount++;
+        final definedIn = path.basename(classInfo.definedInFile);
+        buffer.writeln(' - $className (defined in $definedIn, internal uses: $internalUses, external uses: 0)');
+      }
+    }
+
+    if (internalOnlyCount == 0) {
+      buffer.writeln('No internal-only main classes found.');
+    }
+
+    // Next list rarely used classes externally (1-2 external usages)
+    buffer.writeln('\nRARELY USED EXTERNALLY MAIN CLASSES (1-2 external usages):');
     buffer.writeln('-' * 30);
     int rarelyUsedCount = 0;
 
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final usageCount = classInfo.usages.length;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
 
-      if (usageCount > 0 && usageCount <= 2) {
+      if (externalUses > 0 && externalUses <= 2) {
         rarelyUsedCount++;
         final definedIn = path.basename(classInfo.definedInFile);
         
         // Format the usage files list
-        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
         final usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
         
         buffer.writeln(
-            ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'}) $usageFilesStr');
+            ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses) $usageFilesStr');
       }
     }
 
     if (rarelyUsedCount == 0) {
-      buffer.writeln('No rarely used main classes found.');
+      buffer.writeln('No rarely used externally main classes found.');
     }
 
-    // Next list rarely used state classes (1-2 usages)
-    buffer.writeln('\nRARELY USED STATE CLASSES (1-2 usages):');
+    // Next list rarely used state classes externally (1-2 usages)
+    buffer.writeln('\nRARELY USED EXTERNALLY STATE CLASSES (1-2 external usages):');
     buffer.writeln('-' * 30);
     int rarelyUsedStateCount = 0;
 
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final usageCount = classInfo.usages.length;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
 
-      if (usageCount > 0 && usageCount <= 2) {
+      if (externalUses > 0 && externalUses <= 2) {
         rarelyUsedStateCount++;
         final definedIn = path.basename(classInfo.definedInFile);
         
         // Format the usage files list
-        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
         final usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
         
         buffer.writeln(
-            ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'}) $usageFilesStr');
+            ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses) $usageFilesStr');
       }
     }
 
     if (rarelyUsedStateCount == 0) {
-      buffer.writeln('No rarely used state classes found.');
+      buffer.writeln('No rarely used externally state classes found.');
     }
 
     // Complete class listing - main classes
     buffer.writeln('\nCOMPLETE MAIN CLASS USAGE LIST:');
     buffer.writeln('-' * 30);
 
+    // Sort by external usage first, then total usage for the complete listing
+    mainClassEntries.sort((a, b) {
+      final externalA = a.value.externalUsages.length;
+      final externalB = b.value.externalUsages.length;
+      
+      if (externalB != externalA) {
+        return externalB.compareTo(externalA); // Primary sort: external usages descending
+      }
+      
+      final internalA = a.value.internalUsages.isEmpty ? 0 : a.value.internalUsages.length - 1;
+      final internalB = b.value.internalUsages.isEmpty ? 0 : b.value.internalUsages.length - 1;
+      
+      return (internalB + externalB).compareTo(internalA + externalA); // Secondary sort: total usages descending
+    });
+
     for (final entry in mainClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final usageCount = classInfo.usages.length;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
+      final totalUses = internalUses + externalUses;
       final definedIn = path.basename(classInfo.definedInFile);
       
       // Format the usage files list - empty for unused classes
       String usageFilesStr = '';
-      if (usageCount > 0) {
-        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+      if (externalUses > 0) {
+        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
         usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
       }
       
       buffer.writeln(
-          ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'})${usageCount > 0 ? ' $usageFilesStr' : ''}');
+          ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}');
     }
 
     // Complete class listing - state classes
     buffer.writeln('\nCOMPLETE STATE CLASS USAGE LIST:');
     buffer.writeln('-' * 30);
 
+    // Sort state classes by usage similarly to main classes
+    stateClassEntries.sort((a, b) {
+      final externalA = a.value.externalUsages.length;
+      final externalB = b.value.externalUsages.length;
+      
+      if (externalB != externalA) {
+        return externalB.compareTo(externalA); // Primary sort: external usages descending
+      }
+      
+      final internalA = a.value.internalUsages.isEmpty ? 0 : a.value.internalUsages.length - 1;
+      final internalB = b.value.internalUsages.isEmpty ? 0 : b.value.internalUsages.length - 1;
+      
+      return (internalB + externalB).compareTo(internalA + externalA); // Secondary sort: total usages descending
+    });
+
     for (final entry in stateClassEntries) {
       final className = entry.key;
       final classInfo = entry.value;
-      final usageCount = classInfo.usages.length;
+      final internalUses = classInfo.internalUsages.isEmpty ? 0 : classInfo.internalUsages.length - 1;
+      final externalUses = classInfo.externalUsages.length;
+      final totalUses = internalUses + externalUses;
       final definedIn = path.basename(classInfo.definedInFile);
       
       // Format the usage files list - empty for unused classes
       String usageFilesStr = '';
-      if (usageCount > 0) {
-        final usageFiles = classInfo.usages.map((filePath) => path.basename(filePath)).toList();
+      if (externalUses > 0) {
+        final usageFiles = classInfo.externalUsages.map((filePath) => path.basename(filePath)).toList();
         usageFilesStr = usageFiles.toString(); // This will be in format [file1.dart, file2.dart]
       }
       
       buffer.writeln(
-          ' - $className (defined in $definedIn, called $usageCount time${usageCount == 1 ? '' : 's'})${usageCount > 0 ? ' $usageFilesStr' : ''}');
+          ' - $className (defined in $definedIn, internal uses: $internalUses, external uses: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}');
     }
 
     // Add summary
@@ -539,9 +631,11 @@ void saveResultsToFile(Map<String, ClassInfo> classes, String outputDir) {
     buffer.writeln(
         'Unused state classes: $stateClassCount (${(stateClassCount / (stateClassEntries.length > 0 ? stateClassEntries.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Rarely used main classes (1-2 usages): $rarelyUsedCount (${(rarelyUsedCount / mainClassEntries.length * 100).toStringAsFixed(1)}%)');
+        'Internal-only main classes: $internalOnlyCount (${(internalOnlyCount / mainClassEntries.length * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Rarely used state classes (1-2 usages): $rarelyUsedStateCount (${(rarelyUsedStateCount / (stateClassEntries.length > 0 ? stateClassEntries.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Rarely used externally main classes (1-2 external usages): $rarelyUsedCount (${(rarelyUsedCount / mainClassEntries.length * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Rarely used externally state classes (1-2 external usages): $rarelyUsedStateCount (${(rarelyUsedStateCount / (stateClassEntries.length > 0 ? stateClassEntries.length : 1) * 100).toStringAsFixed(1)}%)');
 
     // Write to file
     final file = File(filePath);
