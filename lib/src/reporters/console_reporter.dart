@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:code_clean/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:path/path.dart' as path;
 
 void printResults(
@@ -95,7 +95,7 @@ void printResults(
   print('\nAnalysis Summary:');
   print('Total classes analyzed: ${classes.length}');
   print(
-      'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
   print('Classes used only internally: ${internalOnlyClasses.length}');
   print('Classes used only externally: ${externalOnlyClasses.length}');
   print(
@@ -106,7 +106,7 @@ void printResults(
   if (analyzeFunctions) {
     print('Total functions analyzed: ${functions.length}');
     print(
-        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
     print('Functions used only internally: ${internalOnlyFunctions.length}');
     print('Functions used only externally: ${externalOnlyFunctions.length}');
     print(

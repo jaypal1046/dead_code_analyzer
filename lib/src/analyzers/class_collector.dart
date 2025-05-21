@@ -1,6 +1,6 @@
 // class_collector.dart
 import 'dart:io';
-import 'package:code_clean/src/model/class_info.dart';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import '../utils/progress_bar.dart';
 
 void collectClassNames(

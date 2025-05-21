@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:code_clean/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/model/code_info.dart';
 import '../utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 

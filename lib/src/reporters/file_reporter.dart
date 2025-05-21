@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:code_clean/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
@@ -78,7 +78,6 @@ void saveResultsToFile(
     final entryPointClassEntries = <MapEntry<String, CodeInfo>>[];
 
     for (final entry in sortedClasses) {
-      final className = entry.key;
       final classInfo = entry.value;
       final internalUses = classInfo.internalUsageCount;
       final externalUses = classInfo.totalExternalUsages;
@@ -133,7 +132,6 @@ void saveResultsToFile(
         });
 
       for (final entry in sortedFunctions) {
-        final functionName = entry.key;
         final functionInfo = entry.value;
         final internalUses = functionInfo.internalUsageCount;
         final externalUses = functionInfo.totalExternalUsages;
@@ -182,31 +180,31 @@ void saveResultsToFile(
     buffer.writeln('-' * 30);
     buffer.writeln('Total classes: ${classes.length}');
     buffer.writeln(
-        'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Classes used only internally: ${internalOnlyClasses.length} (${(internalOnlyClasses.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Classes used only internally: ${internalOnlyClasses.length} (${(internalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
-        'Entry-point classes: ${entryPointClassEntries.length} (${(entryPointClassEntries.length / (classes.length > 0 ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Entry-point classes: ${entryPointClassEntries.length} (${(entryPointClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     if (analyzeFunctions) {
       buffer.writeln('Total functions: ${functions.length}');
       buffer.writeln(
-          'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
-          'Functions used only internally: ${internalOnlyFunctions.length} (${(internalOnlyFunctions.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Functions used only internally: ${internalOnlyFunctions.length} (${(internalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
-          'Functions used only externally: ${externalOnlyFunctions.length} (${(externalOnlyFunctions.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Functions used only externally: ${externalOnlyFunctions.length} (${(externalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
-          'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
-          'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
-          'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.length > 0 ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+          'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
     }
 
     final file = File(filePath);

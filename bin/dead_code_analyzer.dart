@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:args/args.dart';
-import 'package:code_clean/src/analyzers/code_collector.dart';
-import 'package:code_clean/src/analyzers/usage_analyzer.dart';
-import 'package:code_clean/src/model/code_info.dart';
-import 'package:code_clean/src/reporters/console_reporter.dart';
-import 'package:code_clean/src/reporters/file_reporter.dart';
+import 'package:dead_code_analyzer/src/analyzers/code_collector.dart';
+import 'package:dead_code_analyzer/src/analyzers/usage_analyzer.dart';
+import 'package:dead_code_analyzer/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/reporters/console_reporter.dart';
+import 'package:dead_code_analyzer/src/reporters/file_reporter.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> arguments) {
@@ -90,9 +90,9 @@ void main(List<String> arguments) {
 }
 
 void _printUsage(ArgParser parser) {
-  print('Usage: dart bin/code_clean.dart [options]');
+  print('Usage: dart bin/dead_code_analyzer.dart [options]');
   print(parser.usage);
   print('\nExample:');
   print(
-      '  dart bin/code_clean.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20');
+      '  dart bin/dead_code_analyzer.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20');
 }
