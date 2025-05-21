@@ -1,4 +1,4 @@
-```
+
 [![Pub Version](https://img.shields.io/pub/v/dead_code_analyzer?logo=dart&logoColor=white)](https://pub.dev/packages/dead_code_analyzer)
 [![License](https://img.shields.io/github/license/jaypal1046/dead_code_analyzer)](https://github.com/jaypal1046/dead_code_analyzer/blob/main/LICENSE)
 [![Package Publisher](https://img.shields.io/pub/publisher/dead_code_analyzer)](https://pub.dev/packages/dead_code_analyzer/publisher)
@@ -173,4 +173,3 @@ See our [contributing guidelines](CONTRIBUTING.md) for more details.
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
-```
