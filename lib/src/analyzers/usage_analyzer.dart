@@ -1,62 +1,72 @@
 import 'dart:io';
 import 'dart:math';
-
-import 'package:code_clean/src/model/class_info.dart';
-
+import 'package:code_clean/src/model/code_info.dart';
 import '../utils/progress_bar.dart';
-import 'class_collector.dart';
+import 'package:path/path.dart' as path;
 
-/// Finds and counts usages of each class in all Dart files
-void findUsages(
-    Directory dir, Map<String, ClassInfo> classes, bool showProgress) {
+void findUsages(Directory dir, Map<String, CodeInfo> classes,
+    Map<String, CodeInfo> functions, bool showProgress, bool analyzeFunctions) {
   final dartFiles = getDartFiles(dir);
 
   ProgressBar? progressBar;
   if (showProgress) {
     progressBar =
-        ProgressBar(dartFiles.length, description: 'Analyzing class usage');
+        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
   }
 
   var count = 0;
   for (final file in dartFiles) {
-    final filePath = file.path;
+    final filePath = path.absolute(file.path); // Use absolute path
 
     try {
       final content = File(filePath).readAsStringSync();
 
+      // Analyze class usages
       for (final entry in classes.entries) {
         final className = entry.key;
         final classInfo = entry.value;
 
-        // More accurate usage detection with word boundaries
         final usageRegex = RegExp('\\b$className\\b');
         final matches = usageRegex.allMatches(content);
-        
-        // Count occurrences but exclude the definition line for the defining file
         int usageCount = matches.length;
-        
-        // If this is the defining file, subtract occurrences that are part of the class definition
+
         if (filePath == classInfo.definedInFile) {
-          // Look for class definitions (may have multiple occurrences in inheritance, interfaces, etc.)
           final defRegex = RegExp('\\bclass\\s+$className\\b');
           final defMatches = defRegex.allMatches(content);
-          
-          // Also look for constructor definitions which repeat the class name
-          final constructorRegex = RegExp('\\b$className\\s*\\([^)]*\\)\\s*[:{]');
+          final constructorRegex =
+              RegExp('\\b$className\\s*\\([^)]*\\)\\s*[:{]');
           final constructorMatches = constructorRegex.allMatches(content);
-          
-          // Remove these from the count as they're not "usages"
           usageCount -= (defMatches.length + constructorMatches.length);
-          
-          // Store the actual usage count (may be negative if there's a bug, so ensure it's at least 0)
           classInfo.internalUsageCount = max(0, usageCount);
         } else if (usageCount > 0) {
-          // External file with usages - store the usage count
           classInfo.externalUsages[filePath] = usageCount;
         }
       }
+
+      // Analyze function usages (only if enabled)
+      if (analyzeFunctions) {
+        for (final entry in functions.entries) {
+          final functionName = entry.key;
+          final functionInfo = entry.value;
+
+          final usageRegex = RegExp('\\b$functionName\\b');
+          final matches = usageRegex.allMatches(content);
+          int usageCount = matches.length;
+
+          if (filePath == functionInfo.definedInFile) {
+            final defRegex = RegExp(
+                r'(?:(?:static\s+)?(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?)\s+|)(?:\w+\.)?' +
+                    functionName +
+                    r'\s*\([^)]*\)\s*(?:(?:async)?\s*({(?:\s*//.*)*\s*}|;))');
+            final defMatches = defRegex.allMatches(content);
+            usageCount -= defMatches.length;
+            functionInfo.internalUsageCount = max(0, usageCount);
+          } else if (usageCount > 0) {
+            functionInfo.externalUsages[filePath] = usageCount;
+          }
+        }
+      }
     } catch (e) {
-      // Skip files that can't be read
       print('\nWarning: Could not read file $filePath: $e');
     }
 
@@ -69,4 +79,16 @@ void findUsages(
   if (showProgress) {
     progressBar!.done();
   }
+}
+
+List<File> getDartFiles(Directory dir) {
+  return dir
+      .listSync(recursive: true)
+      .where((entity) =>
+          entity is File &&
+          entity.path.endsWith('.dart') &&
+          !entity.path.contains('/.dart_tool/') &&
+          !entity.path.contains('/build/'))
+      .cast<File>()
+      .toList();
 }

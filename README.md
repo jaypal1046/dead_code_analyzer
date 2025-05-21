@@ -47,6 +47,46 @@ dart run bin/flutter_class_analyzer.dart -p /path/to/your/flutter/project
 ### Example Output
 
 ```
+Flutter Class Usage Analysis - 2025-05-21_16-17-00
+==================================================
+This report lists classes by usage type. Entry-point classes (@pragma("vm:entry-point")) and state classes are reported separately.
+
+Unused Classes
+------------------------------
+ - MyClass (in lib/my_class.dart, internal references: 0, external references: 0)
+
+Classes Used Only Internally
+------------------------------
+ - InternalClass (in lib/internal_class.dart, internal references: 1, external references: 0)
+
+Classes Used Only Externally
+------------------------------
+ - ExternalClass (in lib/external_class.dart, internal references: 0, external references: 2) [other_file.dart (2 references)]
+
+Classes Used Both Internally and Externally
+------------------------------
+ - SharedClass (in lib/shared_class.dart, internal references: 1, external references: 3) [other_file.dart (3 references)]
+
+State Classes
+------------------------------
+ - MyWidgetState (in lib/my_widget.dart, internal references: 1, external references: 0, total: 1)
+
+Entry-Point Classes (@pragma("vm:entry-point"))
+------------------------------
+ - NativeBridge (in lib/native_bridge.dart, internal references: 0, external references: 0, total: 0) [Used by native code via @pragma("vm:entry-point")]
+
+Summary
+------------------------------
+Total classes: 6
+Unused classes: 1 (16.7%)
+Classes used only internally: 1 (16.7%)
+Classes used only externally: 1 (16.7%)
+Classes used both internally and externally: 1 (16.7%)
+State classes: 1 (16.7%)
+Entry-point classes: 1 (16.7%)
+```
+
+```
 Analyzing Flutter project at: /path/to/your/flutter/project
 Scanning files for classes: [====================================] 120/120 (100%)
 Analyzing class usage: [====================================] 120/120 (100%)

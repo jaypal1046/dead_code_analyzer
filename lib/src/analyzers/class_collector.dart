@@ -1,9 +1,8 @@
+// class_collector.dart
 import 'dart:io';
-
 import 'package:code_clean/src/model/class_info.dart';
 import '../utils/progress_bar.dart';
 
-/// Collects class names and their definition locations from all Dart files in a directory
 void collectClassNames(
     Directory dir, Map<String, ClassInfo> classes, bool showProgress) {
   final dartFiles = getDartFiles(dir);
@@ -20,17 +19,41 @@ void collectClassNames(
 
     try {
       final content = File(filePath).readAsStringSync();
+      final lines = content.split('\n');
 
-      // Find class definitions using regex
+      // Find class definitions with optional @pragma('vm:entry-point')
       final classRegex = RegExp(r'class\s+(\w+)[\s{<]');
-      final matches = classRegex.allMatches(content);
+      final pragmaRegex =
+          RegExp(r'''^\s*@pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)\s*$''');
 
-      for (final match in matches) {
-        final className = match.group(1)!;
-        classes[className] = ClassInfo(filePath);
+      int lineIndex = 0;
+      for (final line in lines) {
+        final classMatch = classRegex.firstMatch(line);
+        if (classMatch != null) {
+          final className = classMatch.group(1)!;
+          // Check if the previous line (or lines) contains @pragma('vm:entry-point')
+          bool isEntryPoint = false;
+          if (lineIndex > 0) {
+            // Check the immediately preceding line
+            if (pragmaRegex.hasMatch(lines[lineIndex - 1])) {
+              isEntryPoint = true;
+            } else {
+              // Check up to 2 lines before (to account for comments or whitespace)
+              int checkIndex = lineIndex - 2;
+              while (checkIndex >= 0 && checkIndex >= lineIndex - 2) {
+                if (pragmaRegex.hasMatch(lines[checkIndex])) {
+                  isEntryPoint = true;
+                  break;
+                }
+                checkIndex--;
+              }
+            }
+          }
+          classes[className] = ClassInfo(filePath, isEntryPoint: isEntryPoint);
+        }
+        lineIndex++;
       }
     } catch (e) {
-      // Skip files that can't be read
       print('\nWarning: Could not read file $filePath: $e');
     }
 
