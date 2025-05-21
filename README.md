@@ -1,6 +1,6 @@
 ```
 [![Pub Version](https://img.shields.io/pub/v/dead_code_analyzer?logo=dart&logoColor=white)](https://pub.dev/packages/dead_code_analyzer)
-[![License](https://img.shields.io/github/license/yourusername/dead_code_analyzer)](https://github.com/yourusername/dead_code_analyzer/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/jaypal1046/dead_code_analyzer)](https://github.com/jaypal1046/dead_code_analyzer/blob/main/LICENSE)
 [![Package Publisher](https://img.shields.io/pub/publisher/dead_code_analyzer)](https://pub.dev/packages/dead_code_analyzer/publisher)
 
 # Dead Code Analyzer
