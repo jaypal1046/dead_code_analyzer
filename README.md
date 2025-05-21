@@ -1,3 +1,4 @@
+```
 # Dead Code Analyzer (v0.1.0)
 
 A command-line tool to analyze Dart and Flutter projects, identifying unused code elements (classes, functions, variables) and unreachable code to streamline code cleaning and refactoring. Optimize your codebase by removing dead code, improving maintainability, and reducing technical debt.
@@ -116,8 +117,6 @@ Recommendations:
 - Run with --verbose flag to see detailed usage information
 ```
 
-Would you like a chart to visualize the summary statistics (e.g., unused elements breakdown)? If so, I can generate a pie chart showing the distribution of unused classes, functions, and variables.
-
 ## Integration with CI/CD
 
 You can integrate this tool into your CI/CD pipeline to identify dead code automatically:
@@ -179,5 +178,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 5. Open a Pull Request
 
 ## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+```

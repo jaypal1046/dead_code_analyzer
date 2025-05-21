@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Installation support via `pub.dev` or source code.
 - CI/CD integration example for GitHub Actions.
 - Documentation for usage, best practices, limitations, and contributing guidelines.
+- Licensed under the BSD 3-Clause License.
 
 ### Changed
 - N/A (Initial release).
