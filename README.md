@@ -1,22 +1,35 @@
-# Flutter Class Analyzer
+# Dead Code Analyzer (v0.1.0)
 
-A command-line tool to analyze Flutter projects and identify unused or dead classes to help with code cleaning and refactoring.
+A command-line tool to analyze Dart and Flutter projects, identifying unused code elements (classes, functions, variables) and unreachable code to streamline code cleaning and refactoring. Optimize your codebase by removing dead code, improving maintainability, and reducing technical debt.
 
 ## Features
 
-- Identifies all Dart classes in a Flutter project
-- Tracks how many times each class is used and where
-- Highlights potentially dead or unused classes
-- Shows progress as it analyzes (for large projects)
-- Provides recommendations for code cleanup
+- Identifies unused classes, functions, and variables
+- Detects unreachable code segments
+- Tracks usage frequency of code elements
+- Analyzes both internal and external references
+- Generates comprehensive reports with recommendations
+- Shows analysis progress with interactive indicators
+- Supports custom exclusion patterns
 
 ## Installation
 
-1. Clone this repository:
+### From pub.dev
 
+```bash
+# Install globally
+dart pub global activate dead_code_analyzer
+
+# Or add to your project's dev_dependencies
+dart pub add --dev dead_code_analyzer
+```
+
+### From Source
+
+1. Clone this repository (replace `yourusername` with the actual repository owner):
    ```bash
-   git clone https://github.com/yourusername/flutter_class_analyzer.git
-   cd flutter_class_analyzer
+   git clone https://github.com/yourusername/dead_code_analyzer.git
+   cd dead_code_analyzer
    ```
 
 2. Install dependencies:
@@ -24,130 +37,147 @@ A command-line tool to analyze Flutter projects and identify unused or dead clas
    dart pub get
    ```
 
+3. Activate locally:
+   ```bash
+   dart pub global activate --source path .
+   ```
+
 ## Usage
 
 ### Basic Usage
 
 ```bash
-# Analyze the current directory (if it's a Flutter project)
-dart run bin/flutter_class_analyzer.dart
+# If installed globally
+dead_code_analyzer
 
-# Analyze a specific Flutter project
-dart run bin/flutter_class_analyzer.dart -p /path/to/your/flutter/project
+# Or run directly from source
+dart run bin/dead_code_analyzer.dart
+
+# Analyze a specific project
+dead_code_analyzer -p /path/to/your/project
 ```
 
 ### Command Line Options
 
-- `-p, --project-path`: Path to the Flutter project to analyze (default: current directory)
-- `-o, --output-dir`: Directory to save the report file (default: Desktop)
-- `-v, --verbose`: Show detailed output including all usage locations
-- `--no-progress`: Disable progress indicators
-- `-h, --help`: Show usage information
+```
+Usage: dead_code_analyzer [options]
+
+Options:
+  -p, --project-path    Path to the project to analyze (default: current directory)
+  -o, --output-dir      Directory to save the report file (default: Desktop)
+  -v, --verbose         Show detailed output including all usage locations
+  -e, --exclude         Comma-separated patterns to exclude (e.g., "test,example")
+  --no-progress         Disable progress indicators
+  --only-unused         Show only unused elements in the report
+  -h, --help            Show this help message
+```
 
 ### Example Output
 
+*Note: Timestamps and file paths in the output are illustrative and will vary based on your system and analysis time.*
+
 ```
-Flutter Class Usage Analysis - 2025-05-21_16-17-00
+Dead Code Analysis - [Generated Timestamp]
 ==================================================
-This report lists classes by usage type. Entry-point classes (@pragma("vm:entry-point")) and state classes are reported separately.
 
 Unused Classes
 ------------------------------
- - MyClass (in lib/my_class.dart, internal references: 0, external references: 0)
+ - MyUnusedClass (in lib/my_unused_class.dart)
+ - OldService (in lib/services/old_service.dart)
 
-Classes Used Only Internally
+Unused Functions
 ------------------------------
- - InternalClass (in lib/internal_class.dart, internal references: 1, external references: 0)
+ - calculateLegacyTotal (in lib/utils/calculations.dart)
+ - _validateOldFormat (in lib/validators.dart)
 
-Classes Used Only Externally
+Unreachable Code
 ------------------------------
- - ExternalClass (in lib/external_class.dart, internal references: 0, external references: 2) [other_file.dart (2 references)]
-
-Classes Used Both Internally and Externally
-------------------------------
- - SharedClass (in lib/shared_class.dart, internal references: 1, external references: 3) [other_file.dart (3 references)]
-
-State Classes
-------------------------------
- - MyWidgetState (in lib/my_widget.dart, internal references: 1, external references: 0, total: 1)
-
-Entry-Point Classes (@pragma("vm:entry-point"))
-------------------------------
- - NativeBridge (in lib/native_bridge.dart, internal references: 0, external references: 0, total: 0) [Used by native code via @pragma("vm:entry-point")]
+ - lib/screens/home_screen.dart:47 (code after return statement)
+ - lib/utils/formatter.dart:102 (code in always-false conditional)
 
 Summary
 ------------------------------
-Total classes: 6
-Unused classes: 1 (16.7%)
-Classes used only internally: 1 (16.7%)
-Classes used only externally: 1 (16.7%)
-Classes used both internally and externally: 1 (16.7%)
-State classes: 1 (16.7%)
-Entry-point classes: 1 (16.7%)
-```
-
-```
-Analyzing Flutter project at: /path/to/your/flutter/project
-Scanning files for classes: [====================================] 120/120 (100%)
-Analyzing class usage: [====================================] 120/120 (100%)
-
-Summary:
+Total analyzed files: 78
 Total classes: 45
-Unused classes: 7 (15.6%)
-Rarely used classes (1-2 usages): 12
-Frequently used classes (>10 usages): 5
+Total functions: 126
+Total variables: 384
 
-Potentially dead classes:
- - UnusedWidget (defined in unused_widget.dart)
- - OldService (defined in services.dart)
- - DeprecatedModel (defined in models.dart)
- - TestScreen (defined in test_screen.dart)
- - MockData (defined in mock_data.dart)
+Unused elements: 19 (3.4% of all code elements)
+ - Unused classes: 7 (15.6%)
+ - Unused functions: 9 (7.1%)
+ - Unused variables: 3 (0.8%)
+Unreachable code blocks: 5
 
-Full analysis saved to: /Users/yourname/Desktop/flutter_class_analysis_2025-05-20_14-30-25.txt
+Full analysis saved to: [User Desktop]/dead_code_analysis_[timestamp].txt
 
 Recommendations:
-- Consider removing the unused classes listed above
-- Review rarely used classes to determine if they can be consolidated
-
-Tip: Run with --verbose flag to see detailed usage information.
+- Consider removing the unused classes and functions listed above
+- Review unreachable code segments
+- Run with --verbose flag to see detailed usage information
 ```
 
-### Report File Format
+Would you like a chart to visualize the summary statistics (e.g., unused elements breakdown)? If so, I can generate a pie chart showing the distribution of unused classes, functions, and variables.
 
-The tool creates a detailed report file on your Desktop (or specified directory) that includes:
+## Integration with CI/CD
 
-1. **Unused Classes Section** - Lists all classes with 0 usages
-2. **Rarely Used Classes Section** - Lists classes with only 1-2 usages
-3. **Complete Class Usage List** - All classes with their usage counts
-4. **Summary Statistics** - Overview of the analysis results
+You can integrate this tool into your CI/CD pipeline to identify dead code automatically:
 
-Example report entry:
+```yaml
+# Example GitHub Actions workflow
+name: Dead Code Check
 
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      
+      - name: Install dead_code_analyzer
+        run: dart pub global activate dead_code_analyzer
+        
+      - name: Run dead code analysis
+        run: dead_code_analyzer --no-progress --only-unused
 ```
- - PdfComboBox (defined in pdf_combo_box.dart, called 0 times)
- - FetchHomeRenewalResponse (defined in fetchhomerenewalresponse.dart, called 2 times)
-```
-
-## Why Use This Tool?
-
-- **Cleaner Codebase**: Identify and remove unused code
-- **Faster Builds**: Reducing code can lead to faster compilation
-- **Better Maintainability**: Less code means less to maintain
-- **Smaller App Size**: Remove dead code to reduce final app size
 
 ## How It Works
 
-The tool:
+The analyzer:
 
-1. Scans all `.dart` files in your Flutter project
-2. Identifies class definitions using regex patterns
-3. Searches for references to each class across the codebase
-4. Calculates usage statistics and identifies potential dead code
+1. Scans all Dart files in your project
+2. Builds an AST (Abstract Syntax Tree) for accurate analysis
+3. Identifies declarations of classes, functions, and variables
+4. Tracks references to each element across the codebase
+5. Identifies unreachable code segments
+6. Generates a comprehensive report with findings
 
-## Notes
+## Best Practices
 
-- The tool uses basic regex pattern matching to identify classes and usages
-- It may not catch all edge cases in complex code structures
-- Always review results before removing code
-- This tool is most effective as part of your regular code cleanup process
+- Run this tool regularly as part of your code cleanup process
+- Review all results before removing code
+- Use the `--exclude` option to ignore test files or generated code
+- For large projects, consider analyzing specific directories separately
+
+## Limitations
+
+- May miss edge cases in complex code structures, such as code within macros or highly dynamic widget trees in Flutter.
+- Dynamic code invocation or reflection usage might cause false positives.
+- Always manually verify results before making changes to your codebase.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
