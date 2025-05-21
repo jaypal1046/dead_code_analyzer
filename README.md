@@ -1,64 +1,53 @@
 ```
-# Dead Code Analyzer (v0.1.0)
+[![Pub Version](https://img.shields.io/pub/v/dead_code_analyzer?logo=dart&logoColor=white)](https://pub.dev/packages/dead_code_analyzer)
+[![License](https://img.shields.io/github/license/yourusername/dead_code_analyzer)](https://github.com/yourusername/dead_code_analyzer/blob/main/LICENSE)
+[![Package Publisher](https://img.shields.io/pub/publisher/dead_code_analyzer)](https://pub.dev/packages/dead_code_analyzer/publisher)
 
-A command-line tool to analyze Dart and Flutter projects, identifying unused code elements (classes, functions, variables) and unreachable code to streamline code cleaning and refactoring. Optimize your codebase by removing dead code, improving maintainability, and reducing technical debt.
+# Dead Code Analyzer
+
+Dead Code Analyzer is a command-line tool for Dart and Flutter projects that identifies unused code elements (classes, functions, variables) and unreachable code segments to streamline code cleanup and refactoring. Optimize your codebase, improve maintainability, and reduce technical debt with comprehensive analysis and actionable reports.
 
 ## Features
 
-- Identifies unused classes, functions, and variables
-- Detects unreachable code segments
-- Tracks usage frequency of code elements
-- Analyzes both internal and external references
-- Generates comprehensive reports with recommendations
-- Shows analysis progress with interactive indicators
-- Supports custom exclusion patterns
+- Detects unused classes, functions, and variables.
+- Identifies unreachable code segments.
+- Tracks usage frequency of code elements across the codebase.
+- Analyzes internal and external references for accurate results.
+- Generates detailed reports with recommendations for code removal.
+- Displays interactive progress indicators during analysis.
+- Supports custom exclusion patterns to skip specific files or directories.
 
-## Installation
+## How to Use
 
-### From pub.dev
+Take these steps to enable Dead Code Analyzer:
 
-```bash
-# Install globally
-dart pub global activate dead_code_analyzer
+1. **Install the package as a dev dependency**:
 
-# Or add to your project's dev_dependencies
-dart pub add --dev dead_code_analyzer
-```
-
-### From Source
-
-1. Clone this repository (replace `yourusername` with the actual repository owner):
-   ```bash
-   git clone https://github.com/yourusername/dead_code_analyzer.git
-   cd dead_code_analyzer
+   ```terminal
+   dart pub add --dev dead_code_analyzer
    ```
 
-2. Install dependencies:
-   ```bash
-   dart pub get
+   or, for Flutter projects:
+
+   ```terminal
+   flutter pub add --dev dead_code_analyzer
    ```
 
-3. Activate locally:
-   ```bash
-   dart pub global activate --source path .
+2. **Run the analyzer**:
+
+   ```terminal
+   # If installed globally
+   dart pub global activate dead_code_analyzer
+   dead_code_analyzer
+
+   # Or run directly from source
+   dart run bin/dead_code_analyzer.dart
+
+   # Analyze a specific project
+   dead_code_analyzer -p /path/to/your/project
    ```
 
-## Usage
-
-### Basic Usage
-
-```bash
-# If installed globally
-dead_code_analyzer
-
-# Or run directly from source
-dart run bin/dead_code_analyzer.dart
-
-# Analyze a specific project
-dead_code_analyzer -p /path/to/your/project
-```
-
-### Command Line Options
+## Command Line Options
 
 ```
 Usage: dead_code_analyzer [options]
@@ -73,9 +62,9 @@ Options:
   -h, --help            Show this help message
 ```
 
-### Example Output
+## Example Output
 
-*Note: Timestamps and file paths in the output are illustrative and will vary based on your system and analysis time.*
+*Note: Timestamps and file paths are illustrative and will vary based on your system and analysis time.*
 
 ```
 Dead Code Analysis - [Generated Timestamp]
@@ -117,9 +106,11 @@ Recommendations:
 - Run with --verbose flag to see detailed usage information
 ```
 
+Would you like a chart to visualize the summary statistics (e.g., unused elements breakdown)? If so, I can generate a pie chart showing the distribution of unused classes, functions, and variables.
+
 ## Integration with CI/CD
 
-You can integrate this tool into your CI/CD pipeline to identify dead code automatically:
+Integrate Dead Code Analyzer into your CI/CD pipeline to automatically detect dead code:
 
 ```yaml
 # Example GitHub Actions workflow
@@ -147,36 +138,39 @@ jobs:
 
 The analyzer:
 
-1. Scans all Dart files in your project
-2. Builds an AST (Abstract Syntax Tree) for accurate analysis
-3. Identifies declarations of classes, functions, and variables
-4. Tracks references to each element across the codebase
-5. Identifies unreachable code segments
-6. Generates a comprehensive report with findings
+1. Scans all Dart files in your project.
+2. Builds an Abstract Syntax Tree (AST) for precise analysis.
+3. Identifies declarations of classes, functions, and variables.
+4. Tracks references to each element across the codebase.
+5. Detects unreachable code segments.
+6. Generates a comprehensive report with actionable findings.
 
 ## Best Practices
 
-- Run this tool regularly as part of your code cleanup process
-- Review all results before removing code
-- Use the `--exclude` option to ignore test files or generated code
-- For large projects, consider analyzing specific directories separately
+- Run the tool regularly as part of your code cleanup process.
+- Review all results before removing code to avoid unintended deletions.
+- Use the `--exclude` option to ignore test files or generated code (e.g., `*.g.dart`).
+- For large projects, consider analyzing specific directories to improve performance.
 
 ## Limitations
 
-- May miss edge cases in complex code structures, such as code within macros or highly dynamic widget trees in Flutter.
-- Dynamic code invocation or reflection usage might cause false positives.
-- Always manually verify results before making changes to your codebase.
+- May miss edge cases in complex code structures, such as macros or dynamic widget trees in Flutter.
+- Dynamic code invocation or reflection may lead to false positives.
+- Always manually verify results before modifying your codebase.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! To contribute:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/amazing-feature`).
+3. Commit your changes (`git commit -m 'Add some amazing feature'`).
+4. Push to the branch (`git push origin feature/amazing-feature`).
+5. Open a Pull Request.
+
+See our [contributing guidelines](CONTRIBUTING.md) for more details.
 
 ## License
+
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
 ```
