@@ -36,7 +36,8 @@ class ProgressBar {
     final percentage = (ratio * 100).toInt();
     final completedWidth = (width * ratio).floor();
 
-    final bar = '[${'=' * completedWidth}${completedWidth < width ? '>' : ''}${' ' * (width - completedWidth - (completedWidth < width ? 1 : 0))}]';
+    final bar =
+        '[${'=' * completedWidth}${completedWidth < width ? '>' : ''}${' ' * (width - completedWidth - (completedWidth < width ? 1 : 0))}]';
 
     final progressText = '$_current/$total ($percentage%)';
     final line = '\r$description: $bar $progressText';
