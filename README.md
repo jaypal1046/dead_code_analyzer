@@ -38,15 +38,18 @@ Take these steps to enable Dead Code Analyzer:
    ```terminal
    # If installed globally
    dart pub global activate dead_code_analyzer
-   dead_code_analyzer
+
+   dead_code_analyzer --version
 
    # Or run directly from source
    dart run bin/dead_code_analyzer.dart
 
    # Analyze a specific project
    dead_code_analyzer -p /path/to/your/project
-   ```
 
+  # Analyze functions with custom options
+  dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions
+   ```
 ## Command Line Options
 
 ```
