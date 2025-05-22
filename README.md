@@ -1,4 +1,3 @@
-
 [![Pub Version](https://img.shields.io/pub/v/dead_code_analyzer?logo=dart&logoColor=white)](https://pub.dev/packages/dead_code_analyzer)
 [![License](https://img.shields.io/github/license/jaypal1046/dead_code_analyzer)](https://github.com/jaypal1046/dead_code_analyzer/blob/main/LICENSE)
 [![Package Publisher](https://img.shields.io/pub/publisher/dead_code_analyzer)](https://pub.dev/packages/dead_code_analyzer/publisher)
@@ -38,24 +37,35 @@ Take these steps to enable Dead Code Analyzer:
    ```terminal
    # If installed globally
    dart pub global activate dead_code_analyzer
+   ```
 
+   ```terminal
+   # check version
    dead_code_analyzer --version
+   ```
 
+   ```terminal
    # Or run directly from source
    dart run bin/dead_code_analyzer.dart
+   ```
 
+   ```terminal
    # Analyze a specific project
    dead_code_analyzer -p /path/to/your/project
-
-  # Analyze functions with custom options
-  dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions
    ```
+
+   ```terminal
+   # Analyze functions with custom options
+   dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions
+   ```
+
 ## Command Line Options
 
 ```
 Usage: dead_code_analyzer [options]
 
 Options:
+  -V, --version         Show version number
   -p, --project-path    Path to the project to analyze (default: current directory)
   -o, --output-dir      Directory to save the report file (default: Desktop)
   -v, --verbose         Show detailed output including all usage locations
@@ -67,7 +77,7 @@ Options:
 
 ## Example Output
 
-*Note: Timestamps and file paths are illustrative and will vary based on your system and analysis time.*
+_Note: Timestamps and file paths are illustrative and will vary based on your system and analysis time._
 
 ```
 Dead Code Analysis - [Generated Timestamp]
@@ -121,7 +131,7 @@ name: Dead Code Check
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   analyze:
@@ -129,10 +139,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
-      
+
       - name: Install dead_code_analyzer
         run: dart pub global activate dead_code_analyzer
-        
+
       - name: Run dead code analysis
         run: dead_code_analyzer --no-progress --only-unused
 ```
