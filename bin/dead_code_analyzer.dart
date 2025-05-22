@@ -2,9 +2,12 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:dead_code_analyzer/src/analyzers/code_collector.dart';
 import 'package:dead_code_analyzer/src/analyzers/usage_analyzer.dart';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:dead_code_analyzer/src/reporters/console_reporter.dart';
 import 'package:dead_code_analyzer/src/reporters/file_reporter.dart';
+import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/utils/varsion_info.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> arguments) {
@@ -37,12 +40,12 @@ void main(List<String> arguments) {
     args = parser.parse(arguments);
   } catch (e) {
     print('Error parsing arguments: $e');
-    _printUsage(parser);
+    printUsage(parser);
     exit(1);
   }
 
   if (args['help']) {
-    _printUsage(parser);
+    printUsage(parser);
     return;
   }
 
@@ -74,10 +77,15 @@ void main(List<String> arguments) {
     print('Collecting code entities...');
   }
 
-  final classes = <String, CodeInfo>{};
+  final classes = <String, ClassInfo>{};
   final functions = <String, CodeInfo>{};
+  // Collect all code entities (classes and functions) from the project directory
   collectCodeEntities(
-      projectDir, classes, functions, showProgress, analyzeFunctions);
+      dir: projectDir,
+      classes: classes,
+      functions: functions,
+      showProgress: showProgress,
+      analyzeFunctions: analyzeFunctions);
 
   if (verbose) {
     print(
@@ -85,54 +93,28 @@ void main(List<String> arguments) {
     print('Analyzing code references...');
   }
 
-  findUsages(projectDir, classes, functions, showProgress, analyzeFunctions);
-  printResults(classes, functions, verbose, projectPath, analyzeFunctions,
+  // Find all usages/references of the collected code entities
+  findUsages(
+      dir: projectDir,
+      classes: classes,
+      functions: functions,
+      showProgress: showProgress,
+      analyzeFunctions: analyzeFunctions);
+
+  // Print analysis results to console
+  printResults(
+      classes: classes,
+      functions: functions,
+      verbose: verbose,
+      projectPath: projectPath,
+      analyzeFunctions: analyzeFunctions,
       maxUnused: maxUnused);
+
+  // Save analysis results to output file
   saveResultsToFile(
-      classes, functions, outputDir, projectPath, analyzeFunctions);
-}
-
-void versionfind(ArgParser parser, List<String> arguments) {
-  // Try to get version from version file or pubspec.yaml
-  String version = 'unknown';
-  String versionSource = 'none';
-
-  // Check for version file first
-  final versionFile = File(path.join(path.current, 'version'));
-  if (versionFile.existsSync()) {
-    version = versionFile.readAsStringSync().trim();
-    versionSource = 'version file';
-  } else {
-    // Fallback to pubspec.yaml
-    final pubspecFile = File(path.join(path.current, 'pubspec.yaml'));
-    if (pubspecFile.existsSync()) {
-      final lines = pubspecFile.readAsLinesSync();
-      final versionLine = lines.firstWhere(
-        (line) => line.trim().startsWith('version:'),
-        orElse: () => '',
-      );
-      if (versionLine.isNotEmpty) {
-        version = versionLine.split(':').last.trim();
-        versionSource = 'pubspec.yaml';
-      }
-    }
-  }
-
-  parser.addFlag('version',
-      abbr: 'V',
-      help: 'Show the version of dead_code_analyzer',
-      negatable: false);
-
-  if (arguments.contains('--version') || arguments.contains('-V')) {
-    print('dead_code_analyzer version $version (from $versionSource)');
-    exit(0);
-  }
-}
-
-void _printUsage(ArgParser parser) {
-  print('Usage: dart bin/dead_code_analyzer.dart [options]');
-  print(parser.usage);
-  print('\nExample:');
-  print(
-      '  dart bin/dead_code_analyzer.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20');
+      classes: classes,
+      functions: functions,
+      outputDir: outputDir,
+      projectPath: projectPath,
+      analyzeFunctions: analyzeFunctions);
 }

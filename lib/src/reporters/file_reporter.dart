@@ -1,14 +1,15 @@
 import 'dart:io';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
 void saveResultsToFile(
-    Map<String, CodeInfo> classes,
-    Map<String, CodeInfo> functions,
-    String outputDir,
-    String projectPath,
-    bool analyzeFunctions) {
+    {required Map<String, ClassInfo> classes,
+    required Map<String, CodeInfo> functions,
+    required String outputDir,
+    required String projectPath,
+    required bool analyzeFunctions}) {
   try {
     final now = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
@@ -33,7 +34,36 @@ void saveResultsToFile(
     }
 
     // Helper function to write category section
-    void writeCategorySection(String title,
+    void writeCategoryClassSection(String title,
+        List<MapEntry<String, ClassInfo>> entries, String entityType) {
+      buffer.writeln(title);
+      buffer.writeln('-' * 30);
+      int count = 0;
+      for (final entry in entries) {
+        final name = entry.key;
+        final info = entry.value;
+        final internalUses = info.internalUsageCount;
+        final externalUses = info.totalExternalUsages;
+        final totalUses = internalUses + externalUses;
+        count++;
+        final definedIn = toLibRelativePath(info.definedInFile, projectPath);
+        final usageFiles = info.externalUsageFiles.map((filePath) {
+          final fileName = toLibRelativePath(filePath, projectPath);
+          final count = info.externalUsages[filePath] ?? 0;
+          return '$fileName ($count references)';
+        }).toList();
+        final usageFilesStr = usageFiles.toString();
+        buffer.writeln(
+            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+      }
+      if (count == 0) {
+        buffer.writeln('No $entityType found.');
+      }
+      buffer.writeln('');
+    }
+
+    // Helper function to write category section
+    void writeCategoryFunctionSection(String title,
         List<MapEntry<String, CodeInfo>> entries, String entityType) {
       buffer.writeln(title);
       buffer.writeln('-' * 30);
@@ -70,12 +100,12 @@ void saveResultsToFile(
         return a.value.totalUsages.compareTo(b.value.totalUsages);
       });
 
-    final unusedClasses = <MapEntry<String, CodeInfo>>[];
-    final internalOnlyClasses = <MapEntry<String, CodeInfo>>[];
-    final externalOnlyClasses = <MapEntry<String, CodeInfo>>[];
-    final bothInternalExternalClasses = <MapEntry<String, CodeInfo>>[];
-    final stateClassEntries = <MapEntry<String, CodeInfo>>[];
-    final entryPointClassEntries = <MapEntry<String, CodeInfo>>[];
+    final unusedClasses = <MapEntry<String, ClassInfo>>[];
+    final internalOnlyClasses = <MapEntry<String, ClassInfo>>[];
+    final externalOnlyClasses = <MapEntry<String, ClassInfo>>[];
+    final bothInternalExternalClasses = <MapEntry<String, ClassInfo>>[];
+    final stateClassEntries = <MapEntry<String, ClassInfo>>[];
+    final entryPointClassEntries = <MapEntry<String, ClassInfo>>[];
 
     for (final entry in sortedClasses) {
       final classInfo = entry.value;
@@ -100,17 +130,19 @@ void saveResultsToFile(
 
     buffer.writeln('Class Analysis');
     buffer.writeln('=' * 30);
-    writeCategorySection('Unused Classes', unusedClasses, 'unused classes');
-    writeCategorySection('Classes Used Only Internally', internalOnlyClasses,
-        'classes used only internally');
-    writeCategorySection('Classes Used Only Externally', externalOnlyClasses,
-        'classes used only externally');
-    writeCategorySection(
+    writeCategoryClassSection(
+        'Unused Classes', unusedClasses, 'unused classes');
+    writeCategoryClassSection('Classes Used Only Internally',
+        internalOnlyClasses, 'classes used only internally');
+    writeCategoryClassSection('Classes Used Only Externally',
+        externalOnlyClasses, 'classes used only externally');
+    writeCategoryClassSection(
         'Classes Used Both Internally and Externally',
         bothInternalExternalClasses,
         'classes used both internally and externally');
-    writeCategorySection('State Classes', stateClassEntries, 'state classes');
-    writeCategorySection('Entry-Point Classes (@pragma("vm:entry-point"))',
+    writeCategoryClassSection(
+        'State Classes', stateClassEntries, 'state classes');
+    writeCategoryClassSection('Entry-Point Classes (@pragma("vm:entry-point"))',
         entryPointClassEntries, 'entry-point classes');
 
     // Declare function lists outside the if block
@@ -159,20 +191,22 @@ void saveResultsToFile(
 
       buffer.writeln('Function Analysis');
       buffer.writeln('=' * 30);
-      writeCategorySection(
+      writeCategoryFunctionSection(
           'Unused Functions', unusedFunctions, 'unused functions');
-      writeCategorySection('Functions Used Only Internally',
+      writeCategoryFunctionSection('Functions Used Only Internally',
           internalOnlyFunctions, 'functions used only internally');
-      writeCategorySection('Functions Used Only Externally',
+      writeCategoryFunctionSection('Functions Used Only Externally',
           externalOnlyFunctions, 'functions used only externally');
-      writeCategorySection(
+      writeCategoryFunctionSection(
           'Functions Used Both Internally and Externally',
           bothInternalExternalFunctions,
           'functions used both internally and externally');
-      writeCategorySection('Empty Prebuilt Flutter Functions',
+      writeCategoryFunctionSection('Empty Prebuilt Flutter Functions',
           emptyPrebuiltFunctionEntries, 'empty prebuilt Flutter functions');
-      writeCategorySection('Entry-Point Functions (@pragma("vm:entry-point"))',
-          entryPointFunctionEntries, 'entry-point functions');
+      writeCategoryFunctionSection(
+          'Entry-Point Functions (@pragma("vm:entry-point"))',
+          entryPointFunctionEntries,
+          'entry-point functions');
     }
 
     // Summary

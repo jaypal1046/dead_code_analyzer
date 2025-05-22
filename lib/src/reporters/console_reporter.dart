@@ -1,14 +1,15 @@
 import 'dart:math';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:path/path.dart' as path;
 
 void printResults(
-    Map<String, CodeInfo> classes,
-    Map<String, CodeInfo> functions,
-    bool verbose,
-    String projectPath,
-    bool analyzeFunctions,
-    {int maxUnused = 10}) {
+    {required Map<String, ClassInfo> classes,
+    required Map<String, CodeInfo> functions,
+    required bool verbose,
+    required String projectPath,
+    required bool analyzeFunctions,
+    int maxUnused = 10}) {
   // Helper function to convert absolute path to lib-relative path
   String toLibRelativePath(String absolutePath, String projectPath) {
     final libPath = path.join(projectPath, 'lib');

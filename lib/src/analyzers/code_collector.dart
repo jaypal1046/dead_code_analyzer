@@ -1,10 +1,18 @@
 import 'dart:io';
+import 'package:dead_code_analyzer/src/analyzers/class_collector.dart';
+import 'package:dead_code_analyzer/src/analyzers/function_collector.dart';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
-import '../utils/progress_bar.dart';
+import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 
-void collectCodeEntities(Directory dir, Map<String, CodeInfo> classes,
-    Map<String, CodeInfo> functions, bool showProgress, bool analyzeFunctions) {
+void collectCodeEntities(
+    {required Directory dir,
+    required Map<String, ClassInfo> classes,
+    required Map<String, CodeInfo> functions,
+    required bool showProgress,
+    required bool analyzeFunctions}) {
   final dartFiles = getDartFiles(dir);
 
   ProgressBar? progressBar;
@@ -54,63 +62,20 @@ void collectCodeEntities(Directory dir, Map<String, CodeInfo> classes,
         }
 
         // Class detection
-        if (classMatch != null) {
-          final className = classMatch.group(1)!;
-          bool isEntryPoint = false;
-          if (lineIndex > 0) {
-            if (pragmaRegex.hasMatch(lines[lineIndex - 1])) {
-              isEntryPoint = true;
-            } else {
-              int checkIndex = lineIndex - 2;
-              while (checkIndex >= 0 && checkIndex >= lineIndex - 2) {
-                if (pragmaRegex.hasMatch(lines[checkIndex])) {
-                  isEntryPoint = true;
-                  break;
-                }
-                checkIndex--;
-              }
-            }
-          }
-          classes[className] = CodeInfo(filePath,
-              isEntryPoint: isEntryPoint,
-              type: insideStateClass ? 'state_class' : 'class');
-        }
+        classCollector(classMatch, lineIndex, pragmaRegex, lines, classes,
+            filePath, insideStateClass);
 
         // Function detection (only if analyzeFunctions is true)
-        if (analyzeFunctions) {
-          // Match various function types, including prebuilt Flutter methods
-          final functionRegex = RegExp(
-              r'(?:(?:static\s+)?(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?)\s+|)(?:\w+\.)?(\w+)\s*\([^)]*\)\s*(?:(?:async)?\s*({(?:\s*//.*)*\s*}|;))',
-              multiLine: true);
-          final functionMatches = functionRegex.allMatches(line);
-          for (final match in functionMatches) {
-            final functionName = match.group(1)!;
-            final functionBody = match.group(2); // {} or ;
-            bool isEntryPoint = false;
-            bool isPrebuiltFlutter = insideStateClass &&
-                prebuiltFlutterMethods.contains(functionName);
-            bool isEmpty = functionBody == ';' || functionBody!.trim() == '{}';
-            if (lineIndex > 0) {
-              if (pragmaRegex.hasMatch(lines[lineIndex - 1])) {
-                isEntryPoint = true;
-              } else {
-                int checkIndex = lineIndex - 2;
-                while (checkIndex >= 0 && checkIndex >= lineIndex - 2) {
-                  if (pragmaRegex.hasMatch(lines[checkIndex])) {
-                    isEntryPoint = true;
-                    break;
-                  }
-                  checkIndex--;
-                }
-              }
-            }
-            functions[functionName] = CodeInfo(filePath,
-                isEntryPoint: isEntryPoint,
-                type: 'function',
-                isPrebuiltFlutter: isPrebuiltFlutter,
-                isEmpty: isEmpty);
-          }
-        }
+        functionCollecter(
+            analyzeFunctions,
+            line,
+            insideStateClass,
+            prebuiltFlutterMethods,
+            lineIndex,
+            pragmaRegex,
+            lines,
+            functions,
+            filePath);
         lineIndex++;
       }
     } catch (e) {
@@ -127,16 +92,4 @@ void collectCodeEntities(Directory dir, Map<String, CodeInfo> classes,
   if (showProgress) {
     progressBar!.done();
   }
-}
-
-List<File> getDartFiles(Directory dir) {
-  return dir
-      .listSync(recursive: true)
-      .where((entity) =>
-          entity is File &&
-          entity.path.endsWith('.dart') &&
-          !entity.path.contains('/.dart_tool/') &&
-          !entity.path.contains('/build/'))
-      .cast<File>()
-      .toList();
 }

@@ -6,12 +6,13 @@ class CodeInfo {
   final String type; // 'class', 'state_class', 'function'
   final bool isPrebuiltFlutter; // True for Flutter State class methods
   final bool isEmpty; // True for empty body ({} or ;)
-
+  final bool isConstructor; // True for constructor
   CodeInfo(this.definedInFile,
       {this.isEntryPoint = false,
       required this.type,
       this.isPrebuiltFlutter = false,
-      this.isEmpty = false});
+      this.isEmpty = false,
+      this.isConstructor = false});
 
   int get totalExternalUsages =>
       externalUsages.values.fold(0, (sum, count) => sum + count);

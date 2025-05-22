@@ -1,11 +1,17 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
-import '../utils/progress_bar.dart';
+import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 
-void findUsages(Directory dir, Map<String, CodeInfo> classes,
-    Map<String, CodeInfo> functions, bool showProgress, bool analyzeFunctions) {
+void findUsages(
+    {required Directory dir,
+    required Map<String, ClassInfo> classes,
+    required Map<String, CodeInfo> functions,
+    required bool showProgress,
+    required bool analyzeFunctions}) {
   final dartFiles = getDartFiles(dir);
 
   ProgressBar? progressBar;
@@ -79,16 +85,4 @@ void findUsages(Directory dir, Map<String, CodeInfo> classes,
   if (showProgress) {
     progressBar!.done();
   }
-}
-
-List<File> getDartFiles(Directory dir) {
-  return dir
-      .listSync(recursive: true)
-      .where((entity) =>
-          entity is File &&
-          entity.path.endsWith('.dart') &&
-          !entity.path.contains('/.dart_tool/') &&
-          !entity.path.contains('/build/'))
-      .cast<File>()
-      .toList();
 }
