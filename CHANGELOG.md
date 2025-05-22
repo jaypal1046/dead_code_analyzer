@@ -4,14 +4,11 @@ All notable changes to the **Dead Code Analyzer** project will be documented in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.0.3
+## 1.0.2
 
 * Added support for excluding specific Dart SDK versions in analysis to avoid false positives with experimental features like macros.
 * Improved error messages for dependency conflicts, providing clearer guidance on resolving `analyzer` and `macros` issues.
 * Added `--version` flag to display the tool’s version in the CLI.
-
-## 1.0.2
-
 * Fixed dependency conflict with `freezed >=2.5.3` by updating `analyzer` to `^6.9.0`, ensuring compatibility with `macros >=0.1.3-main.0`.
 * Updated `pubspec.yaml` to require Dart SDK `>=3.3.0 <4.0.0` with `enable-experiments: macros`.
 * Improved documentation in `README.md` to clarify publishing status for Pub badges.
