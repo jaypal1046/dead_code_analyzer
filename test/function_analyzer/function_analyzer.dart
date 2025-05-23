@@ -1,5 +1,1 @@
-
-
-void functionAnalyzerTest(){
-  
-}
+void functionAnalyzerTest() {}

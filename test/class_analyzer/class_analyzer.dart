@@ -4,7 +4,8 @@ import 'text_class_file.dart';
 
 void classAnalyzerTest() {
   final lines = ckassTestFile.split('\n');
-  final pragmaRegex = RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
+  final pragmaRegex =
+      RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
   Map<String, ClassInfo> classes = {};
   bool insideStateClass = false;
 
@@ -26,7 +27,10 @@ void classAnalyzerTest() {
     );
 
     // Update insideStateClass
-    if (classMatch != null && line.replaceFirst(RegExp(r'^\s*//+\s*'), '').contains('extends State<')) {
+    if (classMatch != null &&
+        line
+            .replaceFirst(RegExp(r'^\s*//+\s*'), '')
+            .contains('extends State<')) {
       insideStateClass = true;
     } else if (insideStateClass && line.trim().contains('}')) {
       insideStateClass = false;

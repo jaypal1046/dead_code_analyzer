@@ -11,7 +11,8 @@ void classCollector(
 ) {
   String line = lines[lineIndex].trim();
   // Strip single-line comments and multi-line comment markers for regex matching
-  String cleanLine = line.replaceFirst(RegExp(r'^\s*(?:(?:\/\/+|\/\*|\*\/)\s*)*'), '');
+  String cleanLine =
+      line.replaceFirst(RegExp(r'^\s*(?:(?:\/\/+|\/\*|\*\/)\s*)*'), '');
   // Re-apply regex to ensure correct matching (in case classMatch is from a different regex)
   final classRegex = RegExp(
     r'^(?:\s*(?:\/\*|\*\/)?\s*(?:sealed\s+|abstract\s+|mixin\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:extends\s+[A-Za-z_][A-Za-z0-9_]*(?:<[^>]+>)?\s*)?(?:implements\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*\s*)?(?:with\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*\s*)?)\{\s*(?:\*\/)?\s*$',
@@ -35,7 +36,11 @@ void classCollector(
       if (currentLine.contains('*/')) {
         inMultiLineComment = false;
       }
-      if (i == lineIndex && (currentLine.startsWith('//') || currentLine.startsWith('///') || currentLine.contains('/*') || currentLine.contains('*/'))) {
+      if (i == lineIndex &&
+          (currentLine.startsWith('//') ||
+              currentLine.startsWith('///') ||
+              currentLine.contains('/*') ||
+              currentLine.contains('*/'))) {
         isCommentedOut = true;
       }
     }
@@ -73,7 +78,7 @@ void classCollector(
       classType = 'state_class';
       insideStateClass = true;
     } else if (cleanLine.contains('extends StatelessWidget') ||
-               cleanLine.contains('extends StatefulWidget')) {
+        cleanLine.contains('extends StatefulWidget')) {
       classType = 'flutter_widget';
     } else {
       classType = 'class';

@@ -1,5 +1,6 @@
 import 'package:dead_code_analyzer/src/analyzers/class_collector.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
+
 final ckassTestFile = '''
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -57,7 +58,8 @@ final ckassTestFile = '''
 
 void classAnalyzerTest() {
   final lines = ckassTestFile.split('\n');
-  final pragmaRegex = RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
+  final pragmaRegex =
+      RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
   Map<String, ClassInfo> classes = {};
   bool insideStateClass = false;
 
@@ -79,7 +81,10 @@ void classAnalyzerTest() {
     );
 
     // Update insideStateClass
-    if (classMatch != null && line.replaceFirst(RegExp(r'^\s*//+\s*'), '').contains('extends State<')) {
+    if (classMatch != null &&
+        line
+            .replaceFirst(RegExp(r'^\s*//+\s*'), '')
+            .contains('extends State<')) {
       insideStateClass = true;
     } else if (insideStateClass && line.trim().contains('}')) {
       insideStateClass = false;
