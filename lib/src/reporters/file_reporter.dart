@@ -106,14 +106,16 @@ void saveResultsToFile(
     final bothInternalExternalClasses = <MapEntry<String, ClassInfo>>[];
     final stateClassEntries = <MapEntry<String, ClassInfo>>[];
     final entryPointClassEntries = <MapEntry<String, ClassInfo>>[];
+    final commentedClasses = <MapEntry<String, ClassInfo>>[];
 
     for (final entry in sortedClasses) {
       final classInfo = entry.value;
       final internalUses = classInfo.internalUsageCount;
       final externalUses = classInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
-
-      if (classInfo.isEntryPoint) {
+      if (classInfo.commentedOut) {
+        commentedClasses.add(entry);
+      } else if (classInfo.isEntryPoint) {
         entryPointClassEntries.add(entry);
       } else if (classInfo.type == 'state_class') {
         stateClassEntries.add(entry);
@@ -132,6 +134,8 @@ void saveResultsToFile(
     buffer.writeln('=' * 30);
     writeCategoryClassSection(
         'Unused Classes', unusedClasses, 'unused classes');
+    writeCategoryClassSection(
+        'Commented Classes', commentedClasses, 'commented classes');
     writeCategoryClassSection('Classes Used Only Internally',
         internalOnlyClasses, 'classes used only internally');
     writeCategoryClassSection('Classes Used Only Externally',
@@ -152,6 +156,7 @@ void saveResultsToFile(
     final bothInternalExternalFunctions = <MapEntry<String, CodeInfo>>[];
     final emptyPrebuiltFunctionEntries = <MapEntry<String, CodeInfo>>[];
     final entryPointFunctionEntries = <MapEntry<String, CodeInfo>>[];
+    final commentedFunctions = <MapEntry<String, CodeInfo>>[];
 
     // Process functions (if enabled)
     if (analyzeFunctions) {
@@ -180,6 +185,8 @@ void saveResultsToFile(
           entryPointFunctionEntries.add(entry);
         } else if (totalUses == 0) {
           unusedFunctions.add(entry);
+        } else if (functionInfo.commentedOut) {
+          commentedFunctions.add(entry);
         } else if (internalUses > 0 && externalUses == 0) {
           internalOnlyFunctions.add(entry);
         } else if (internalUses == 0 && externalUses > 0) {
@@ -193,6 +200,8 @@ void saveResultsToFile(
       buffer.writeln('=' * 30);
       writeCategoryFunctionSection(
           'Unused Functions', unusedFunctions, 'unused functions');
+      writeCategoryFunctionSection(
+          'Commented Functions', commentedFunctions, 'commented functions');
       writeCategoryFunctionSection('Functions Used Only Internally',
           internalOnlyFunctions, 'functions used only internally');
       writeCategoryFunctionSection('Functions Used Only Externally',

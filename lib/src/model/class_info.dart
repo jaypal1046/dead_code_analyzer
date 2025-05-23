@@ -5,11 +5,12 @@ class ClassInfo {
       0; // Usage count within own file (excluding definition)
   final Map<String, int> externalUsages = {}; // Map of file path to usage count
   final bool isEntryPoint; // New field to track @pragma('vm:entry-point')
-
+  final bool commentedOut; // New field to track commented out
   ClassInfo(
     this.definedInFile, {
     this.isEntryPoint = false,
     required this.type,
+    this.commentedOut = false,
   });
 
   int get totalExternalUsages =>

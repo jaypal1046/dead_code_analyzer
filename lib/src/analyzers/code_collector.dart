@@ -67,15 +67,15 @@ void collectCodeEntities(
 
         // Function detection (only if analyzeFunctions is true)
         functionCollecter(
-            analyzeFunctions,
-            line,
-            insideStateClass,
-            prebuiltFlutterMethods,
-            lineIndex,
-            pragmaRegex,
-            lines,
-            functions,
-            filePath);
+            analyzeFunctions: analyzeFunctions,
+            line: line,
+            insideStateClass: insideStateClass,
+            prebuiltFlutterMethods: prebuiltFlutterMethods,
+            lineIndex: lineIndex,
+            pragmaRegex: pragmaRegex,
+            lines: lines,
+            functions: functions,
+            filePath: filePath);
         lineIndex++;
       }
     } catch (e) {

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:dead_code_analyzer/src/analyzers/function_collector.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:path/path.dart' as path;
@@ -29,6 +30,7 @@ void printResults(
   final bothInternalExternalClasses = <String>[];
   final stateClasses = <String>[];
   final entryPointClasses = <String>[];
+  final commentedClasses = <String>[];
 
   for (final entry in sortedClasses) {
     final className = entry.key;
@@ -36,8 +38,9 @@ void printResults(
     final internalUsages = classInfo.internalUsageCount;
     final externalUsages = classInfo.totalExternalUsages;
     final totalUsages = classInfo.totalUsages;
-
-    if (classInfo.isEntryPoint) {
+    if (classInfo.commentedOut) {
+      commentedClasses.add(className);
+    } else if (classInfo.isEntryPoint) {
       entryPointClasses.add(className);
     } else if (classInfo.type == 'state_class') {
       stateClasses.add(className);
@@ -59,6 +62,7 @@ void printResults(
   final bothInternalExternalFunctions = <String>[];
   final emptyPrebuiltFunctions = <String>[];
   final entryPointFunctions = <String>[];
+  final commentedFunctions = <String>[]; // New: track commented functions
 
   if (analyzeFunctions) {
     final sortedFunctions = functions.entries.toList()
@@ -70,7 +74,11 @@ void printResults(
       final internalUsages = functionInfo.internalUsageCount;
       final externalUsages = functionInfo.totalExternalUsages;
       final totalUsages = functionInfo.totalUsages;
-
+      // Handle commented functions separately
+      if (functionInfo.commentedOut) {
+        commentedFunctions.add(functionName);
+        continue;
+      }
       if (functionInfo.isPrebuiltFlutter) {
         if (functionInfo.isEmpty) {
           emptyPrebuiltFunctions.add(functionName);
@@ -92,11 +100,16 @@ void printResults(
     }
   }
 
-  // Print summary
+  // Print summary (add commented functions to existing summary)
   print('\nAnalysis Summary:');
+  final activeClasses =
+      classes.entries.where((entry) => !entry.value.commentedOut).length;
   print('Total classes analyzed: ${classes.length}');
+  // print(
+  //     'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+  print('Commented Classes: ${commentedFunctions.length}');
   print(
-      'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Unused Classes: ${unusedFunctions.length} (${(unusedFunctions.length / (activeClasses > 0 ? activeClasses : 1) * 100).toStringAsFixed(1)}%)');
   print('Classes used only internally: ${internalOnlyClasses.length}');
   print('Classes used only externally: ${externalOnlyClasses.length}');
   print(
@@ -105,9 +118,14 @@ void printResults(
   print(
       'Entry-point classes (@pragma("vm:entry-point")): ${entryPointClasses.length}');
   if (analyzeFunctions) {
+    final activeFunctions =
+        functions.entries.where((entry) => !entry.value.commentedOut).length;
     print('Total functions analyzed: ${functions.length}');
+    // print(
+    //     'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+    print('Commented functions: ${commentedFunctions.length}');
     print(
-        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (activeFunctions > 0 ? activeFunctions : 1) * 100).toStringAsFixed(1)}%)');
     print('Functions used only internally: ${internalOnlyFunctions.length}');
     print('Functions used only externally: ${externalOnlyFunctions.length}');
     print(
@@ -128,6 +146,21 @@ void printResults(
     }
     if (unusedClasses.length > maxUnused) {
       print(' - ... and ${unusedClasses.length - maxUnused} more');
+    }
+  }
+
+  // Print commented functions section
+  if (analyzeFunctions && commentedFunctions.isNotEmpty) {
+    print('\nCommented Functions:');
+    for (int i = 0; i < min(commentedFunctions.length, maxUnused); i++) {
+      final functionName = commentedFunctions[i];
+      final cleanName = getCleanFunctionName(functionName);
+      final definedIn = toLibRelativePath(
+          functions[functionName]!.definedInFile, projectPath);
+      print(' - $cleanName (in $definedIn) [COMMENTED OUT]');
+    }
+    if (commentedFunctions.length > maxUnused) {
+      print(' - ... and ${commentedFunctions.length - maxUnused} more');
     }
   }
 
@@ -271,7 +304,7 @@ void printResults(
     }
   }
 
-  // Print recommendations
+  // Add to recommendations section
   print('\nRecommendations:');
   if (unusedClasses.isNotEmpty) {
     print(
@@ -297,6 +330,10 @@ void printResults(
         '- Verify entry-point classes are correctly referenced by native code, especially those with no Dart references.');
   }
   if (analyzeFunctions) {
+    if (analyzeFunctions && commentedFunctions.isNotEmpty) {
+      print(
+          '- Review commented functions (${commentedFunctions.length} found) - consider removing if no longer needed.');
+    }
     if (unusedFunctions.isNotEmpty) {
       print(
           '- Review unused functions (e.g., in ${toLibRelativePath(functions[unusedFunctions.first]!.definedInFile, projectPath)}) for potential removal.');
@@ -334,4 +371,12 @@ void printResults(
                   emptyPrebuiltFunctions.isNotEmpty)))) {
     print('\nTip: Use --verbose to see detailed code usage information.');
   }
+}
+
+String toLibRelativePath(String absolutePath, String projectPath) {
+  final libPath = path.join(projectPath, 'lib');
+  if (absolutePath.startsWith(libPath)) {
+    return path.relative(absolutePath, from: libPath);
+  }
+  return path.relative(absolutePath, from: projectPath);
 }
