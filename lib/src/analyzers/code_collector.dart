@@ -21,18 +21,6 @@ void collectCodeEntities(
         description: 'Scanning files for code entities');
   }
 
-  // List of prebuilt Flutter State methods
-  final prebuiltFlutterMethods = {
-    'build',
-    'initState',
-    'dispose',
-    'didChangeDependencies',
-    'didUpdateWidget',
-    'reassemble',
-    'setState',
-    'deactivate'
-  };
-
   var count = 0;
   for (final file in dartFiles) {
     final filePath = path.absolute(file.path); // Use absolute path
