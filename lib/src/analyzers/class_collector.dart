@@ -79,7 +79,7 @@ void classCollector(
       insideStateClass = true;
     } else if (cleanLine.contains('extends StatelessWidget') ||
         cleanLine.contains('extends StatefulWidget')) {
-      classType = 'flutter_widget';
+      classType = 'class';
     } else {
       classType = 'class';
     }

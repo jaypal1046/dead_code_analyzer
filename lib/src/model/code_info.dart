@@ -8,6 +8,8 @@ class CodeInfo {
   final bool isEmpty; // True for empty body ({} or ;)
   final bool isConstructor; // True for constructor
   final bool commentedOut; // New field to track commented out
+  final int lineIndex; // New field
+  final int startPosition; // New field
   CodeInfo(
     this.definedInFile, {
     this.isEntryPoint = false,
@@ -16,6 +18,8 @@ class CodeInfo {
     this.isEmpty = false,
     this.isConstructor = false,
     this.commentedOut = false,
+    required this.lineIndex,
+    required this.startPosition,
   });
 
   int get totalExternalUsages =>

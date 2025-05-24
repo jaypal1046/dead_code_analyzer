@@ -1,7 +1,7 @@
 import 'dart:math';
-import 'package:dead_code_analyzer/src/analyzers/function_collector.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/utils/healper.dart';
 import 'package:path/path.dart' as path;
 
 void printResults(
