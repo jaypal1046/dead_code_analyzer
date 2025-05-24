@@ -18,7 +18,7 @@ void main(List<String> args) {
       break;
     case 'multifilefunction':
       multifilefunctionAnalyzerTest();
-      break;  
+      break;
     default:
       print("Unknown test: ${args[0]}");
   }

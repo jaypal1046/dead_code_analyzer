@@ -3,7 +3,6 @@ import 'package:dead_code_analyzer/src/model/code_info.dart';
 
 import 'text_function_sigle_file.dart';
 
-
 void functionAnalyzerTest() {
   final lines = functionTestFile.split('\n');
   final pragmaRegex =
@@ -71,8 +70,9 @@ void functionAnalyzerTest() {
   });
 
   // Assertions to verify correctness
-  assert(functions.length == 5, 'Expected 5 functions, got ${functions.length}');
-  
+  assert(
+      functions.length == 5, 'Expected 5 functions, got ${functions.length}');
+
   // Commented functions
   assert(functions.containsKey('commentedFunction_commented_2_8'),
       'Expected commentedFunction to be detected');
@@ -109,5 +109,3 @@ void functionAnalyzerTest() {
   assert(functions['TestClass_commented_7_4']!.isConstructor,
       'Expected TestClass._privateConstructor to be marked as constructor');
 }
-
-

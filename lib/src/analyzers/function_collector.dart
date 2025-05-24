@@ -67,13 +67,14 @@ void functionCollecter({
       }
 
       String functionKey = functionName;
-if (isFunctionCommented) {
-  // Commented functions: Include file path, line, and position
-  functionKey = '${functionName}_commented_${sanitizeFilePath(filePath)}_${lineIndex}_${match.start}';
-} else if (functions.containsKey(functionName)) {
-  // Non-commented functions: Append file path if there's a collision
-  functionKey = '${functionName}_${sanitizeFilePath(filePath)}';
-}
+      if (isFunctionCommented) {
+        // Commented functions: Include file path, line, and position
+        functionKey =
+            '${functionName}_commented_${sanitizeFilePath(filePath)}_${lineIndex}_${match.start}';
+      } else if (functions.containsKey(functionName)) {
+        // Non-commented functions: Append file path if there's a collision
+        functionKey = '${functionName}_${sanitizeFilePath(filePath)}';
+      }
 
       // String functionKey = isFunctionCommented
       //     ? '${functionName}_commented_${lineIndex}_${match.start}'

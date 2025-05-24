@@ -76,42 +76,79 @@ void multifilefunctionAnalyzerTest() {
   });
 
   // Assertions
-  assert(functions.length == 10, 'Expected 10 functions, got ${functions.length}');
+  assert(
+      functions.length == 10, 'Expected 10 functions, got ${functions.length}');
 
   // Commented functions from file1.dart
-  assert(functions.containsKey('commentedFunction_commented_lib_src_file1_dart_2_8'),
+  assert(
+      functions
+          .containsKey('commentedFunction_commented_lib_src_file1_dart_2_8'),
       'Expected commentedFunction from file1.dart to be detected');
-  assert(functions['commentedFunction_commented_lib_src_file1_dart_2_8']!.commentedOut,
+  assert(
+      functions['commentedFunction_commented_lib_src_file1_dart_2_8']!
+          .commentedOut,
       'Expected commentedFunction from file1.dart to be marked as commented');
-  assert(functions['commentedFunction_commented_lib_src_file1_dart_2_8']!.definedInFile == 'lib/src/file1.dart',
+  assert(
+      functions['commentedFunction_commented_lib_src_file1_dart_2_8']!
+              .definedInFile ==
+          'lib/src/file1.dart',
       'Expected commentedFunction from file1.dart to have correct file path');
-  assert(functions['commentedFunction_commented_lib_src_file1_dart_2_8']!.lineIndex == 2,
+  assert(
+      functions['commentedFunction_commented_lib_src_file1_dart_2_8']!
+              .lineIndex ==
+          2,
       'Expected commentedFunction from file1.dart at line 2');
-  assert(functions.containsKey('commentedFunction1_commented_lib_src_file1_dart_3_0'),
+  assert(
+      functions
+          .containsKey('commentedFunction1_commented_lib_src_file1_dart_3_0'),
       'Expected commentedFunction1 from file1.dart to be detected');
-  assert(functions['commentedFunction1_commented_lib_src_file1_dart_3_0']!.commentedOut,
+  assert(
+      functions['commentedFunction1_commented_lib_src_file1_dart_3_0']!
+          .commentedOut,
       'Expected commentedFunction1 from file1.dart to be marked as commented');
-  assert(functions.containsKey('commentedFunction2_commented_lib_src_file1_dart_4_0'),
+  assert(
+      functions
+          .containsKey('commentedFunction2_commented_lib_src_file1_dart_4_0'),
       'Expected commentedFunction2 from file1.dart to be detected');
-  assert(functions['commentedFunction2_commented_lib_src_file1_dart_4_0']!.commentedOut,
+  assert(
+      functions['commentedFunction2_commented_lib_src_file1_dart_4_0']!
+          .commentedOut,
       'Expected commentedFunction2 from file1.dart to be marked as commented');
 
   // Commented functions from file2.dart
-  assert(functions.containsKey('commentedFunction_commented_lib_src_file2_dart_2_8'),
+  assert(
+      functions
+          .containsKey('commentedFunction_commented_lib_src_file2_dart_2_8'),
       'Expected commentedFunction from file2.dart to be detected');
-  assert(functions['commentedFunction_commented_lib_src_file2_dart_2_8']!.commentedOut,
+  assert(
+      functions['commentedFunction_commented_lib_src_file2_dart_2_8']!
+          .commentedOut,
       'Expected commentedFunction from file2.dart to be marked as commented');
-  assert(functions['commentedFunction_commented_lib_src_file2_dart_2_8']!.definedInFile == 'lib/src/file2.dart',
+  assert(
+      functions['commentedFunction_commented_lib_src_file2_dart_2_8']!
+              .definedInFile ==
+          'lib/src/file2.dart',
       'Expected commentedFunction from file2.dart to have correct file path');
-  assert(functions['commentedFunction_commented_lib_src_file2_dart_2_8']!.lineIndex == 2,
+  assert(
+      functions['commentedFunction_commented_lib_src_file2_dart_2_8']!
+              .lineIndex ==
+          2,
       'Expected commentedFunction from file2.dart at line 2');
-  assert(functions.containsKey('commentedFunction1_commented_lib_src_file2_dart_3_0'),
+  assert(
+      functions
+          .containsKey('commentedFunction1_commented_lib_src_file2_dart_3_0'),
       'Expected commentedFunction1 from file2.dart to be detected');
-  assert(functions['commentedFunction1_commented_lib_src_file2_dart_3_0']!.commentedOut,
+  assert(
+      functions['commentedFunction1_commented_lib_src_file2_dart_3_0']!
+          .commentedOut,
       'Expected commentedFunction1 from file2.dart to be marked as commented');
-  assert(functions.containsKey('commentedFunction2_commented_lib_src_file2_dart_4_0'),
+  assert(
+      functions
+          .containsKey('commentedFunction2_commented_lib_src_file2_dart_4_0'),
       'Expected commentedFunction2 from file2.dart to be detected');
-  assert(functions['commentedFunction2_commented_lib_src_file2_dart_4_0']!.commentedOut,
+  assert(
+      functions['commentedFunction2_commented_lib_src_file2_dart_4_0']!
+          .commentedOut,
       'Expected commentedFunction2 from file2.dart to be marked as commented');
 
   // Non-commented functions (assuming collision handling)

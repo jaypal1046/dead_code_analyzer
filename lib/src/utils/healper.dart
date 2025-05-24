@@ -23,8 +23,6 @@ void printUsage(ArgParser parser) {
       '  dart bin/dead_code_analyzer.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20');
 }
 
-
-
 // Helper function to check if a line is commented out
 bool isLineCommented(String line) {
   String trimmed = line.trim();
@@ -62,8 +60,7 @@ bool isFunctionInCommented(
 }
 
 // Helper function to check if a position is inside a multi-line comment
-bool isInMultiLineComment(
-    List<String> lines, int lineIndex, int charPosition) {
+bool isInMultiLineComment(List<String> lines, int lineIndex, int charPosition) {
   bool insideComment = false;
 
   // Iterate through lines up to the current line
