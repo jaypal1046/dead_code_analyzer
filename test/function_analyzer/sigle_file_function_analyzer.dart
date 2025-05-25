@@ -1,4 +1,4 @@
-import 'package:dead_code_analyzer/src/analyzers/function_collector.dart';
+import 'package:dead_code_analyzer/src/collecter/function_collector.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 
 import 'text_function_sigle_file.dart';

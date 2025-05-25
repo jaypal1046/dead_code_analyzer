@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:dead_code_analyzer/src/analyzers/class_collector.dart';
-import 'package:dead_code_analyzer/src/analyzers/function_collector.dart';
+import 'package:dead_code_analyzer/src/collecter/class_collector.dart';
+import 'package:dead_code_analyzer/src/collecter/function_collector.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:dead_code_analyzer/src/utils/healper.dart';

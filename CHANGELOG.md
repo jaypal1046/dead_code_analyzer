@@ -3,6 +3,15 @@
 All notable changes to the **Dead Code Analyzer** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## 1.0.6
+- Updated `README.md` to reflect the current regex-based implementation of Dead Code Analyzer.
+- Clarified that the tool uses regex for reference counting.
+- Added known limitation for constructor reference counting (e.g., classes like `Active` may show incorrect `internal references: 1`).
+- Included instructions for using `--verbose` to debug reference issues.
+- Added support for multiple projects and flavored `main` functions in usage examples and best practices.
+- Introduced a sample pie chart for visualizing unused elements breakdown.
+- Updated example output to include `Active`, `StateFullClass`, and `myFunction` from recent fixes.
+- Attempted fix for constructor reference counting in `usage_analyzer.dart` by updating `constructorDefRegex` for multi-line named parameters and adding a fallback regex in `_filterNonCommentMatches`. 
 ## 1.0.5
 - Fix the comment function not found and added test case for comment function handling 
 

@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:args/args.dart';
-import 'package:dead_code_analyzer/src/analyzers/code_collector.dart';
+import 'package:dead_code_analyzer/src/analyzers/code_analyzer.dart';
 import 'package:dead_code_analyzer/src/analyzers/usage_analyzer.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/reporters/deadCodeCleaner.dart';
 import 'package:dead_code_analyzer/src/reporters/console_reporter.dart';
 import 'package:dead_code_analyzer/src/reporters/file_reporter.dart';
 import 'package:dead_code_analyzer/src/utils/healper.dart';
@@ -25,6 +26,9 @@ void main(List<String> arguments) {
         defaultsTo: '10')
     ..addFlag('analyze-functions',
         help: 'Include function usage analysis', defaultsTo: false)
+    ..addFlag('clean',
+        help: 'Clean up files containing only dead or commented-out classes',
+        negatable: false)
     ..addFlag('help',
         abbr: 'h', help: 'Show usage information', negatable: false)
     ..addFlag('verbose',
@@ -72,6 +76,7 @@ void main(List<String> arguments) {
   final showProgress = !args['no-progress'];
   final maxUnused = int.parse(args['max-unused']);
   final analyzeFunctions = args['analyze-functions'];
+  final clean = args['clean'];
 
   if (verbose) {
     print('Collecting code entities...');
@@ -117,4 +122,15 @@ void main(List<String> arguments) {
       outputDir: outputDir,
       projectPath: projectPath,
       analyzeFunctions: analyzeFunctions);
+
+  // Perform cleanup if --clean flag is provided
+  if (clean) {
+    print('\nStarting cleanup of dead and commented-out classes...');
+    deadCodeCleaner(
+      classes: classes,
+      functions: functions,
+      projectPath: projectPath,
+      analyzeFunctions: analyzeFunctions,
+    );
+  }
 }

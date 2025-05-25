@@ -4,17 +4,19 @@
 
 # Dead Code Analyzer
 
-Dead Code Analyzer is a command-line tool for Dart and Flutter projects that identifies unused code elements (classes, functions, variables) and unreachable code segments to streamline code cleanup and refactoring. Optimize your codebase, improve maintainability, and reduce technical debt with comprehensive analysis and actionable reports.
+Dead Code Analyzer is a command-line tool for Dart and Flutter projects that identifies unused code elements (classes, functions, variables) to streamline code cleanup and refactoring. Optimize your codebase, improve maintainability, and reduce technical debt with detailed analysis and actionable reports.
 
 ## Features
 
 - Detects unused classes, functions, and variables.
-- Identifies unreachable code segments.
-- Tracks usage frequency of code elements across the codebase.
-- Analyzes internal and external references for accurate results.
+- Tracks internal and external references for code elements.
 - Generates detailed reports with recommendations for code removal.
 - Displays interactive progress indicators during analysis.
 - Supports custom exclusion patterns to skip specific files or directories.
+- Experimental support for analyzing multiple projects and flavored `main` functions (e.g., `main_dev.dart`, `main_prod.dart`).
+- Verbose mode for debugging reference counting issues.
+
+**Note**: The current version uses a regex-based analysis, which may misreport references for classes with constructors. An AST-based approach is in development for improved accuracy (see [Limitations](#limitations)).
 
 ## How to Use
 
@@ -40,7 +42,7 @@ Take these steps to enable Dead Code Analyzer:
    ```
 
    ```terminal
-   # check version
+   # Check version
    dead_code_analyzer --version
    ```
 
@@ -55,8 +57,18 @@ Take these steps to enable Dead Code Analyzer:
    ```
 
    ```terminal
-   # Analyze functions with custom options
-   dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions
+   # Analyze with functions and verbose output
+   dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --verbose
+   ```
+
+   ```terminal
+   # Analyze multiple projects (monorepo)
+   dead_code_analyzer -p /path/to/monorepo --analyze-functions --verbose
+   ```
+
+   ```terminal
+   # Clean unused files
+   dead_code_analyzer -p /path/to/project --clean --analyze-functions
    ```
 
 ## Command Line Options
@@ -68,16 +80,18 @@ Options:
   -V, --version         Show version number
   -p, --project-path    Path to the project to analyze (default: current directory)
   -o, --output-dir      Directory to save the report file (default: Desktop)
-  -v, --verbose         Show detailed output including all usage locations
-  -e, --exclude         Comma-separated patterns to exclude (e.g., "test,example")
+  -v, --verbose         Show detailed output including all usage locations and debug logs
+  -e, --exclude         Comma-separated patterns to exclude (e.g., "test,example,*.g.dart")
   --no-progress         Disable progress indicators
   --only-unused         Show only unused elements in the report
+  --analyze-functions   Include function analysis (default: false)
+  --clean               Remove unused files (use with caution)
   -h, --help            Show this help message
 ```
 
 ## Example Output
 
-_Note: Timestamps and file paths are illustrative and will vary based on your system and analysis time._
+_Note: Timestamps, file paths, and counts are illustrative and will vary._
 
 ```
 Dead Code Analysis - [Generated Timestamp]
@@ -85,45 +99,68 @@ Dead Code Analysis - [Generated Timestamp]
 
 Unused Classes
 ------------------------------
- - MyUnusedClass (in lib/my_unused_class.dart)
- - OldService (in lib/services/old_service.dart)
+ - Active (in lib/sdhf.dart, internal references: 0, external references: 0, total: 0)
+ - StateFullClass (in lib/classwithfunct.dart, internal references: 0, external references: 0, total: 0)
 
 Unused Functions
 ------------------------------
- - calculateLegacyTotal (in lib/utils/calculations.dart)
- - _validateOldFormat (in lib/validators.dart)
-
-Unreachable Code
-------------------------------
- - lib/screens/home_screen.dart:47 (code after return statement)
- - lib/utils/formatter.dart:102 (code in always-false conditional)
+ - myFunction (in lib/classwithfunct.dart, internal references: 0, external references: 0, total: 0)
 
 Summary
 ------------------------------
-Total analyzed files: 78
-Total classes: 45
-Total functions: 126
-Total variables: 384
+Total analyzed files: 32
+Total classes: 15
+Total functions: 42
+Total variables: 128
 
-Unused elements: 19 (3.4% of all code elements)
- - Unused classes: 7 (15.6%)
- - Unused functions: 9 (7.1%)
- - Unused variables: 3 (0.8%)
-Unreachable code blocks: 5
+Unused elements: 8 (4.2% of all code elements)
+ - Unused classes: 4 (26.7%)
+ - Unused functions: 3 (7.1%)
+ - Unused variables: 1 (0.8%)
 
 Full analysis saved to: [User Desktop]/dead_code_analysis_[timestamp].txt
 
 Recommendations:
-- Consider removing the unused classes and functions listed above
-- Review unreachable code segments
-- Run with --verbose flag to see detailed usage information
+- Remove unused classes and functions listed above.
+- Run with --verbose to debug reference counting issues.
+- Use --clean to automatically remove unused files (backup your project first).
 ```
 
-Would you like a chart to visualize the summary statistics (e.g., unused elements breakdown)? If so, I can generate a pie chart showing the distribution of unused classes, functions, and variables.
+You can visualize the summary statistics with a pie chart by running the tool with a hypothetical `--chart` flag (not yet implemented) or manually generating one using the report data. For example, a pie chart of unused elements might show:
+
+<chartjs>
+{
+  "type": "pie",
+  "data": {
+    "labels": ["Unused Classes", "Unused Functions", "Unused Variables"],
+    "datasets": [{
+      "data": [4, 3, 1],
+      "backgroundColor": ["#FF6B6B", "#4ECDC4", "#45B7D1"],
+      "borderColor": ["#FFFFFF", "#FFFFFF", "#FFFFFF"],
+      "borderWidth": 1
+    }]
+  },
+  "options": {
+    "responsive": true,
+    "plugins": {
+      "legend": {
+        "position": "top",
+        "labels": { "color": "#333", "font": { "size": 14 } }
+      },
+      "title": {
+        "display": true,
+        "text": "Unused Elements Breakdown",
+        "color": "#333",
+        "font": { "size": 16 }
+      }
+    }
+  }
+}
+</chartjs>
 
 ## Integration with CI/CD
 
-Integrate Dead Code Analyzer into your CI/CD pipeline to automatically detect dead code:
+Integrate Dead Code Analyzer into your CI/CD pipeline:
 
 ```yaml
 # Example GitHub Actions workflow
@@ -144,44 +181,60 @@ jobs:
         run: dart pub global activate dead_code_analyzer
 
       - name: Run dead code analysis
-        run: dead_code_analyzer --no-progress --only-unused
+        run: dead_code_analyzer -p . --no-progress --only-unused --analyze-functions --verbose
 ```
 
 ## How It Works
 
-The analyzer:
+The analyzer currently uses a regex-based approach to:
 
-1. Scans all Dart files in your project.
-2. Builds an Abstract Syntax Tree (AST) for precise analysis.
-3. Identifies declarations of classes, functions, and variables.
-4. Tracks references to each element across the codebase.
-5. Detects unreachable code segments.
-6. Generates a comprehensive report with actionable findings.
+1. Scan all Dart files in the project.
+2. Identify declarations of classes, functions, and variables.
+3. Track references using regular expressions for internal (same file) and external (other files) usages.
+4. Generate a report with unused elements and reference counts.
+
+**Note**: An AST-based analyzer is in development to replace the regex approach, offering better accuracy for complex cases like constructor references.
 
 ## Best Practices
 
-- Run the tool regularly as part of your code cleanup process.
-- Review all results before removing code to avoid unintended deletions.
-- Use the `--exclude` option to ignore test files or generated code (e.g., `*.g.dart`).
-- For large projects, consider analyzing specific directories to improve performance.
+- Run with `--verbose` to debug reference counting issues (e.g., classes with constructors).
+- Use `--exclude` to skip generated files (e.g., `*.g.dart`, `*.freezed.dart`).
+- Analyze specific projects in a monorepo with `-p /path/to/project`.
+- Backup your project before using `--clean`.
+- Manually verify results before removing code.
 
-## Limitations
+## Supporting Multiple Projects and Flavored `main` Functions
 
-- May miss edge cases in complex code structures, such as macros or dynamic widget trees in Flutter.
-- Dynamic code invocation or reflection may lead to false positives.
-- Always manually verify results before modifying your codebase.
+- **Multiple Projects**: Run the analyzer on a monorepo root or specify project paths (e.g., `-p /path/to/app1`). Verbose logs include file paths to distinguish projects.
+- **Flavored `main` Functions**: The tool detects `main_dev.dart`, `main_prod.dart`, etc., counting references as external usages. Use `--verbose` to see which files reference elements.
+- **Debugging**: Add a custom `flavors.yaml` for explicit flavor mapping (see [Contributing](#contributing)).
+
+## Known Limitations
+
+- **Constructor Reference Counting**: Classes with constructors (e.g., `Active({ ... })`) may be incorrectly counted as having 1 internal reference due to regex limitations. Use `--verbose` to inspect debug logs and report issues.
+- **Dynamic Code**: Reflection or dynamic invocations may lead to false positives.
+- **Unreachable Code**: Not fully supported in the current regex-based version.
+- **Complex Patterns**: Regex may miss callbacks or nested constructor calls.
+- **Monorepo Support**: Limited isolation; run separately for each project if counts are conflated.
+
+An AST-based version (in development) will address these issues by parsing the Dart AST for precise reference tracking.
 
 ## Contributing
 
 Contributions are welcome! To contribute:
 
 1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes (`git commit -m 'Add some amazing feature'`).
-4. Push to the branch (`git push origin feature/amazing-feature`).
+2. Create your feature branch (`git checkout -b feature/fix-constructor-count`).
+3. Commit your changes (`git commit -m 'Fix constructor reference counting'`).
+4. Push to the branch (`git push origin feature/fix-constructor-count`).
 5. Open a Pull Request.
 
-See our [contributing guidelines](CONTRIBUTING.md) for more details.
+To help with the constructor issue:
+- Share debug logs from `--verbose` runs.
+- Provide sample files (e.g., `sdhf.dart`) with problematic classes.
+- Test the AST-based branch when available.
+
+See our [contributing guidelines](CONTRIBUTING.md) for details.
 
 ## License
 
