@@ -128,35 +128,18 @@ Recommendations:
 
 You can visualize the summary statistics with a pie chart by running the tool with a hypothetical `--chart` flag (not yet implemented) or manually generating one using the report data. For example, a pie chart of unused elements might show:
 
-<chartjs>
-{
-  "type": "pie",
-  "data": {
-    "labels": ["Unused Classes", "Unused Functions", "Unused Variables"],
-    "datasets": [{
-      "data": [4, 3, 1],
-      "backgroundColor": ["#FF6B6B", "#4ECDC4", "#45B7D1"],
-      "borderColor": ["#FFFFFF", "#FFFFFF", "#FFFFFF"],
-      "borderWidth": 1
-    }]
-  },
-  "options": {
-    "responsive": true,
-    "plugins": {
-      "legend": {
-        "position": "top",
-        "labels": { "color": "#333", "font": { "size": 14 } }
-      },
-      "title": {
-        "display": true,
-        "text": "Unused Elements Breakdown",
-        "color": "#333",
-        "font": { "size": 16 }
-      }
-    }
-  }
-}
-</chartjs>
+### Project Health Overview
+
+```mermaid
+graph TD
+    A[Project Scan] --> B{Code Quality}
+    B -->|Good| C[4 Unused Classes]
+    B -->|Medium| D[3 Unused Functions]
+    B -->|Excellent| E[1 Unused Variable]
+    C --> F[Cleanup Recommended]
+    D --> F
+    E --> G[Minor Cleanup]
+```
 
 ## Integration with CI/CD
 
@@ -230,6 +213,7 @@ Contributions are welcome! To contribute:
 5. Open a Pull Request.
 
 To help with the constructor issue:
+
 - Share debug logs from `--verbose` runs.
 - Provide sample files (e.g., `sdhf.dart`) with problematic classes.
 - Test the AST-based branch when available.
