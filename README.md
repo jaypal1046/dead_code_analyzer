@@ -128,19 +128,6 @@ Recommendations:
 
 You can visualize the summary statistics with a pie chart by running the tool with a hypothetical `--chart` flag (not yet implemented) or manually generating one using the report data. For example, a pie chart of unused elements might show:
 
-### Project Health Overview
-
-```mermaid
-graph TD
-    A[Project Scan] --> B{Code Quality}
-    B -->|Good| C[4 Unused Classes]
-    B -->|Medium| D[3 Unused Functions]
-    B -->|Excellent| E[1 Unused Variable]
-    C --> F[Cleanup Recommended]
-    D --> F
-    E --> G[Minor Cleanup]
-```
-
 ## Integration with CI/CD
 
 Integrate Dead Code Analyzer into your CI/CD pipeline:
