@@ -137,6 +137,7 @@ String sanitizeFilePath(String filePath) {
 
 // Expanded list of prebuilt Flutter and framework methods
 final Set<String> prebuiltFlutterMethods = {
+  'if',
   'main',
   'runApp',
   'runZoned',
