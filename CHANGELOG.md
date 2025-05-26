@@ -3,6 +3,8 @@
 All notable changes to the **Dead Code Analyzer** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## 1.0.7
+- file naming changes to match the pub dev file naming structure.
 ## 1.0.6
 - Updated `README.md` to reflect the current regex-based implementation of Dead Code Analyzer.
 - Clarified that the tool uses regex for reference counting.

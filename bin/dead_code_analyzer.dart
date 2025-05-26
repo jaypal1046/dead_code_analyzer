@@ -4,7 +4,7 @@ import 'package:dead_code_analyzer/src/analyzers/code_analyzer.dart';
 import 'package:dead_code_analyzer/src/analyzers/usage_analyzer.dart';
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
-import 'package:dead_code_analyzer/src/reporters/deadCodeCleaner.dart';
+import 'package:dead_code_analyzer/src/reporters/dead_code_cleaner.dart';
 import 'package:dead_code_analyzer/src/reporters/console_reporter.dart';
 import 'package:dead_code_analyzer/src/reporters/file_reporter.dart';
 import 'package:dead_code_analyzer/src/utils/healper.dart';
