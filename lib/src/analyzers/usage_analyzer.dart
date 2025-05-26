@@ -27,164 +27,13 @@ void findUsages({
 
     try {
       final content = File(filePath).readAsStringSync();
-      final lines = content.split('\n');
 
       // Analyze class usages
-      for (final entry in classes.entries) {
-        final className = entry.key;
-        final classInfo = entry.value;
-
-        final usageRegex = RegExp(
-          r'\b' + className + r'\b',
-          multiLine: true,
-        );
-        final matches = usageRegex.allMatches(content);
-        int usageCount = matches.length;
-
-        if (filePath == classInfo.definedInFile) {
-          final defRegex = RegExp(r'\bclass\s+' + className + r'\b');
-          final stateRegex = RegExp(r'\b_' +
-              className +
-              r'State\b|State\s*<' +
-              className +
-              r'\s*>|\bcreateState\s*\(\s*\)\s*=>');
-          final constructorDefRegex = RegExp(r'(?:const\s+)?\b' +
-              className +
-              r'\s*\((?:{[\s\S]*?}\s*)?\)[\s\n]*(?:[{;]|}\s*;)');
-          final defMatches = defRegex.allMatches(content);
-          final stateMatches = stateRegex.allMatches(content);
-          final constructorMatches = constructorDefRegex.allMatches(content);
-
-          usageCount -= (defMatches.length +
-              stateMatches.length +
-              constructorMatches.length);
-          usageCount = _filterNonCommentMatches(
-              matches, lines, content, filePath,
-              className: className);
-          classInfo.internalUsageCount = max(0, usageCount);
-
-          if (usageCount > 0 ||
-              className == 'Active' ||
-              className == 'MyApp' ||
-              className == 'MyHomePage' ||
-              className == 'StateFullClass') {
-            print(
-                'Debug: $className in $filePath has $usageCount internal matches (raw matches: ${matches.length}, def: ${defMatches.length}, state: ${stateMatches.length}, constructor: ${constructorMatches.length}):');
-            int lineNumber = 0;
-            int charCount = 0;
-            for (final match in matches) {
-              while (lineNumber < lines.length &&
-                  match.start >= charCount + lines[lineNumber].length + 1) {
-                charCount += lines[lineNumber].length + 1;
-                lineNumber++;
-              }
-              print(
-                  '  Usage match at line ${lineNumber + 1}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-            }
-            for (final cMatch in constructorMatches) {
-              lineNumber = 0;
-              charCount = 0;
-              while (lineNumber < lines.length &&
-                  cMatch.start >= charCount + lines[lineNumber].length + 1) {
-                charCount += lines[lineNumber].length + 1;
-                lineNumber++;
-              }
-              print(
-                  '  Constructor match at line ${lineNumber + 1}: "${content.substring(max(0, cMatch.start - 20), min(content.length, cMatch.end + 20))}"');
-            }
-          }
-        } else {
-          usageCount = _filterNonCommentMatches(
-              matches, lines, content, filePath,
-              className: className);
-          classInfo.externalUsages[filePath] = max(0, usageCount);
-
-          if (usageCount > 0 &&
-              (className == 'MyApp' ||
-                  className == 'MyHomePage' ||
-                  className == 'StateFullClass' ||
-                  className == 'Active')) {
-            print(
-                'Debug: $className in $filePath has $usageCount external matches:');
-            int lineNumber = 0;
-            int charCount = 0;
-            for (final match in matches) {
-              while (lineNumber < lines.length &&
-                  match.start >= charCount + lines[lineNumber].length + 1) {
-                charCount += lines[lineNumber].length + 1;
-                lineNumber++;
-              }
-              print(
-                  '  Match at line ${lineNumber + 1}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-            }
-          }
-        }
-      }
+      _analyzeClassUsages(content, filePath, classes);
 
       // Analyze function usages
       if (analyzeFunctions) {
-        for (final entry in functions.entries) {
-          final functionName = entry.key;
-          final functionInfo = entry.value;
-
-          // Match function calls and callback references
-          final usageRegex = RegExp(
-            r'\b' + functionName + r'\b(?:\s*\(|(?=\s*(?:[,;}]|\)|=>)))',
-            multiLine: true,
-          );
-          final matches = usageRegex.allMatches(content);
-          int usageCount = matches.length;
-
-          // Match function definitions
-          final defRegex = RegExp(
-            r'(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?|[A-Z]\w*)\s+' +
-                functionName +
-                r'\s*\([^)]*\)\s*(?:async)?\s*[{=]',
-          );
-          final defMatches = defRegex.allMatches(content);
-          usageCount -= defMatches.length;
-
-          if (filePath == functionInfo.definedInFile) {
-            // Filter out matches in comments, strings, or definitions
-            usageCount = _filterNonCommentMatches(
-                matches, lines, content, filePath,
-                functionName: functionName);
-            functionInfo.internalUsageCount = max(0, usageCount);
-
-            // Enhanced debug logging
-            if (functionName == 'myFunction' ||
-                functionName == '_incrementCounter') {
-              print(
-                  'Debug: $functionName in $filePath has $usageCount internal matches (raw matches: ${matches.length}, def matches: ${defMatches.length}):');
-              int lineNumber = 0;
-              int charCount = 0;
-              for (final match in matches) {
-                while (lineNumber < lines.length &&
-                    match.start >= charCount + lines[lineNumber].length + 1) {
-                  charCount += lines[lineNumber].length + 1;
-                  lineNumber++;
-                }
-                print(
-                    '  Usage match at line ${lineNumber + 1}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-              }
-              for (final defMatch in defMatches) {
-                while (lineNumber < lines.length &&
-                    defMatch.start >=
-                        charCount + lines[lineNumber].length + 1) {
-                  charCount += lines[lineNumber].length + 1;
-                  lineNumber++;
-                }
-                print(
-                    '  Def match at line ${lineNumber + 1}: "${content.substring(max(0, defMatch.start - 20), min(content.length, defMatch.end + 20))}"');
-              }
-            }
-          } else {
-            usageCount = _filterNonCommentMatches(
-                matches, lines, content, filePath,
-                functionName: functionName);
-            functionInfo.externalUsages[filePath] = max(0, usageCount);
-          }
-        }
+        _analyzeFunctionUsages(content, filePath, functions);
       }
     } catch (e) {
       print('\nWarning: Could not read file $filePath: $e');
@@ -201,331 +50,297 @@ void findUsages({
   }
 }
 
-int _filterNonCommentMatches(Iterable<RegExpMatch> matches, List<String> lines,
-    String content, String filePath,
-    {String? className, String? functionName}) {
-  int validCount = 0;
-  bool inMultiLineComment = false;
-  int charCount = 0;
+void _analyzeClassUsages(
+    String content, String filePath, Map<String, ClassInfo> classes) {
+  for (final entry in classes.entries) {
+    final className = entry.key;
+    final classInfo = entry.value;
 
-  for (final match in matches) {
-    int lineIndex = -1;
-    charCount = 0;
-    for (int i = 0; i < lines.length; i++) {
-      charCount += lines[i].length + 1;
-      if (match.start < charCount) {
-        lineIndex = i;
-        break;
-      }
-    }
+    // Find all matches of the class name
+    final usageRegex = RegExp(r'\b' + RegExp.escape(className) + r'\b');
+    final matches = usageRegex.allMatches(content);
 
-    if (lineIndex == -1) continue;
+    if (matches.isEmpty) continue;
 
-    final line = lines[lineIndex];
-    final matchStartInLine =
-        match.start - (charCount - lines[lineIndex].length - 1);
+    // Get positions to exclude (definitions, constructors, etc.)
+    final excludePositions = _getClassExcludePositions(content, className);
 
-    if (line.contains('/*') && !line.contains('*/')) {
-      inMultiLineComment = true;
-    } else if (line.contains('*/')) {
-      inMultiLineComment = false;
-    }
-    if (inMultiLineComment) continue;
+    // Filter matches by removing excluded positions
+    final validMatches = matches.where((match) {
+      return !_isPositionExcluded(match.start, match.end, excludePositions) &&
+          !_isInComment(content, match.start) &&
+          !_isInString(content, match.start);
+    }).toList();
 
-    if (line.trim().startsWith('//') || line.trim().startsWith('///')) continue;
+    final usageCount = validMatches.length;
 
-    if (_isInsideString(line, matchStartInLine)) continue;
-
-    if (className != null) {
-      final defRegex = RegExp(r'\bclass\s+' + className + r'\b');
-      final stateRegex = RegExp(r'\b_' +
-          className +
-          r'State\b|State\s*<' +
-          className +
-          r'\s*>|\bcreateState\s*\(\s*\)\s*=>');
-      final constructorDefRegex = RegExp(r'(?:const\s+)?\b' +
-          className +
-          r'\s*\((?:{[\s\S]*?}\s*)?\)[\s\n]*(?:[{;]|}\s*;)');
-      // Fallback: Exclude lines starting with className followed by '('
-      final constructorFallback = RegExp(r'^\s*' + className + r'\s*\(');
-      if (defRegex.hasMatch(line) ||
-          stateRegex.hasMatch(line) ||
-          constructorDefRegex.hasMatch(line) ||
-          constructorFallback.hasMatch(line)) {
-        continue;
-      }
-    }
-
-    if (functionName != null) {
-      final defRegex = RegExp(
-        r'(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?|[A-Z]\w*)\s+' +
-            functionName +
-            r'\s*\([^)]*\)\s*(?:async)?\s*[{=]',
-      );
-      // Additional check for callback context
-      if (defRegex.hasMatch(line)) continue;
-      // Ensure match is in a callback-like context (e.g., after ':', '=', or in parameters)
-      final context = line.substring(0, matchStartInLine);
-      if (!context.contains(RegExp(r'[:=]\s*$')) &&
-          !line.contains(RegExp(r'[,;}]'))) {
-        continue;
-      }
-    }
-
-    validCount++;
-  }
-
-  return validCount;
-}
-
-bool _isInsideString(String line, int matchPosition) {
-  bool inSingleQuote = false;
-  bool inDoubleQuote = false;
-  bool inRawString = false;
-
-  for (int i = 0; i < line.length && i < matchPosition; i++) {
-    if (i > 0 && line[i - 1] == '\\') continue;
-
-    if (line[i] == "'" && !inDoubleQuote && !inRawString) {
-      inSingleQuote = !inSingleQuote;
-    } else if (line[i] == '"' && !inSingleQuote && !inRawString) {
-      inDoubleQuote = !inDoubleQuote;
-    } else if (i <= line.length - 2 &&
-        (line.substring(i, i + 2) == 'r"' ||
-            line.substring(i, i + 2) == "r'")) {
-      inRawString = !inRawString;
-      i++;
+    if (filePath == classInfo.definedInFile) {
+      classInfo.internalUsageCount = usageCount;
+    } else if (usageCount > 0) {
+      classInfo.externalUsages[filePath] = usageCount;
     }
   }
-
-  return inSingleQuote || inDoubleQuote || inRawString;
 }
-// import 'dart:io';
-// import 'dart:math';
-// import 'package:dead_code_analyzer/src/model/class_info.dart';
-// import 'package:dead_code_analyzer/src/model/code_info.dart';
-// import 'package:dead_code_analyzer/src/utils/healper.dart';
-// import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
-// import 'package:path/path.dart' as path;
 
-// void findUsages({
-//   required Directory dir,
-//   required Map<String, ClassInfo> classes,
-//   required Map<String, CodeInfo> functions,
-//   required bool showProgress,
-//   required bool analyzeFunctions,
-// }) {
-//   final dartFiles = getDartFiles(dir);
+void _analyzeFunctionUsages(
+    String content, String filePath, Map<String, CodeInfo> functions) {
+  for (final entry in functions.entries) {
+    final functionName = entry.key;
+    final functionInfo = entry.value;
 
-//   ProgressBar? progressBar;
-//   if (showProgress) {
-//     progressBar =
-//         ProgressBar(dartFiles.length, description: 'Analyzing code usage');
-//   }
+    // Find all matches of the function name
+    final usageRegex = RegExp(r'\b' + RegExp.escape(functionName) + r'\b');
+    final matches = usageRegex.allMatches(content);
 
-//   var count = 0;
-//   for (final file in dartFiles) {
-//     final filePath = path.absolute(file.path); // Use absolute path
+    if (matches.isEmpty) continue;
 
-//     try {
-//       final content = File(filePath).readAsStringSync();
-//       final lines = content.split('\n');
+    // Get positions to exclude (function definitions)
+    final excludePositions =
+        _getFunctionExcludePositions(content, functionName);
 
-//       // Analyze class usages
-//       for (final entry in classes.entries) {
-//         final className = entry.key;
-//         final classInfo = entry.value;
+    // Filter matches by removing excluded positions
+    final validMatches = matches.where((match) {
+      return !_isPositionExcluded(match.start, match.end, excludePositions) &&
+          !_isInComment(content, match.start) &&
+          !_isInString(content, match.start);
+    }).toList();
 
-//         // Match class usage, allowing constructor calls
-//         final usageRegex = RegExp(
-//           r'\b' + className + r'\b',
-//           multiLine: true,
-//         );
-//         final matches = usageRegex.allMatches(content);
-//         int usageCount = matches.length;
+    final usageCount = validMatches.length;
 
-//         if (filePath == classInfo.definedInFile) {
-//           // Exclude class definition, state class, and createState
-//           final defRegex = RegExp(r'\bclass\s+' + className + r'\b');
-//           final stateRegex = RegExp(
-//               r'\b_' + className + r'State\b|State\s*<' + className + r'\s*>|\bcreateState\s*\(\s*\)\s*=>');
-//           final constructorDefRegex =
-//               RegExp(r'(?:const\s+)?\b' + className + r'\s*\([^)]*\)\s*[{;]');
-//           final defMatches = defRegex.allMatches(content);
-//           final stateMatches = stateRegex.allMatches(content);
-//           final constructorMatches = constructorDefRegex.allMatches(content);
+    if (filePath == functionInfo.definedInFile) {
+      functionInfo.internalUsageCount = usageCount;
+    } else if (usageCount > 0) {
+      functionInfo.externalUsages[filePath] = usageCount;
+    }
+  }
+}
 
-//           // Subtract definition-related matches
-//           usageCount -= (defMatches.length + stateMatches.length + constructorMatches.length);
+List<_ExcludeRange> _getClassExcludePositions(
+    String content, String className) {
+  final excludePositions = <_ExcludeRange>[];
 
-//           // Filter out matches in comments, strings, or definitions
-//           usageCount = _filterNonCommentMatches(matches, lines, content, filePath, className: className);
-//           classInfo.internalUsageCount = max(0, usageCount);
+  // 1. Class declaration: class ClassName extends/implements/with
+  final classDeclarationRegex = RegExp(
+    r'\bclass\s+' +
+        RegExp.escape(className) +
+        r'\b(?:\s+(?:extends|implements|with)\s+[^{]*)?',
+    multiLine: true,
+  );
+  for (final match in classDeclarationRegex.allMatches(content)) {
+    final classNameStart =
+        match.group(0)!.indexOf(className, match.group(0)!.indexOf('class'));
+    excludePositions.add(_ExcludeRange(
+      match.start + classNameStart,
+      match.start + classNameStart + className.length,
+    ));
+  }
 
-//           // Debug logging for MyApp, MyHomePage, StateFullClass
-//           if (usageCount > 0 && (className == 'MyApp' || className == 'MyHomePage' || className == 'StateFullClass')) {
-//             print('Debug: $className in $filePath has $usageCount internal matches:');
-//             for (final match in matches) {
-//               print('  Match at ${match.start}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-//             }
-//           }
-//         } else {
-//           // Filter external matches
-//           usageCount = _filterNonCommentMatches(matches, lines, content, filePath, className: className);
-//           classInfo.externalUsages[filePath] = max(0, usageCount);
+  // 2. Constructor definitions: ClassName(...) or const ClassName(...)
+  final constructorRegex = RegExp(
+    r'(?:^|\s)(?:const\s+)?' +
+        RegExp.escape(className) +
+        r'\s*\([^)]*\)\s*(?::\s*[^{]*)?(?:\{|;)',
+    multiLine: true,
+  );
+  for (final match in constructorRegex.allMatches(content)) {
+    final constructorStart = match.group(0)!.indexOf(className);
+    if (constructorStart >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + constructorStart,
+        match.start + constructorStart + className.length,
+      ));
+    }
+  }
 
-//           // Debug logging for external matches
-//           if (usageCount > 0 && (className == 'MyApp' || className == 'MyHomePage' || className == 'StateFullClass')) {
-//             print('Debug: $className in $filePath has $usageCount external matches:');
-//             for (final match in matches) {
-//               print('  Match at ${match.start}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-//             }
-//           }
-//         }
-//       }
+  // 3. State class definitions: _ClassNameState or State<ClassName>
+  final stateClassRegex = RegExp(
+    r'\b_' +
+        RegExp.escape(className) +
+        r'State\b|\bState\s*<\s*' +
+        RegExp.escape(className) +
+        r'\s*>',
+    multiLine: true,
+  );
+  for (final match in stateClassRegex.allMatches(content)) {
+    final stateMatch = match.group(0)!;
+    final classNameIndex = stateMatch.indexOf(className);
+    if (classNameIndex >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + classNameIndex,
+        match.start + classNameIndex + className.length,
+      ));
+    }
+  }
 
-//       // Analyze function usages (only if enabled)
-//       if (analyzeFunctions) {
-//         for (final entry in functions.entries) {
-//           final functionName = entry.key;
-//           final functionInfo = entry.value;
+  // 4. createState method that might reference the class
+  final createStateRegex = RegExp(
+    r'\bcreateState\s*\(\s*\)\s*(?:=>\s*_?' +
+        RegExp.escape(className) +
+        r'State\s*\(\s*\)|{\s*return\s+_?' +
+        RegExp.escape(className) +
+        r'State\s*\(\s*\))',
+    multiLine: true,
+  );
+  for (final match in createStateRegex.allMatches(content)) {
+    final createStateMatch = match.group(0)!;
+    final classNameIndex = createStateMatch.indexOf(className);
+    if (classNameIndex >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + classNameIndex,
+        match.start + classNameIndex + className.length,
+      ));
+    }
+  }
 
-//           // Match function calls only
-//           final usageRegex = RegExp(
-//             r'\b' + functionName + r'\b\s*\(',
-//             multiLine: true,
-//           );
-//           final matches = usageRegex.allMatches(content);
-//           int usageCount = matches.length;
+  // 5. Factory constructors: factory ClassName.named()
+  final factoryRegex = RegExp(
+    r'\bfactory\s+' + RegExp.escape(className) + r'\.',
+    multiLine: true,
+  );
+  for (final match in factoryRegex.allMatches(content)) {
+    final factoryMatch = match.group(0)!;
+    final classNameIndex = factoryMatch.indexOf(className);
+    if (classNameIndex >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + classNameIndex,
+        match.start + classNameIndex + className.length,
+      ));
+    }
+  }
 
-//           if (filePath == functionInfo.definedInFile) {
-//             // Match function definition precisely
-//             final defRegex = RegExp(
-//               r'(?:(?:static\s+)?(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?|[A-Z]\w*)\s+|)(?:\w+\.)?' +
-//                   functionName +
-//                   r'\s*\([^)]*\)\s*(?:async)?\s*(?:{[^{}]*}|=>[^;]*;|\s*;)',
-//             );
-//             final defMatches = defRegex.allMatches(content);
-//             usageCount -= defMatches.length;
+  return excludePositions;
+}
 
-//             // Filter out matches in comments, strings, or definitions
-//             usageCount = _filterNonCommentMatches(matches, lines, content, filePath, functionName: functionName);
-//             functionInfo.internalUsageCount = max(0, usageCount);
+List<_ExcludeRange> _getFunctionExcludePositions(
+    String content, String functionName) {
+  final excludePositions = <_ExcludeRange>[];
 
-//             // Debug logging for myFunction and _incrementCounter
-//             if (usageCount > 0 && (functionName == 'myFunction' || functionName == '_incrementCounter')) {
-//               print('Debug: $functionName in $filePath has $usageCount internal matches:');
-//               for (final match in matches) {
-//                 print('  Match at ${match.start}: "${content.substring(max(0, match.start - 20), min(content.length, match.end + 20))}"');
-//               }
-//             }
-//           } else {
-//             // Filter external matches
-//             usageCount = _filterNonCommentMatches(matches, lines, content, filePath, functionName: functionName);
-//             functionInfo.externalUsages[filePath] = max(0, usageCount);
-//           }
-//         }
-//       }
-//     } catch (e) {
-//       print('\nWarning: Could not read file $filePath: $e');
-//     }
+  // Function declarations with various return types
+  final functionDeclarationRegex = RegExp(
+    r'(?:^|\s)(?:static\s+)?(?:(?:void|int|double|String|bool|dynamic|List(?:<[^>]*>)?|Map(?:<[^,>]*,\s*[^>]*>)?|Set(?:<[^>]*>)?|Future(?:<[^>]*>)?|Stream(?:<[^>]*>)?|[A-Z][a-zA-Z0-9_]*(?:<[^>]*>)?)\s+)?' +
+        RegExp.escape(functionName) +
+        r'\s*\([^)]*\)\s*(?:async\s*)?(?:\{|=>|;)',
+    multiLine: true,
+  );
 
-//     count++;
-//     if (showProgress) {
-//       progressBar!.update(count);
-//     }
-//   }
+  for (final match in functionDeclarationRegex.allMatches(content)) {
+    final functionMatch = match.group(0)!;
+    final functionNameIndex = functionMatch.indexOf(functionName);
+    if (functionNameIndex >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + functionNameIndex,
+        match.start + functionNameIndex + functionName.length,
+      ));
+    }
+  }
 
-//   if (showProgress) {
-//     progressBar!.done();
-//   }
-// }
+  // Getter/Setter declarations
+  final getterSetterRegex = RegExp(
+    r'(?:get|set)\s+' +
+        RegExp.escape(functionName) +
+        r'\s*(?:\([^)]*\))?\s*(?:=>|{)',
+    multiLine: true,
+  );
 
-// // Helper function to filter out matches in comments, strings, or definitions
-// int _filterNonCommentMatches(
-//     Iterable<RegExpMatch> matches, List<String> lines, String content, String filePath,
-//     {String? className, String? functionName}) {
-//   int validCount = 0;
-//   bool inMultiLineComment = false;
-//   int charCount = 0;
+  for (final match in getterSetterRegex.allMatches(content)) {
+    final getterSetterMatch = match.group(0)!;
+    final functionNameIndex = getterSetterMatch.indexOf(functionName);
+    if (functionNameIndex >= 0) {
+      excludePositions.add(_ExcludeRange(
+        match.start + functionNameIndex,
+        match.start + functionNameIndex + functionName.length,
+      ));
+    }
+  }
 
-//   for (final match in matches) {
-//     // Find the line containing the match
-//     int lineIndex = -1;
-//     charCount = 0;
-//     for (int i = 0; i < lines.length; i++) {
-//       charCount += lines[i].length + 1; // +1 for newline
-//       if (match.start < charCount) {
-//         lineIndex = i;
-//         break;
-//       }
-//     }
+  return excludePositions;
+}
 
-//     if (lineIndex == -1) continue; // Skip if line not found
+bool _isPositionExcluded(
+    int start, int end, List<_ExcludeRange> excludeRanges) {
+  for (final range in excludeRanges) {
+    if (start >= range.start && end <= range.end) {
+      return true;
+    }
+  }
+  return false;
+}
 
-//     final line = lines[lineIndex];
-//     final matchStartInLine = match.start - (charCount - lines[lineIndex].length - 1);
+bool _isInComment(String content, int position) {
+  // Find the line containing this position
+  final beforePosition = content.substring(0, position);
+  final lastNewline = beforePosition.lastIndexOf('\n');
+  final line = content.substring(
+    lastNewline + 1,
+    content.indexOf('\n', position) == -1
+        ? content.length
+        : content.indexOf('\n', position),
+  );
+  final positionInLine = position - lastNewline - 1;
 
-//     // Check for multi-line comment state
-//     if (line.contains('/*') && !line.contains('*/')) {
-//       inMultiLineComment = true;
-//     } else if (line.contains('*/')) {
-//       inMultiLineComment = false;
-//     }
-//     if (inMultiLineComment) continue;
+  // Check for single-line comments
+  final singleLineComment = line.indexOf('//');
+  if (singleLineComment != -1 && singleLineComment <= positionInLine) {
+    return true;
+  }
 
-//     // Skip single-line comments or doc comments
-//     if (line.trim().startsWith('//') || line.trim().startsWith('///')) continue;
+  // Check for multi-line comments
+  final beforePositionContent = content.substring(0, position);
+  int commentStart = -1;
+  int searchIndex = 0;
 
-//     // Check if the match is inside a string literal
-//     if (_isInsideString(line, matchStartInLine)) continue;
+  while (true) {
+    final start = beforePositionContent.indexOf('/*', searchIndex);
+    if (start == -1) break;
 
-//     // Additional check for class definitions and boilerplate
-//     if (className != null) {
-//       final defRegex = RegExp(r'\bclass\s+' + className + r'\b');
-//       final stateRegex = RegExp(
-//           r'\b_' + className + r'State\b|State\s*<' + className + r'\s*>|\bcreateState\s*\(\s*\)\s*=>');
-//       final constructorDefRegex =
-//           RegExp(r'(?:const\s+)?\b' + className + r'\s*\([^)]*\)\s*[{;]');
-//       if (defRegex.hasMatch(line) || stateRegex.hasMatch(line) || constructorDefRegex.hasMatch(line)) {
-//         continue;
-//       }
-//     }
+    final end = content.indexOf('*/', start);
+    if (end == -1 || end > position) {
+      commentStart = start;
+      break;
+    }
 
-//     // Additional check for function definitions
-//     if (functionName != null) {
-//       final defRegex = RegExp(
-//         r'(?:(?:static\s+)?(?:void|int|double|String|bool|dynamic|List<\w+>|Map<\w+,\w+>|Future(?:<\w+>)?|[A-Z]\w*)\s+|)(?:\w+\.)?' +
-//             functionName +
-//             r'\s*\([^)]*\)\s*(?:async)?\s*(?:{[^{}]*}|=>[^;]*;|\s*;)',
-//       );
-//       if (defRegex.hasMatch(line)) continue;
-//     }
+    searchIndex = end + 2;
+  }
 
-//     validCount++;
-//   }
+  return commentStart != -1;
+}
 
-//   return validCount;
-// }
+bool _isInString(String content, int position) {
+  // Simple string detection - check if we're between quotes
+  final beforePosition = content.substring(0, position);
 
-// // Helper function to check if a match is inside a string literal
-// bool _isInsideString(String line, int matchPosition) {
-//   bool inSingleQuote = false;
-//   bool inDoubleQuote = false;
-//   bool inRawString = false;
+  // Count unescaped quotes
+  int singleQuotes = 0;
+  int doubleQuotes = 0;
+  bool escaped = false;
 
-//   for (int i = 0; i < line.length && i < matchPosition; i++) {
-//     if (i > 0 && line[i - 1] == '\\') continue; // Skip escaped characters
+  for (int i = 0; i < beforePosition.length; i++) {
+    final char = beforePosition[i];
 
-//     if (line[i] == "'" && !inDoubleQuote && !inRawString) {
-//       inSingleQuote = !inSingleQuote;
-//     } else if (line[i] == '"' && !inSingleQuote && !inRawString) {
-//       inDoubleQuote = !inDoubleQuote;
-//     } else if (i <= line.length - 2 && (line.substring(i, i + 2) == 'r"' || line.substring(i, i + 2) == "r'")) {
-//       inRawString = !inRawString;
-//       i++; // Skip the next character
-//     }
-//   }
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
 
-//   return inSingleQuote || inDoubleQuote || inRawString;
-// }
+    if (char == '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char == "'") singleQuotes++;
+    if (char == '"') doubleQuotes++;
+  }
+
+  // If we have an odd number of quotes, we're inside a string
+  return (singleQuotes % 2 == 1) || (doubleQuotes % 2 == 1);
+}
+
+class _ExcludeRange {
+  final int start;
+  final int end;
+
+  _ExcludeRange(this.start, this.end);
+
+  @override
+  String toString() => 'ExcludeRange($start, $end)';
+}
