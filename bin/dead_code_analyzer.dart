@@ -99,7 +99,7 @@ void main(List<String> arguments) {
   }
 
   // Find all usages/references of the collected code entities
-  findUsages(
+  findUsagesParallel(
       dir: projectDir,
       classes: classes,
       functions: functions,

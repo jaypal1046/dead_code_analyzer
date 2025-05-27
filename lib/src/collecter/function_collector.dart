@@ -93,7 +93,7 @@ void functionCollecter({
       String functionKey = functionName;
       if (isFunctionCommented) {
         functionKey =
-            '${functionName}commented_${sanitizeFilePath(filePath)}_${lineIndex}_${match.start}';
+            '${functionName}_commented_${sanitizeFilePath(filePath)}_${lineIndex}_${match.start}';
       } else if (functions.containsKey(functionName)) {
         functionKey = functionName;
       }
