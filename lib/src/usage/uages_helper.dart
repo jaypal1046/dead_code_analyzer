@@ -3,6 +3,14 @@ import 'dart:math';
 bool shouldExcludeClassMatch(
     String content, RegExpMatch match, String className) {
   final matchStart = match.start;
+  final matchEnd = match.end;
+
+  // Check for inclusion overrides first
+  // Example: Include if it's a static method call (e.g., ClassName.staticMethod())
+  final afterMatch = content.substring(matchEnd);
+  if (RegExp(r'^\s*\.\s*\w+\s*\(').hasMatch(afterMatch)) {
+    return false; // Static method call detected, include it (not excluded)
+  }
 
   // Get the line containing this match
   final lineInfo = getLineInfo(content, matchStart);
@@ -13,9 +21,10 @@ bool shouldExcludeClassMatch(
       .hasMatch(line)) {
     return true;
   }
-
   // 2. Constructor definition within the class
-  if (isConstructorDefinition(content, match, className)) {
+  bool isitConstructorDefinition =
+      isConstructorDefinition(content, match, className);
+  if (isitConstructorDefinition == true) {
     return true;
   }
 
@@ -33,31 +42,31 @@ bool shouldExcludeClassMatch(
     return true;
   }
 
-  // 5. createState method returning state class
-  if (RegExp(r'\bcreateState\s*\(\s*\)\s*(?:=>\s*_' +
-          RegExp.escape(className) +
-          r'State\s*\(\s*\)|{\s*return\s+_' +
-          RegExp.escape(className) +
-          r'State\s*\(\s*\))')
-      .hasMatch(line)) {
-    return true;
-  }
+  // // 5. createState method returning state class
+  // if (RegExp(r'\bcreateState\s*\(\s*\)\s*(?:=>\s*_' +
+  //         RegExp.escape(className) +
+  //         r'State\s*\(\s*\)|{\s*return\s+_' +
+  //         RegExp.escape(className) +
+  //         r'State\s*\(\s*\))')
+  //     .hasMatch(line)) {
+  //   return true;
+  // }
 
-  // 6. Factory constructor definition
-  if (RegExp(r'\bfactory\s+' + RegExp.escape(className) + r'\.')
-      .hasMatch(line)) {
-    return true;
-  }
+  // // 6. Factory constructor definition
+  // if (RegExp(r'\bfactory\s+' + RegExp.escape(className) + r'\.')
+  //     .hasMatch(line)) {
+  //   return true;
+  // }
 
   // 7. Import statements
-  if (RegExp(r'^\s*import\s+').hasMatch(line)) {
-    return true;
-  }
+  // if (RegExp(r'^\s*import\s+').hasMatch(line)) {
+  //   return true;
+  // }
 
-  // 8. Export statements
-  if (RegExp(r'^\s*export\s+').hasMatch(line)) {
-    return true;
-  }
+  // // 8. Export statements
+  // if (RegExp(r'^\s*export\s+').hasMatch(line)) {
+  //   return true;
+  // }
 
   return false;
 }
@@ -72,7 +81,7 @@ bool isConstructorDefinition(
   final beforeMatch = content.substring(0, matchStart);
   final isInsideClass = isInsideClassDefinition(beforeMatch, className);
 
-  if (!isInsideClass) {
+  if (isInsideClass == false) {
     return false; // If not inside class, it's likely a constructor call
   }
 
@@ -100,7 +109,6 @@ bool isConstructorDefinition(
   // 2. Check position and context for edge cases
   final positionInLine = matchStart - lineInfo.lineStart;
   final beforeClassName = line.substring(0, min(positionInLine, line.length));
-
   // If there's only whitespace and optionally modifiers before the class name
   if (RegExp(r'^\s*(?:const\s+|factory\s+)?$').hasMatch(beforeClassName)) {
     final afterMatchStart = positionInLine + className.length;
@@ -123,6 +131,7 @@ bool isConstructorDefinition(
           r'(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*:\s*(?:super\s*\(|this\s*\(|assert\s*\(|[a-zA-Z_]\w*\s*=)',
       multiLine: true,
       dotAll: true);
+
   if (multiLinePattern.hasMatch(multiLineContext)) {
     return true;
   }
