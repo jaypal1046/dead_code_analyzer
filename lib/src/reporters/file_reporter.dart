@@ -183,10 +183,10 @@ void saveResultsToFile(
 
         if (functionInfo.isEntryPoint) {
           entryPointFunctionEntries.add(entry);
-        } else if (totalUses == 0) {
-          unusedFunctions.add(entry);
         } else if (functionInfo.commentedOut) {
           commentedFunctions.add(entry);
+        } else if (totalUses == 0) {
+          unusedFunctions.add(entry);
         } else if (internalUses > 0 && externalUses == 0) {
           internalOnlyFunctions.add(entry);
         } else if (internalUses == 0 && externalUses > 0) {
