@@ -1,4 +1,3 @@
-
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/usage/uages_helper.dart';
 
