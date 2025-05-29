@@ -71,27 +71,21 @@ void functionCollecter({
         continue;
       }
 
-      // Skip built-in methods
-      if (prebuiltFlutterMethods.contains(functionName) ||
-          functionName == 'toString') {
-        continue;
-      }
-
       // FIXED: Better comment detection
       bool isCommentedOut = _isLineCommented(lines, lineIndex, line);
 
-      // Debug for your specific function
-      if (functionName == 'setAddons') {
-        print('DEBUG: Function $functionName at line $lineIndex');
-        print('DEBUG: Line content: "${lines[lineIndex]}"');
-        print('DEBUG: Original line: "$line"');
-        print('DEBUG: Is commented: $isCommentedOut');
-        print(
-            'DEBUG: Line starts with //: ${lines[lineIndex].trim().startsWith('//')}');
-        print(
-            'DEBUG: In multi-line comment: ${_isInsideMultiLineComment(lines, lineIndex)}');
-        print('---');
-      }
+      //todo:: this is debug handler // Debug for your specific function
+      // if (functionName == 'setAddons') {
+      //   print('DEBUG: Function $functionName at line $lineIndex');
+      //   print('DEBUG: Line content: "${lines[lineIndex]}"');
+      //   print('DEBUG: Original line: "$line"');
+      //   print('DEBUG: Is commented: $isCommentedOut');
+      //   print(
+      //       'DEBUG: Line starts with //: ${lines[lineIndex].trim().startsWith('//')}');
+      //   print(
+      //       'DEBUG: In multi-line comment: ${_isInsideMultiLineComment(lines, lineIndex)}');
+      //   print('---');
+      // }
 
       bool isEntryPoint = false;
       bool isPrebuiltFlutter =
@@ -117,6 +111,13 @@ void functionCollecter({
             checkIndex--;
           }
         }
+      }
+
+      // Skip built-in methods
+      if (isCommentedOut == false &&
+          (prebuiltFlutterMethods.contains(functionName) ||
+              functionName == 'toString')) {
+        continue;
       }
 
       String functionKey = functionName;

@@ -140,6 +140,8 @@ String sanitizeFilePath(String filePath) {
 
 // Expanded list of prebuilt Flutter and framework methods
 final Set<String> prebuiltFlutterMethods = {
+  'toString',
+  'onWillPop',
   'if',
   'for',
   'while',
@@ -190,7 +192,6 @@ final Set<String> prebuiltFlutterMethods = {
   'getElementForInheritedWidgetOfExactType',
 
   // Object Lifecycle (Dart)
-  'toString',
   'toStringShort',
   'hashCode',
   'runtimeType',
