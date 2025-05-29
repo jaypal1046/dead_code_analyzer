@@ -129,18 +129,29 @@ Map<String, CodeInfo> getActiveFunctions(Map<String, CodeInfo> functions) {
 }
 
 String sanitizeFilePath(String filePath) {
+  //todo: This function can be customized based on your needs
+
   // Replace slashes, dots, and other invalid characters with underscores
-  return filePath.startsWith('lib')
-      ? filePath.substring(4).replaceAll(RegExp(r'[\/\\.]'), '_')
-      : filePath.replaceAll(RegExp(r'[\/\\.]'), '_');
+  // return filePath.startsWith('lib')
+  //     ? filePath.substring(4).replaceAll(RegExp(r'[\/\\.]'), '_')
+  //     : filePath.replaceAll(RegExp(r'[\/\\.]'), '_');
+  return filePath.replaceAll(RegExp(r'[\/\\.]'), '_');
 }
 
 // Expanded list of prebuilt Flutter and framework methods
 final Set<String> prebuiltFlutterMethods = {
   'if',
+  'for',
+  'while',
+  'switch',
+  'try',
+  'catch',
+  'finally',
   'main',
   'runApp',
   'runZoned',
+  'super',
+  'InkWell',
   // Widget Lifecycle
   'build',
   'createElement',

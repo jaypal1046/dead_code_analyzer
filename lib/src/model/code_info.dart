@@ -10,6 +10,7 @@ class CodeInfo {
   final bool commentedOut; // New field to track commented out
   final int lineIndex; // New field
   final int startPosition; // New field
+  final bool isAbstract;
   CodeInfo(
     this.definedInFile, {
     this.isEntryPoint = false,
@@ -20,6 +21,7 @@ class CodeInfo {
     this.commentedOut = false,
     required this.lineIndex,
     required this.startPosition,
+    this.isAbstract = false,
   });
 
   int get totalExternalUsages =>

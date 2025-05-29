@@ -50,19 +50,11 @@ void collectCodeEntities(
         }
 
         // Class detection
-        classCollector(
-          classMatch,
-          lineIndex,
-          pragmaRegex,
-          lines,
-          classes,
-          filePath,
-          insideStateClass,
-        );
+        classCollector(classMatch, lineIndex, pragmaRegex, lines, classes,
+            filePath, insideStateClass);
 
         // Function detection (only if analyzeFunctions is true)
-        if (analyzeFunctions) {
-          functionCollecter(
+        functionCollecter(
             analyzeFunctions: analyzeFunctions,
             line: line,
             insideStateClass: insideStateClass,
@@ -71,9 +63,7 @@ void collectCodeEntities(
             pragmaRegex: pragmaRegex,
             lines: lines,
             functions: functions,
-            filePath: filePath,
-          );
-        }
+            filePath: filePath);
         lineIndex++;
       }
     } catch (e) {
