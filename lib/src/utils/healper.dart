@@ -135,7 +135,7 @@ String sanitizeFilePath(String filePath) {
   // return filePath.startsWith('lib')
   //     ? filePath.substring(4).replaceAll(RegExp(r'[\/\\.]'), '_')
   //     : filePath.replaceAll(RegExp(r'[\/\\.]'), '_');
-  return filePath.replaceAll(RegExp(r'[\/\\.]'), '_');
+  return filePath.substring(4);
 }
 
 // Expanded list of prebuilt Flutter and framework methods

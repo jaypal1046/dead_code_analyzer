@@ -114,9 +114,8 @@ void functionCollecter({
       }
 
       // Skip built-in methods
-      if (isCommentedOut == false &&
-          (prebuiltFlutterMethods.contains(functionName) ||
-              functionName == 'toString')) {
+      if ((prebuiltFlutterMethods.contains(functionName) ||
+          functionName == 'toString')) {
         continue;
       }
 
