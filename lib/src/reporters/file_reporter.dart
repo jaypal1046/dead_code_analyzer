@@ -157,6 +157,7 @@ void saveResultsToFile(
     final emptyPrebuiltFunctionEntries = <MapEntry<String, CodeInfo>>[];
     final entryPointFunctionEntries = <MapEntry<String, CodeInfo>>[];
     final commentedFunctions = <MapEntry<String, CodeInfo>>[];
+    final commentedPrebuildFunctions = <MapEntry<String, CodeInfo>>[];
 
     // Process functions (if enabled)
     if (analyzeFunctions) {
@@ -183,6 +184,8 @@ void saveResultsToFile(
 
         if (functionInfo.isEntryPoint) {
           entryPointFunctionEntries.add(entry);
+        } else if (functionInfo.isPrebuiltFlutterCommentedOut) {
+          commentedPrebuildFunctions.add(entry);
         } else if (functionInfo.commentedOut) {
           commentedFunctions.add(entry);
         } else if (totalUses == 0) {
@@ -212,6 +215,8 @@ void saveResultsToFile(
           'functions used both internally and externally');
       writeCategoryFunctionSection('Empty Prebuilt Flutter Functions',
           emptyPrebuiltFunctionEntries, 'empty prebuilt Flutter functions');
+      writeCategoryFunctionSection('Pre build element Commented',
+          commentedPrebuildFunctions, "Pre build element Commented");
       writeCategoryFunctionSection(
           'Entry-Point Functions (@pragma("vm:entry-point"))',
           entryPointFunctionEntries,
@@ -246,6 +251,8 @@ void saveResultsToFile(
           'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
           'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+      buffer.writeln(
+          'Commented prebuilt Flutter functions: ${commentedPrebuildFunctions.length} (${(commentedPrebuildFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
       buffer.writeln(
           'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
     }

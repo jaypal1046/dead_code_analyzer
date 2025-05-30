@@ -12,6 +12,7 @@ void functionCollecter({
   required List<String> lines,
   required Map<String, CodeInfo> functions,
   required String filePath,
+  required String currentClassName,
 }) {
   if (analyzeFunctions) {
     // Updated regex to better handle functions without explicit return types
@@ -113,21 +114,18 @@ void functionCollecter({
         }
       }
 
-      // Skip built-in methods
-      if ((prebuiltFlutterMethods.contains(functionName) ||
-          functionName == 'toString')) {
-        continue;
-      }
-
       String functionKey = functionName;
+      bool isStaticFunction = false;
       if (isCommentedOut) {
         functionKey =
             '$functionName _LineNo:${lineIndex}_PositionNo:${match.start} ${sanitizeFilePath(filePath)}';
       } else if (functions.containsKey(functionName)) {
+        isStaticFunction = isItStaticFunction(currentLine);
         functionKey = functionName;
       }
 
       functions[functionKey] = CodeInfo(
+        className: currentClassName,
         filePath,
         isEntryPoint: isEntryPoint,
         type: 'function',
@@ -137,9 +135,19 @@ void functionCollecter({
         commentedOut: isCommentedOut,
         lineIndex: lineIndex,
         startPosition: match.start,
+        isStaticFunction: isStaticFunction,
+        isPrebuiltFlutterCommentedOut: isCommentedOut &&
+            (prebuiltFlutterMethods.contains(functionName) ||
+                functionName == 'toString'),
       );
     }
   }
+}
+
+bool isItStaticFunction(String line) {
+  // Check if the line starts with 'static' followed by a function definition
+  return line.trim().startsWith('static ') &&
+      RegExp(r'\w+\s*\([^)]*\)\s*{').hasMatch(line);
 }
 
 // FIXED: More accurate comment detection
@@ -158,11 +166,17 @@ bool _isLineCommented(
   if (trimmedLine.startsWith('//') || trimmedLine.startsWith('///')) {
     return true;
   }
-
-  // Check if we're inside a multi-line comment block
+  // // Check if we're inside a multi-line comment block
   bool inMultiLineComment = _isInsideMultiLineComment(lines, targetLineIndex);
+  if (inMultiLineComment) {
+    print(
+        "DEBUG: Line $targetLineIndex is inside a multi-line comment block. Line content: $targetLine");
+  }
 
-  return inMultiLineComment;
+  // if(){
+  //     return inMultiLineComment;
+  // }
+  return false;
 }
 
 // FIXED: More robust multi-line comment detection

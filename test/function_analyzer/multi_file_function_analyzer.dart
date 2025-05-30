@@ -30,6 +30,9 @@ void multifilefunctionAnalyzerTest() {
         lines: lines,
         functions: functions,
         filePath: filePath,
+        currentClassName: line.contains('class ')
+            ? line.split('class ')[1].split(' ')[0]
+            : '',
       );
 
       var classMatch = RegExp(

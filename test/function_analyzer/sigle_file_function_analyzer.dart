@@ -24,6 +24,9 @@ void functionAnalyzerTest() {
       lines: lines,
       functions: functions,
       filePath: 'text_function_file.dart',
+      currentClassName: line.contains('class ')
+          ? line.split('class ')[1].split(' ')[0]
+          : '',
     );
 
     // Update insideStateClass

@@ -7,10 +7,14 @@ void analyzeFunctionUsages(
     final functionInfo = entry.value;
 
     // Find all occurrences of the function name
-    final usageRegex = RegExp(r'\b' + RegExp.escape(functionName) + r'\b');
+    // Match function name as a word, optionally preceded by a dot (.) and optionally followed by ()
+    final usageRegex = RegExp(
+        r'(?:\.\s*)?\b' + RegExp.escape(functionName) + r'\b\s*(\(\s*\))?');
+
     final allMatches = usageRegex.allMatches(content).toList();
 
     if (allMatches.isEmpty) continue;
+    if (functionInfo.isPrebuiltFlutterCommentedOut) continue;
 
     final validMatches = <RegExpMatch>[];
 
