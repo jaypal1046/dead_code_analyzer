@@ -1,0 +1,21 @@
+name: dead_code_analyzer
+description: A tool to analyze and identify dead/unused code in Dart and Flutter projects.
+version: 1.0.12
+homepage: https://github.com/jaypal1046/dead_code_analyzer
+repository: https://github.com/jaypal1046/dead_code_analyzer
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  path: ^1.9.1
+  args: ^2.7.0 # For command-line argument parsing
+  intl: ^0.20.2 # For internationalization
+  analyzer: ^7.4.5
+dev_dependencies:
+  lints:
+  test: ^1.26.2
+
+executables:
+  dead_code_analyzer: dead_code_analyzer
