@@ -15,12 +15,12 @@ void functionCollecter({
   required String currentClassName,
 }) {
   if (analyzeFunctions) {
-    // Updated regex to better handle functions without explicit return types
+    // FIXED: Updated regex to better capture Widget and other return types
     final functionRegex = RegExp(
       r'(?://\s*)?' // Optional comment prefix (for actually commented functions)
       r'(?:(?:static\s+|abstract\s+|external\s+|final\s+|const\s+|override\s+|async\s+)*)' // Optional modifiers
       r'(?:' // Start optional return type group
-      r'(?:void|int|double|String|bool|dynamic|' // Basic return types
+      r'(?:void|int|double|String|bool|dynamic|Widget|' // Basic return types + Widget
       r'List(?:<[^>]+>)?|Map(?:<[^>]+,[^>]+>)?|Set(?:<[^>]+>)?|' // Generic collections
       r'Future(?:<[^>]+>)?|Stream(?:<[^>]+>)?|' // Async types
       r'[A-Z]\w*(?:<[^>]+>)?)\s+' // Custom types with optional generics
@@ -30,7 +30,7 @@ void functionCollecter({
       r'\s*\([^)]*\)' // Parameters - REQUIRED
       r'\s*(?:async\s*\*?|sync\s*\*?)?' // Optional async modifiers
       r'\s*' // Optional whitespace
-      r'((?:\{(?:[^{}]|{[^{}]*})*\})|(?:=>[^;]*;))', // Function body (capture group 2)
+      r'(?:\{|=>)', // FIXED: Function body start - just look for { or => (don't try to match entire body)
       multiLine: true,
     );
 
@@ -41,10 +41,12 @@ void functionCollecter({
       return;
     }
 
-    // Handle multi-line functions
-    if (line.contains('{') && !line.contains('}')) {
+    // Handle multi-line functions - IMPROVED
+    if ((line.contains('(') && line.contains(')')) && 
+        (line.contains('{') || line.contains('=>')) && 
+        !line.contains('}')) {
       StringBuffer fullFunction = StringBuffer(line);
-      int braceCount = 1;
+      int braceCount = line.split('{').length - line.split('}').length;
       int nextLineIndex = lineIndex + 1;
 
       while (braceCount > 0 && nextLineIndex < lines.length) {
@@ -61,7 +63,6 @@ void functionCollecter({
 
     for (final match in functionMatches) {
       final functionName = match.group(1);
-      final functionBody = match.group(2);
 
       if (functionName == null || functionName.isEmpty) {
         continue;
@@ -75,24 +76,23 @@ void functionCollecter({
       // FIXED: Better comment detection
       bool isCommentedOut = _isLineCommented(lines, lineIndex, line);
 
-      //todo:: this is debug handler // Debug for your specific function
-      // if (functionName == 'setAddons') {
-      //   print('DEBUG: Function $functionName at line $lineIndex');
-      //   print('DEBUG: Line content: "${lines[lineIndex]}"');
-      //   print('DEBUG: Original line: "$line"');
-      //   print('DEBUG: Is commented: $isCommentedOut');
-      //   print(
-      //       'DEBUG: Line starts with //: ${lines[lineIndex].trim().startsWith('//')}');
-      //   print(
-      //       'DEBUG: In multi-line comment: ${_isInsideMultiLineComment(lines, lineIndex)}');
-      //   print('---');
-      // }
+      // Debug for specific functions
+      if (functionName == 'buildLoader') {
+        print('DEBUG: Function $functionName at line $lineIndex');
+        print('DEBUG: Line content: "${lines[lineIndex]}"');
+        print('DEBUG: Original line: "$line"');
+        print('DEBUG: Is commented: $isCommentedOut');
+        print('DEBUG: Match found: ${match.group(0)}');
+        print('---');
+      }
 
       bool isEntryPoint = false;
       bool isPrebuiltFlutter =
           insideStateClass && prebuiltFlutterMethods.contains(functionName);
 
-      bool isEmpty = functionBody == null ||
+      // FIXED: Better empty function detection - get the actual function body
+      String functionBody = _extractFunctionBody(currentLine, match.start);
+      bool isEmpty = functionBody.isEmpty ||
           functionBody == ';' ||
           functionBody.replaceAll(RegExp(r'\s+'), '') == '{}';
 
@@ -124,6 +124,7 @@ void functionCollecter({
         functionKey = functionName;
       }
 
+      // Skip prebuilt Flutter methods unless they're commented out and we want to track them
       if (!isCommentedOut &&
           (prebuiltFlutterMethods.contains(functionName) ||
               functionName == 'toString')) {
@@ -150,10 +151,27 @@ void functionCollecter({
   }
 }
 
+// ADDED: Helper function to extract function body
+String _extractFunctionBody(String line, int matchStart) {
+  // Find the opening brace or arrow
+  int braceIndex = line.indexOf('{', matchStart);
+  int arrowIndex = line.indexOf('=>', matchStart);
+  
+  if (braceIndex == -1 && arrowIndex == -1) {
+    return '';
+  }
+  
+  int startIndex = (braceIndex != -1 && arrowIndex != -1) 
+      ? (braceIndex < arrowIndex ? braceIndex : arrowIndex)
+      : (braceIndex != -1 ? braceIndex : arrowIndex);
+      
+  return line.substring(startIndex);
+}
+
 bool isItStaticFunction(String line) {
   // Check if the line starts with 'static' followed by a function definition
   return line.trim().startsWith('static ') &&
-      RegExp(r'\w+\s*\([^)]*\)\s*{').hasMatch(line);
+      RegExp(r'\w+\s*\([^)]*\)\s*[\{=>]').hasMatch(line);
 }
 
 // FIXED: More accurate comment detection
@@ -172,17 +190,11 @@ bool _isLineCommented(
   if (trimmedLine.startsWith('//') || trimmedLine.startsWith('///')) {
     return true;
   }
-  // // Check if we're inside a multi-line comment block
+  
+  // Check if we're inside a multi-line comment block
   bool inMultiLineComment = _isInsideMultiLineComment(lines, targetLineIndex);
-  if (inMultiLineComment) {
-    print(
-        "DEBUG: Line $targetLineIndex is inside a multi-line comment block. Line content: $targetLine");
-  }
-
-  // if(){
-  //     return inMultiLineComment;
-  // }
-  return false;
+  
+  return inMultiLineComment;
 }
 
 // FIXED: More robust multi-line comment detection
