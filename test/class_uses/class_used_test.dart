@@ -293,8 +293,7 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart'),
       ];
       expect(
-          getEffectiveClassName(
-              'MyWidget', '/path/to/my_widget.dart', imports),
+          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
           'MyWidget');
     });
 
@@ -303,8 +302,7 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart', asAlias: 'widgetAlias'),
       ];
       expect(
-          getEffectiveClassName(
-              'MyWidget', '/path/to/my_widget.dart', imports),
+          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
           'widgetAlias.MyWidget');
     });
   });
