@@ -6,11 +6,15 @@ class ClassInfo {
   final Map<String, int> externalUsages = {}; // Map of file path to usage count
   final bool isEntryPoint; // New field to track @pragma('vm:entry-point')
   final bool commentedOut; // New field to track commented out
+  final int lineIndex; // New field
+  final int startPosition; // New field
   ClassInfo(
     this.definedInFile, {
     this.isEntryPoint = false,
     required this.type,
     this.commentedOut = false,
+    required this.lineIndex,
+    required this.startPosition,
   });
 
   int get totalExternalUsages =>

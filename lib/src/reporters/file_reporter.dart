@@ -53,8 +53,13 @@ void saveResultsToFile(
           return '$fileName ($count references)';
         }).toList();
         final usageFilesStr = usageFiles.toString();
-        buffer.writeln(
-            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+        if (entityType == "commented_classes") {
+          buffer.writeln(
+              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+        } else {
+          buffer.writeln(
+              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+        }
       }
       if (count == 0) {
         buffer.writeln('No $entityType found.');
@@ -83,7 +88,7 @@ void saveResultsToFile(
         }).toList();
         final usageFilesStr = usageFiles.toString();
         buffer.writeln(
-            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma]' : ''}');
       }
       if (count == 0) {
         buffer.writeln('No $entityType found.');
@@ -107,6 +112,10 @@ void saveResultsToFile(
     final stateClassEntries = <MapEntry<String, ClassInfo>>[];
     final entryPointClassEntries = <MapEntry<String, ClassInfo>>[];
     final commentedClasses = <MapEntry<String, ClassInfo>>[];
+    final mixingClasses = <MapEntry<String, ClassInfo>>[];
+    final enumClasses = <MapEntry<String, ClassInfo>>[];
+    final extensionClasses = <MapEntry<String, ClassInfo>>[];
+    final typedefClasses = <MapEntry<String, ClassInfo>>[];
 
     for (final entry in sortedClasses) {
       final classInfo = entry.value;
@@ -121,6 +130,14 @@ void saveResultsToFile(
         stateClassEntries.add(entry);
       } else if (totalUses == 0) {
         unusedClasses.add(entry);
+      } else if (classInfo.type == 'enum') {
+        enumClasses.add(entry);
+      } else if (classInfo.type == 'mixin' || classInfo.type == 'mixin_class') {
+        mixingClasses.add(entry);
+      } else if (classInfo.type == 'extension') {
+        extensionClasses.add(entry);
+      } else if (classInfo.type == 'typedef') {
+        typedefClasses.add(entry);
       } else if (internalUses > 0 && externalUses == 0) {
         internalOnlyClasses.add(entry);
       } else if (internalUses == 0 && externalUses > 0) {
@@ -133,21 +150,28 @@ void saveResultsToFile(
     buffer.writeln('Class Analysis');
     buffer.writeln('=' * 30);
     writeCategoryClassSection(
-        'Unused Classes', unusedClasses, 'unused classes');
+        'Unused Classes', unusedClasses, 'unused_classes');
     writeCategoryClassSection(
-        'Commented Classes', commentedClasses, 'commented classes');
+        'Commented Classes', commentedClasses, 'commented_classes');
     writeCategoryClassSection('Classes Used Only Internally',
-        internalOnlyClasses, 'classes used only internally');
+        internalOnlyClasses, 'classes_used_only_internally');
     writeCategoryClassSection('Classes Used Only Externally',
-        externalOnlyClasses, 'classes used only externally');
+        externalOnlyClasses, 'classes_used_only_externally');
+    writeCategoryClassSection('Classes Used Both Internally and Externally',
+        bothInternalExternalClasses, 'classes_used_both');
     writeCategoryClassSection(
-        'Classes Used Both Internally and Externally',
-        bothInternalExternalClasses,
-        'classes used both internally and externally');
+        'Mixing Classes', mixingClasses, 'mixing_classes');
+    writeCategoryClassSection('Enum Classes', enumClasses, 'enum_classes');
     writeCategoryClassSection(
-        'State Classes', stateClassEntries, 'state classes');
-    writeCategoryClassSection('Entry-Point Classes (@pragma("vm:entry-point"))',
-        entryPointClassEntries, 'entry-point classes');
+        'Extension Classes', extensionClasses, 'extension_classes');
+    writeCategoryClassSection(
+        'Typedef Classes', typedefClasses, 'typedef_classes');
+    writeCategoryClassSection(
+        'State Classes', stateClassEntries, 'state_classes');
+    writeCategoryClassSection(
+        '@pragma Classes: Hints for Dart compiler/runtime optimizations.',
+        entryPointClassEntries,
+        'entry_point_classes');
 
     // Declare function lists outside the if block
     final unusedFunctions = <MapEntry<String, CodeInfo>>[];
@@ -217,10 +241,8 @@ void saveResultsToFile(
           emptyPrebuiltFunctionEntries, 'empty prebuilt Flutter functions');
       writeCategoryFunctionSection('Pre build element Commented',
           commentedPrebuildFunctions, "Pre build element Commented");
-      writeCategoryFunctionSection(
-          'Entry-Point Functions (@pragma("vm:entry-point"))',
-          entryPointFunctionEntries,
-          'entry-point functions');
+      writeCategoryFunctionSection('Entry-Point Functions (@pragma)',
+          entryPointFunctionEntries, 'entry-point functions');
     }
 
     // Summary
@@ -235,6 +257,12 @@ void saveResultsToFile(
         'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
         'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Mixin classed: ${mixingClasses.length} (${(mixingClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Enum classes: ${enumClasses.length} (${(enumClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+    buffer.writeln(
+        'Extension classes: ${extensionClasses.length} (${(extensionClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(
         'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
     buffer.writeln(

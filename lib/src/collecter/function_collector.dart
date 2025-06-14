@@ -42,8 +42,8 @@ void functionCollecter({
     }
 
     // Handle multi-line functions - IMPROVED
-    if ((line.contains('(') && line.contains(')')) && 
-        (line.contains('{') || line.contains('=>')) && 
+    if ((line.contains('(') && line.contains(')')) &&
+        (line.contains('{') || line.contains('=>')) &&
         !line.contains('}')) {
       StringBuffer fullFunction = StringBuffer(line);
       int braceCount = line.split('{').length - line.split('}').length;
@@ -156,15 +156,15 @@ String _extractFunctionBody(String line, int matchStart) {
   // Find the opening brace or arrow
   int braceIndex = line.indexOf('{', matchStart);
   int arrowIndex = line.indexOf('=>', matchStart);
-  
+
   if (braceIndex == -1 && arrowIndex == -1) {
     return '';
   }
-  
-  int startIndex = (braceIndex != -1 && arrowIndex != -1) 
+
+  int startIndex = (braceIndex != -1 && arrowIndex != -1)
       ? (braceIndex < arrowIndex ? braceIndex : arrowIndex)
       : (braceIndex != -1 ? braceIndex : arrowIndex);
-      
+
   return line.substring(startIndex);
 }
 
@@ -190,10 +190,10 @@ bool _isLineCommented(
   if (trimmedLine.startsWith('//') || trimmedLine.startsWith('///')) {
     return true;
   }
-  
+
   // Check if we're inside a multi-line comment block
   bool inMultiLineComment = _isInsideMultiLineComment(lines, targetLineIndex);
-  
+
   return inMultiLineComment;
 }
 

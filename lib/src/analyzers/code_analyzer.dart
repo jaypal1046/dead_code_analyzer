@@ -29,15 +29,29 @@ void collectCodeEntities(
       final content = File(filePath).readAsStringSync();
       final lines = content.split('\n');
 
-      // Regex patterns
-      final classRegex = RegExp(r'class\s+(\w+)[\s{<]');
-      final pragmaRegex =
-          RegExp(r'''^\s*@pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)\s*$''');
+      // Enhanced regex patterns to match class, enum, extension, and mixin
 
-      // Track class context
+      final pragmaRegex = RegExp(
+          r'''^\s*@pragma\s*\(\s*[\'"]((?:vm:entry-point)|(?:vm:external-name)|(?:vm:prefer-inline)|(?:vm:exact-result-type)|(?:vm:never-inline)|(?:vm:non-nullable-by-default)|(?:flutter:keep-to-string)|(?:flutter:keep-to-string-in-subtypes))[\'"]\s*(?:,\s*[^)]+)?\s*\)\s*$''',
+          multiLine: false);
+
+      // Individual patterns for more specific handling if needed
+      final specificPatterns = {
+        'class': RegExp(
+            r'class\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+\w+(?:<[^>]*>)?)?(?:\s+with\s+[\w\s,<>]+)?(?:\s+implements\s+[\w\s,<>]+)?\s*\{'),
+        'enum': RegExp(r'enum\s+(\w+)(?:\s+with\s+[\w\s,<>]+)?\s*\{'),
+        'extension':
+            RegExp(r'extension\s+(\w+)(?:<[^>]*>)?\s+on\s+[\w<>\s,]+\s*\{'),
+        'mixin':
+            RegExp(r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{'),
+      };
+
+      // Track class context with type information
       String currentClassName = '';
+      String currentType = '';
       int classDepth = 0;
-      List<String> classStack = []; // Stack to handle nested classes
+      List<Map<String, String>> classStack =
+          []; // Stack to handle nested classes with type info
 
       int lineIndex = 0;
       bool insideStateClass = false;
@@ -49,24 +63,36 @@ void collectCodeEntities(
         final openBraces = '{'.allMatches(trimmedLine).length;
         final closeBraces = '}'.allMatches(trimmedLine).length;
 
-        // Check for class definition
-        final classMatch = classRegex.firstMatch(trimmedLine);
-        if (classMatch != null) {
-          final className = classMatch.group(1)!;
+        // Check for class/enum/extension/mixin definition using specific patterns
+        String? matchedType;
+        RegExpMatch? match;
+
+        for (final entry in specificPatterns.entries) {
+          match = entry.value.firstMatch(trimmedLine);
+          if (match != null) {
+            matchedType = entry.key;
+            break;
+          }
+        }
+
+        if (match != null && matchedType != null) {
+          final className = match.group(1)!;
 
           // Update class context
           currentClassName = className;
-          classStack.add(className);
+          currentType = matchedType;
+          classStack.add({'name': className, 'type': matchedType});
           classDepth = 1; // Reset depth for new class
 
-          // Track if inside a State class
-          insideStateClass = className.endsWith('State') &&
+          // Track if inside a State class (only applies to classes, not enums/extensions/mixins)
+          insideStateClass = matchedType == 'class' &&
+              className.endsWith('State') &&
               (classes.containsKey(
                       className.substring(0, className.length - 5)) ||
                   className.startsWith('_'));
 
-          // Process class
-          classCollector(classMatch, lineIndex, pragmaRegex, lines, classes,
+          // Process class/enum/extension/mixin
+          classCollector(match, lineIndex, pragmaRegex, lines, classes,
               filePath, insideStateClass);
         }
 
@@ -82,15 +108,18 @@ void collectCodeEntities(
 
             // Set current class to parent class if nested, or empty if top-level
             if (classStack.isNotEmpty) {
-              currentClassName = classStack.last;
+              final parent = classStack.last;
+              currentClassName = parent['name']!;
+              currentType = parent['type']!;
               classDepth = 1; // We're still inside the parent class
             } else {
               currentClassName = '';
+              currentType = '';
               classDepth = 0;
             }
 
             // Update insideStateClass based on new current class
-            if (currentClassName.isNotEmpty) {
+            if (currentClassName.isNotEmpty && currentType == 'class') {
               insideStateClass = currentClassName.endsWith('State') &&
                   (classes.containsKey(currentClassName.substring(
                           0, currentClassName.length - 5)) ||
