@@ -4,7 +4,7 @@ All notable changes to the **Dead Code Analyzer** project will be documented in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.0.15
+## 1.1.0
 
 - All class types supported - mixins, enums, extensions, state classes, @pragma classes, typedefs
 - Advanced usage pattern detection - internal/external/both usage patterns
