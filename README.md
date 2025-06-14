@@ -15,6 +15,7 @@ Dead Code Analyzer is a command-line tool for Dart and Flutter projects that ide
 - Supports custom exclusion patterns to skip specific files or directories.
 - Experimental support for analyzing multiple projects and flavored `main` functions (e.g., `main_dev.dart`, `main_prod.dart`).
 - Verbose mode for debugging reference counting issues.
+- Detects and categorizes all Dart class types and their usage locations.
 
 **Note**: The current version uses a regex-based analysis, which may misreport references for classes with constructors. An AST-based approach is in development for improved accuracy (see [Limitations](#limitations)).
 
@@ -89,6 +90,24 @@ Options:
   -h, --help            Show this help message
 ```
 
+## Comprehensive Class Analysis
+
+The analyzer now provides detailed categorization of all Dart class types and their usage patterns:
+
+### Class Categories Analyzed
+
+- **Unused Classes**: Classes with zero internal and external references
+- **Commented Classes**: Classes that are commented out in code
+- **Classes Used Only Internally**: Classes referenced only within the same file
+- **Classes Used Only Externally**: Classes referenced only from other files
+- **Classes Used Both Internally and Externally**: Classes with mixed usage patterns
+- **Mixin Classes**: Dart mixins and their usage tracking
+- **Enum Classes**: Enumerations and their reference counting
+- **Extension Classes**: Extension methods and their usage
+- **State Classes**: StatefulWidget state classes
+- **@pragma Classes**: Entry-point classes marked with @pragma annotations
+- **Typedef Classes**: Type aliases and custom type definitions
+
 ## Example Output
 
 _Note: Timestamps, file paths, and counts are illustrative and will vary._
@@ -122,6 +141,7 @@ Full analysis saved to: [User Desktop]/dead_code_analysis_[timestamp].txt
 
 Recommendations:
 - Remove unused classes and functions listed above.
+- Verify @pragma-annotated classes (e.g., MyClass) before deletion, as they may be used by native code.
 - Run with --verbose to debug reference counting issues.
 - Use --clean to automatically remove unused files (backup your project first).
 ```
@@ -159,9 +179,10 @@ jobs:
 The analyzer currently uses a regex-based approach to:
 
 1. Scan all Dart files in the project.
-2. Identify declarations of classes, functions, and variables.
-3. Track references using regular expressions for internal (same file) and external (other files) usages.
+2. Identify declarations of classes (regular, mixin, enum, extension, state, @pragma, typedef), functions, and variables.
+3. Track references using regular expressions for internal (same file) and external (other files) usages
 4. Generate a report with unused elements and reference counts.
+5. Provide actionable recommendations for code cleanup
 
 **Note**: An AST-based analyzer is in development to replace the regex approach, offering better accuracy for complex cases like constructor references.
 
