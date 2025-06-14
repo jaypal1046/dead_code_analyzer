@@ -42,32 +42,6 @@ bool shouldExcludeClassMatch(
     return true;
   }
 
-  // // 5. createState method returning state class
-  // if (RegExp(r'\bcreateState\s*\(\s*\)\s*(?:=>\s*_' +
-  //         RegExp.escape(className) +
-  //         r'State\s*\(\s*\)|{\s*return\s+_' +
-  //         RegExp.escape(className) +
-  //         r'State\s*\(\s*\))')
-  //     .hasMatch(line)) {
-  //   return true;
-  // }
-
-  // // 6. Factory constructor definition
-  // if (RegExp(r'\bfactory\s+' + RegExp.escape(className) + r'\.')
-  //     .hasMatch(line)) {
-  //   return true;
-  // }
-
-  // 7. Import statements
-  // if (RegExp(r'^\s*import\s+').hasMatch(line)) {
-  //   return true;
-  // }
-
-  // // 8. Export statements
-  // if (RegExp(r'^\s*export\s+').hasMatch(line)) {
-  //   return true;
-  // }
-
   return false;
 }
 
