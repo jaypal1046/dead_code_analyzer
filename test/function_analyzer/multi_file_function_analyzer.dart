@@ -20,7 +20,7 @@ void multifilefunctionAnalyzerTest() {
     for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       String line = lines[lineIndex];
 
-      functionCollecter(
+      FunctionCollector.functionCollecter(
         analyzeFunctions: true,
         line: line,
         insideStateClass: insideStateClass,

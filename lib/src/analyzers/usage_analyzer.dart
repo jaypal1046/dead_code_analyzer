@@ -7,46 +7,48 @@ import 'package:dead_code_analyzer/src/utils/healper.dart';
 import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 
-void findUsages({
-  required Directory dir,
-  required Map<String, ClassInfo> classes,
-  required Map<String, CodeInfo> functions,
-  required bool showProgress,
-  required bool analyzeFunctions,
-}) {
-  final dartFiles = getDartFiles(dir);
+class UsageAnalyzer {
+  static void findUsages({
+    required Directory dir,
+    required Map<String, ClassInfo> classes,
+    required Map<String, CodeInfo> functions,
+    required bool showProgress,
+    required bool analyzeFunctions,
+  }) {
+    final dartFiles = Healper.getDartFiles(dir);
 
-  ProgressBar? progressBar;
-  if (showProgress) {
-    progressBar =
-        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
-  }
-
-  var count = 0;
-  for (final file in dartFiles) {
-    final filePath = path.absolute(file.path);
-
-    try {
-      final content = File(filePath).readAsStringSync();
-
-      // Analyze class usages
-      analyzeClassUsages(content, filePath, classes);
-
-      // Analyze function usages
-      if (analyzeFunctions) {
-        analyzeFunctionUsages(content, filePath, functions);
-      }
-    } catch (e) {
-      print('\nWarning: Could not read file $filePath: $e');
-    }
-
-    count++;
+    ProgressBar? progressBar;
     if (showProgress) {
-      progressBar!.update(count);
+      progressBar =
+          ProgressBar(dartFiles.length, description: 'Analyzing code usage');
     }
-  }
 
-  if (showProgress) {
-    progressBar!.done();
+    var count = 0;
+    for (final file in dartFiles) {
+      final filePath = path.absolute(file.path);
+
+      try {
+        final content = File(filePath).readAsStringSync();
+
+        // Analyze class usages
+        ClassUages.analyzeClassUsages(content, filePath, classes);
+
+        // Analyze function usages
+        if (analyzeFunctions) {
+          FunctionUsage.analyzeFunctionUsages(content, filePath, functions);
+        }
+      } catch (e) {
+        print('\nWarning: Could not read file $filePath: $e');
+      }
+
+      count++;
+      if (showProgress) {
+        progressBar!.update(count);
+      }
+    }
+
+    if (showProgress) {
+      progressBar!.done();
+    }
   }
 }

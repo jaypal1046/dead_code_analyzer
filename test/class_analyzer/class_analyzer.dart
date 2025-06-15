@@ -16,7 +16,7 @@ void classAnalyzerTest() {
       multiLine: true,
     ).firstMatch(line.replaceFirst(RegExp(r'^\s*//+\s*'), ''));
 
-    classCollector(
+    ClassCollector.classCollector(
       classMatch,
       lineIndex,
       pragmaRegex,

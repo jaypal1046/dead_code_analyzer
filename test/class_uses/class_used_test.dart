@@ -4,7 +4,7 @@ import 'package:dead_code_analyzer/src/usage/class_uages.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('analyzeClassUsages', () {
+  group('ClassUages.analyzeClassUsages', () {
     // Mock class definitions
     final classes = {
       'MyWidget': ClassInfo(
@@ -43,7 +43,7 @@ void main() {
       ''';
       final filePath = '/path/to/my_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 2);
       expect(classes['MyWidget']!.externalUsages, isEmpty);
@@ -61,7 +61,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages[filePath], 2);
@@ -78,7 +78,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages[filePath], 1);
@@ -96,7 +96,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages[filePath], 1);
@@ -116,7 +116,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       // expect(classes['MyWidget']!.internalUsageCount, 0);
       // expect(classes['MyWidget']!.externalUsages, isEmpty);
@@ -136,7 +136,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages[filePath], 1);
@@ -154,7 +154,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages[filePath], 1);
@@ -172,7 +172,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyStatefulWidget']!.internalUsageCount, 0);
       expect(classes['MyStatefulWidget']!.externalUsages[filePath], 1);
@@ -188,7 +188,7 @@ void main() {
       ''';
       final filePath = '/path/to/other_widget.dart';
 
-      analyzeClassUsages(content, filePath, classes);
+      ClassUages.analyzeClassUsages(content, filePath, classes);
 
       expect(classes['MyWidget']!.internalUsageCount, 0);
       expect(classes['MyWidget']!.externalUsages, isEmpty);
@@ -200,7 +200,7 @@ void main() {
       final content = '''
         import '/path/to/my_widget.dart';
       ''';
-      final imports = parseImports(content);
+      final imports = ClassUages.parseImports(content);
       expect(imports.length, 1);
       expect(imports[0].path, '/path/to/my_widget.dart');
       expect(imports[0].asAlias, isNull);
@@ -212,7 +212,7 @@ void main() {
       final content = '''
         import '/path/to/my_widget.dart' as widgetAlias;
       ''';
-      final imports = parseImports(content);
+      final imports = ClassUages.parseImports(content);
       expect(imports.length, 1);
       expect(imports[0].path, '/path/to/my_widget.dart');
       expect(imports[0].asAlias, 'widgetAlias');
@@ -224,7 +224,7 @@ void main() {
       final content = '''
         import '/path/to/my_widget.dart' show MyWidget, OtherClass;
       ''';
-      final imports = parseImports(content);
+      final imports = ClassUages.parseImports(content);
       expect(imports.length, 1);
       expect(imports[0].path, '/path/to/my_widget.dart');
       expect(imports[0].shownClasses, ['MyWidget', 'OtherClass']);
@@ -235,7 +235,7 @@ void main() {
       final content = '''
         import '/path/to/my_widget.dart' hide MyWidget, OtherClass;
       ''';
-      final imports = parseImports(content);
+      final imports = ClassUages.parseImports(content);
       expect(imports.length, 1);
       expect(imports[0].path, '/path/to/my_widget.dart');
       expect(imports[0].hiddenClasses, ['MyWidget', 'OtherClass']);
@@ -249,7 +249,7 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart'),
       ];
       expect(
-          isClassAccessibleInFile(
+          ClassUages.isClassAccessibleInFile(
               'MyWidget', '/path/to/my_widget.dart', imports),
           isTrue);
     });
@@ -260,7 +260,7 @@ void main() {
             path: '/path/to/my_widget.dart', hiddenClasses: ['MyWidget']),
       ];
       expect(
-          isClassAccessibleInFile(
+          ClassUages.isClassAccessibleInFile(
               'MyWidget', '/path/to/my_widget.dart', imports),
           isFalse);
     });
@@ -270,7 +270,7 @@ void main() {
         ImportInfo(path: '/path/to/other.dart'),
       ];
       expect(
-          isClassAccessibleInFile(
+          ClassUages.isClassAccessibleInFile(
               'MyWidget', '/path/to/my_widget.dart', imports),
           isFalse);
     });
@@ -281,7 +281,7 @@ void main() {
             path: '/path/to/my_widget.dart', shownClasses: ['OtherClass']),
       ];
       expect(
-          isClassAccessibleInFile(
+          ClassUages.isClassAccessibleInFile(
               'MyWidget', '/path/to/my_widget.dart', imports),
           isFalse);
     });
@@ -293,7 +293,8 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart'),
       ];
       expect(
-          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
+          ClassUages.getEffectiveClassName(
+              'MyWidget', '/path/to/my_widget.dart', imports),
           'MyWidget');
     });
 
@@ -302,7 +303,8 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart', asAlias: 'widgetAlias'),
       ];
       expect(
-          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
+          ClassUages.getEffectiveClassName(
+              'MyWidget', '/path/to/my_widget.dart', imports),
           'widgetAlias.MyWidget');
     });
   });

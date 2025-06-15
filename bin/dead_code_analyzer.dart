@@ -37,19 +37,19 @@ void main(List<String> arguments) {
         help: 'Disable progress indicators', negatable: false);
 
   // Try to get version from version file or pubspec.yaml
-  versionfind(parser, arguments);
+  VarsionInfo.versionfind(parser, arguments);
 
   late ArgResults args;
   try {
     args = parser.parse(arguments);
   } catch (e) {
     print('Error parsing arguments: $e');
-    printUsage(parser);
+    Healper.printUsage(parser);
     exit(1);
   }
 
   if (args['help']) {
-    printUsage(parser);
+    Healper.printUsage(parser);
     return;
   }
 
@@ -85,7 +85,7 @@ void main(List<String> arguments) {
   final classes = <String, ClassInfo>{};
   final functions = <String, CodeInfo>{};
   // Collect all code entities (classes and functions) from the project directory
-  collectCodeEntities(
+  CodeAnalyzer.collectCodeEntities(
       dir: projectDir,
       classes: classes,
       functions: functions,
@@ -99,7 +99,7 @@ void main(List<String> arguments) {
   }
 
   // Find all usages/references of the collected code entities
-  findUsages(
+  UsageAnalyzer.findUsages(
       dir: projectDir,
       classes: classes,
       functions: functions,
@@ -107,7 +107,7 @@ void main(List<String> arguments) {
       analyzeFunctions: analyzeFunctions);
 
   // Print analysis results to console
-  printResults(
+  ConsoleReporter.printResults(
       classes: classes,
       functions: functions,
       verbose: verbose,
@@ -116,7 +116,7 @@ void main(List<String> arguments) {
       maxUnused: maxUnused);
 
   // Save analysis results to output file
-  saveResultsToFile(
+  FileReporter.saveResultsToFile(
       classes: classes,
       functions: functions,
       outputDir: outputDir,
@@ -126,7 +126,7 @@ void main(List<String> arguments) {
   // Perform cleanup if --clean flag is provided
   if (clean) {
     print('\nStarting cleanup of dead and commented-out classes...');
-    deadCodeCleaner(
+    DeadCodeCleaner.deadCodeCleaner(
       classes: classes,
       functions: functions,
       projectPath: projectPath,
