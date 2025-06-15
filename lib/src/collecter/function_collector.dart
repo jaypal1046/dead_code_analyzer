@@ -1,4 +1,5 @@
-// Fixed function detection with better comment handling
+// Enhanced function detection with better generic support and class filtering
+import 'dart:io';
 import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:dead_code_analyzer/src/utils/healper.dart';
 
@@ -15,117 +16,114 @@ void functionCollecter({
   required String currentClassName,
 }) {
   if (analyzeFunctions) {
-    // FIXED: Updated regex to better capture Widget and other return types
+    // IMPROVED: Enhanced function detection with better generic support
     final functionRegex = RegExp(
-      r'(?://\s*)?' // Optional comment prefix (for actually commented functions)
+      r'(?://\s*)?' // Optional comment prefix
       r'(?:(?:static\s+|abstract\s+|external\s+|final\s+|const\s+|override\s+|async\s+)*)' // Optional modifiers
-      r'(?:' // Start optional return type group
-      r'(?:void|int|double|String|bool|dynamic|Widget|' // Basic return types + Widget
-      r'List(?:<[^>]+>)?|Map(?:<[^>]+,[^>]+>)?|Set(?:<[^>]+>)?|' // Generic collections
+      r'(?:' // Start return type group
+      r'(?:void|int|double|String|bool|dynamic|Object|num|' // Basic types
+      r'Widget|State|StatefulWidget|StatelessWidget|' // Flutter types
+      r'List(?:<[^>]*>)?|Map(?:<[^>]*,[^>]*>)?|Set(?:<[^>]*>)?|' // Collections
       r'Future(?:<[^>]+>)?|Stream(?:<[^>]+>)?|' // Async types
-      r'[A-Z]\w*(?:<[^>]+>)?)\s+' // Custom types with optional generics
-      r'|' // OR - no return type (like your setAddons function)
+      r'[A-Z]\w*(?:<[^>]*>)?|' // Custom types with generics
+      r'[a-zA-Z_]\w*(?:<[^>]*>)?)' // Any type with generics
+      r'\s+' // Required space after return type
+      r'|' // OR no return type (for constructors, etc.)
       r')' // End return type group
-      r'(\w+)' // Function name (capture group 1) - REQUIRED
-      r'\s*\([^)]*\)' // Parameters - REQUIRED
-      r'\s*(?:async\s*\*?|sync\s*\*?)?' // Optional async modifiers
-      r'\s*' // Optional whitespace
-      r'(?:\{|=>)', // FIXED: Function body start - just look for { or => (don't try to match entire body)
+      r'(\w+)' // Function name (capture group 1)
+      r'(?:<[^>]*>)?' // Optional generic parameters on function
+      r'\s*\([^)]*\)' // Parameters
+      r'\s*(?:async\s*\*?|sync\s*\*?)?' // Optional async
+      r'\s*(?:\{|=>|;)', // Body start or declaration end
       multiLine: true,
     );
 
     String currentLine = line;
 
-    // Skip lines that are clearly function calls
-    if (_isFunctionCall(line)) {
+    // FIXED: Skip non-function lines early
+    if (_shouldSkipLine(line)) {
       return;
     }
 
-    // Handle multi-line functions - IMPROVED
-    if ((line.contains('(') && line.contains(')')) &&
-        (line.contains('{') || line.contains('=>')) &&
-        !line.contains('}')) {
-      StringBuffer fullFunction = StringBuffer(line);
-      int braceCount = line.split('{').length - line.split('}').length;
-      int nextLineIndex = lineIndex + 1;
+    // FIXED: Better class detection - skip class declarations entirely
+    if (_isClassDeclaration(line)) {
+      return;
+    }
 
-      while (braceCount > 0 && nextLineIndex < lines.length) {
-        String nextLine = lines[nextLineIndex];
-        fullFunction.writeln(nextLine);
-        braceCount += nextLine.split('{').length - 1;
-        braceCount -= nextLine.split('}').length - 1;
-        nextLineIndex++;
-      }
-      currentLine = fullFunction.toString();
+    // FIXED: Skip constructor calls and widget instantiations
+    if (_isConstructorOrWidgetCall(line)) {
+      return;
+    }
+
+    // Handle multi-line functions
+    if (_isMultiLineFunction(line, lineIndex, lines)) {
+      currentLine = _buildMultiLineFunction(line, lineIndex, lines);
     }
 
     final functionMatches = functionRegex.allMatches(currentLine);
 
     for (final match in functionMatches) {
-      final functionName = match.group(1);
-
+      String? functionName = match.group(1);
       if (functionName == null || functionName.isEmpty) {
         continue;
       }
 
-      // Additional validation to ensure this is a function definition
+      // FIXED: Enhanced validation - check if this is inside a constructor call or parameter
+      if (_isInsideConstructorCall(currentLine, match) ||
+          _isLambdaParameter(currentLine, match)) {
+        continue;
+      }
+
+      if (functionName == "CounterWidget") {
+        stdout.write("$functionName is main function, skipping it $lineIndex");
+      }
+
+      // FIXED: Enhanced class detection - skip if this is actually a class name
+      if (_isActuallyClass(functionName, currentLine, lines, lineIndex) ||
+          currentClassName == functionName) {
+        continue;
+      }
+
+      // FIXED: Better function definition validation
       if (!_isValidFunctionDefinition(currentLine, match, functionName)) {
         continue;
       }
 
-      // FIXED: Better comment detection
+      // Check if line is commented
       bool isCommentedOut = _isLineCommented(lines, lineIndex, line);
-
-      // Debug for specific functions
-      if (functionName == 'buildLoader') {
-        print('DEBUG: Function $functionName at line $lineIndex');
-        print('DEBUG: Line content: "${lines[lineIndex]}"');
-        print('DEBUG: Original line: "$line"');
-        print('DEBUG: Is commented: $isCommentedOut');
-        print('DEBUG: Match found: ${match.group(0)}');
-        print('---');
-      }
-
       bool isEntryPoint = false;
       bool isPrebuiltFlutter =
           insideStateClass && prebuiltFlutterMethods.contains(functionName);
 
-      // FIXED: Better empty function detection - get the actual function body
-      String functionBody = _extractFunctionBody(currentLine, match.start);
-      bool isEmpty = functionBody.isEmpty ||
-          functionBody == ';' ||
-          functionBody.replaceAll(RegExp(r'\s+'), '') == '{}';
+      // Check for @override annotation
+      bool isOverrideFunction = _hasOverrideAnnotation(lines, lineIndex);
 
+      // Skip @override functions as they are inherently used
+      if (isOverrideFunction && !isCommentedOut) {
+        continue;
+      }
+
+      bool isOverriddenFlutterMethod =
+          isOverrideFunction && prebuiltFlutterMethods.contains(functionName);
+
+      // Extract function body for emptiness check
+      String functionBody = _extractFunctionBody(currentLine, match.start);
+      bool isEmpty = _isFunctionEmpty(functionBody);
       bool isThisConstructor = isConstructor(functionName, currentLine);
 
       // Check for @pragma('vm:entry-point') annotation
       if (lineIndex > 0 && !isCommentedOut) {
-        if (pragmaRegex.hasMatch(lines[lineIndex - 1])) {
-          isEntryPoint = true;
-        } else {
-          int checkIndex = lineIndex - 2;
-          while (checkIndex >= 0 && checkIndex >= lineIndex - 2) {
-            if (pragmaRegex.hasMatch(lines[checkIndex])) {
-              isEntryPoint = true;
-              break;
-            }
-            checkIndex--;
-          }
-        }
+        isEntryPoint = _checkForPragmaAnnotation(lines, lineIndex, pragmaRegex);
       }
 
-      String functionKey = functionName;
-      bool isStaticFunction = false;
-      if (isCommentedOut) {
-        functionKey =
-            '$functionName _LineNo:${lineIndex}_PositionNo:${match.start} ${sanitizeFilePath(filePath)}';
-      } else if (functions.containsKey(functionName)) {
-        isStaticFunction = isItStaticFunction(currentLine);
-        functionKey = functionName;
-      }
+      String functionKey = _buildFunctionKey(functionName, isCommentedOut,
+          lineIndex, match.start, filePath, functions);
 
-      // Skip prebuilt Flutter methods unless they're commented out and we want to track them
+      bool isStaticFunction = isItStaticFunction(currentLine);
+
+      // Skip prebuilt Flutter methods unless they're commented out or overridden
       if (!isCommentedOut &&
+          !isOverriddenFlutterMethod &&
           (prebuiltFlutterMethods.contains(functionName) ||
               functionName == 'toString')) {
         continue;
@@ -151,30 +149,345 @@ void functionCollecter({
   }
 }
 
-// ADDED: Helper function to extract function body
-String _extractFunctionBody(String line, int matchStart) {
-  // Find the opening brace or arrow
-  int braceIndex = line.indexOf('{', matchStart);
-  int arrowIndex = line.indexOf('=>', matchStart);
+// NEW: Check if this is a constructor call or widget instantiation
+bool _isConstructorOrWidgetCall(String line) {
+  String trimmed = line.trim();
 
-  if (braceIndex == -1 && arrowIndex == -1) {
-    return '';
+  // Check for widget constructor calls like CounterWidget(...)
+  if (RegExp(r'[A-Z]\w*\s*\([^)]*(?:\([^)]*\)[^)]*)*\)\s*[,;]?$')
+      .hasMatch(trimmed)) {
+    return true;
   }
 
-  int startIndex = (braceIndex != -1 && arrowIndex != -1)
-      ? (braceIndex < arrowIndex ? braceIndex : arrowIndex)
-      : (braceIndex != -1 ? braceIndex : arrowIndex);
+  // Check for constructor calls in assignments
+  if (RegExp(r'=\s*[A-Z]\w*\s*\(').hasMatch(trimmed)) {
+    return true;
+  }
 
+  // Check for constructor calls in return statements
+  if (RegExp(r'return\s+[A-Z]\w*\s*\(').hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Check for constructor calls in lists/collections
+  if (RegExp(r'[\[\{,]\s*[A-Z]\w*\s*\(').hasMatch(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
+
+// NEW: Check if the match is inside a constructor call
+bool _isInsideConstructorCall(String line, RegExpMatch match) {
+  String beforeMatch = line.substring(0, match.start);
+  // Count parentheses to see if we're inside a constructor call
+  int openParens = 0;
+  bool foundConstructor = false;
+
+  // Look backwards for constructor pattern
+  for (int i = beforeMatch.length - 1; i >= 0; i--) {
+    if (beforeMatch[i] == ')') {
+      openParens++;
+    } else if (beforeMatch[i] == '(') {
+      openParens--;
+      if (openParens < 0) {
+        // We found an opening paren, check if it's preceded by a constructor
+        String beforeParen = beforeMatch.substring(0, i).trim();
+        if (RegExp(r'[A-Z]\w*\s*$').hasMatch(beforeParen)) {
+          foundConstructor = true;
+          break;
+        }
+        break;
+      }
+    }
+  }
+
+  return foundConstructor;
+}
+
+// NEW: Check if this is a lambda parameter
+bool _isLambdaParameter(String line, RegExpMatch match) {
+  String beforeMatch = line.substring(0, match.start);
+
+  // Check for lambda parameter patterns like "onCountChanged: (count) =>"
+  if (RegExp(r'\w+\s*:\s*$').hasMatch(beforeMatch)) {
+    return true;
+  }
+
+  // Check if we're inside parentheses followed by =>
+  String afterMatch = line.substring(match.end);
+  if (RegExp(r'^\s*\)\s*=>').hasMatch(afterMatch)) {
+    // Count parentheses backwards to see if we're in a parameter list
+    int parenCount = 0;
+    for (int i = beforeMatch.length - 1; i >= 0; i--) {
+      if (beforeMatch[i] == ')') {
+        parenCount++;
+      } else if (beforeMatch[i] == '(') {
+        parenCount--;
+        if (parenCount < 0) {
+          // Check if this opening paren is preceded by a colon (parameter)
+          String beforeParen = beforeMatch.substring(0, i).trim();
+          if (beforeParen.endsWith(':')) {
+            return true;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+// FIXED: Enhanced skip line logic
+bool _shouldSkipLine(String line) {
+  String trimmed = line.trim();
+
+  // Skip empty lines, braces, or obvious non-function lines
+  if (trimmed.isEmpty || trimmed == '{' || trimmed == '}') {
+    return true;
+  }
+
+  // Skip obvious function calls
+  if (_isFunctionCall(line)) {
+    return true;
+  }
+
+  // Skip return statements
+  if (_isReturnStatement(line)) {
+    return true;
+  }
+
+  // Skip constructor calls
+  if (_isConstructorCall(line)) {
+    return true;
+  }
+
+  // Skip variable declarations that aren't function definitions
+  if (_isVariableDeclaration(line)) {
+    return true;
+  }
+
+  return false;
+}
+
+// FIXED: Much more comprehensive class declaration detection
+bool _isClassDeclaration(String line) {
+  String trimmed = line.trim();
+
+  // Check for class, enum, mixin, extension declarations
+  if (RegExp(r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+\w+')
+      .hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Check for class with generics: class MyClass<T>
+  if (RegExp(r'^(?:abstract\s+)?class\s+\w+(?:<[^>]*>)?').hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Check for class with extends/implements/with
+  if (RegExp(
+          r'^(?:abstract\s+)?class\s+\w+(?:<[^>]*>)?\s+(?:extends|implements|with)')
+      .hasMatch(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
+
+// FIXED: Much better class detection logic
+bool _isActuallyClass(String functionName, String currentLine,
+    List<String> lines, int lineIndex) {
+  String trimmedLine = currentLine.trim();
+
+  // FIXED: Direct class declaration check
+  if (RegExp(r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+' +
+          RegExp.escape(functionName) +
+          r'\b')
+      .hasMatch(trimmedLine)) {
+    return true;
+  }
+
+  // If function name starts with uppercase (potential class name)
+  if (functionName[0].toUpperCase() == functionName[0]) {
+    // Check current line for class-like patterns
+    if (trimmedLine.contains('extends') ||
+        trimmedLine.contains('implements') ||
+        trimmedLine.contains('with') ||
+        trimmedLine.contains('mixin')) {
+      return true;
+    }
+
+    // Look at surrounding context for class declarations
+    String context = _getContextAroundLine(lines, lineIndex, 3);
+
+    // Check for class declaration patterns in context
+    List<String> classPatterns = [
+      r'\bclass\s+' + RegExp.escape(functionName) + r'\b',
+      r'\benum\s+' + RegExp.escape(functionName) + r'\b',
+      r'\bmixin\s+' + RegExp.escape(functionName) + r'\b',
+      r'\bextension\s+' + RegExp.escape(functionName) + r'\b',
+    ];
+
+    for (String pattern in classPatterns) {
+      if (RegExp(pattern).hasMatch(context)) {
+        return true;
+      }
+    }
+
+    // Additional check: look for inheritance patterns
+    if (RegExp(r'\bextends\s+' + RegExp.escape(functionName) + r'\b')
+            .hasMatch(context) ||
+        RegExp(r'\bimplements\s+' + RegExp.escape(functionName) + r'\b')
+            .hasMatch(context) ||
+        RegExp(r'\bwith\s+' + RegExp.escape(functionName) + r'\b')
+            .hasMatch(context)) {
+      return true;
+    }
+
+    // Check if it's being used as a type declaration
+    if (RegExp(r'\b' + RegExp.escape(functionName) + r'\s+\w+\s*[=;]')
+        .hasMatch(context)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// FIXED: Get context around a line for better analysis
+String _getContextAroundLine(List<String> lines, int lineIndex, int radius) {
+  int start = (lineIndex - radius).clamp(0, lines.length - 1);
+  int end = (lineIndex + radius + 1).clamp(0, lines.length);
+
+  return lines.sublist(start, end).join('\n');
+}
+
+// Check if this is a multi-line function
+bool _isMultiLineFunction(String line, int lineIndex, List<String> lines) {
+  return (line.contains('(') && line.contains(')')) &&
+      (line.contains('{') || line.contains('=>')) &&
+      !line.contains('}') &&
+      lineIndex < lines.length - 1;
+}
+
+// Build complete multi-line function string
+String _buildMultiLineFunction(String line, int lineIndex, List<String> lines) {
+  StringBuffer fullFunction = StringBuffer(line);
+  int braceCount = line.split('{').length - line.split('}').length;
+  int nextLineIndex = lineIndex + 1;
+
+  while (braceCount > 0 && nextLineIndex < lines.length) {
+    String nextLine = lines[nextLineIndex];
+    fullFunction.writeln(nextLine);
+    braceCount += nextLine.split('{').length - 1;
+    braceCount -= nextLine.split('}').length - 1;
+    nextLineIndex++;
+  }
+
+  return fullFunction.toString();
+}
+
+// Improved function emptiness check
+bool _isFunctionEmpty(String functionBody) {
+  if (functionBody.isEmpty || functionBody.trim() == ';') {
+    return true;
+  }
+
+  String cleaned = functionBody.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  // Check for empty braces
+  if (cleaned == '{}' || cleaned == '{ }') {
+    return true;
+  }
+
+  // Check for arrow function with no body
+  if (cleaned == '=>' || cleaned == '=> ;') {
+    return true;
+  }
+
+  return false;
+}
+
+// Check for pragma annotation
+bool _checkForPragmaAnnotation(
+    List<String> lines, int lineIndex, RegExp pragmaRegex) {
+  if (pragmaRegex.hasMatch(lines[lineIndex - 1])) {
+    return true;
+  }
+
+  // Check up to 2 lines before
+  for (int i = 2; i <= 3 && lineIndex - i >= 0; i++) {
+    if (pragmaRegex.hasMatch(lines[lineIndex - i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Build function key for storage
+String _buildFunctionKey(
+    String functionName,
+    bool isCommentedOut,
+    int lineIndex,
+    int matchStart,
+    String filePath,
+    Map<String, CodeInfo> functions) {
+  if (isCommentedOut) {
+    return '$functionName _LineNo:${lineIndex}_PositionNo:$matchStart ${sanitizeFilePath(filePath)}';
+  } else if (functions.containsKey(functionName)) {
+    return functionName; // Will be overwritten, but that's the existing behavior
+  }
+
+  return functionName;
+}
+
+// Function to detect @override annotation
+bool _hasOverrideAnnotation(List<String> lines, int functionLineIndex) {
+  // Check up to 3 lines before the function for @override annotation
+  for (int i = 1; i <= 3 && (functionLineIndex - i) >= 0; i++) {
+    String line = lines[functionLineIndex - i].trim();
+
+    if (line == '@override') {
+      return true;
+    }
+
+    // Stop if we hit something that's not an annotation, comment, or empty line
+    if (line.isNotEmpty &&
+        !line.startsWith('@') &&
+        !line.startsWith('//') &&
+        !line.startsWith('/*')) {
+      break;
+    }
+  }
+
+  return false;
+}
+
+// Helper function to extract function body
+String _extractFunctionBody(String line, int matchStart) {
+  int braceIndex = line.indexOf('{', matchStart);
+  int arrowIndex = line.indexOf('=>', matchStart);
+  int semicolonIndex = line.indexOf(';', matchStart);
+
+  List<int> indices = [braceIndex, arrowIndex, semicolonIndex]
+      .where((index) => index != -1)
+      .toList();
+
+  if (indices.isEmpty) return '';
+
+  int startIndex = indices.reduce((a, b) => a < b ? a : b);
   return line.substring(startIndex);
 }
 
 bool isItStaticFunction(String line) {
-  // Check if the line starts with 'static' followed by a function definition
   return line.trim().startsWith('static ') &&
       RegExp(r'\w+\s*\([^)]*\)\s*[\{=>]').hasMatch(line);
 }
 
-// FIXED: More accurate comment detection
+// More accurate comment detection
 bool _isLineCommented(
     List<String> lines, int targetLineIndex, String originalLine) {
   if (targetLineIndex < 0 || targetLineIndex >= lines.length) {
@@ -182,53 +495,42 @@ bool _isLineCommented(
   }
 
   String targetLine = lines[targetLineIndex];
-
-  // First check the actual line content from the file
   String trimmedLine = targetLine.trim();
 
-  // Only consider it commented if it actually starts with comment markers
+  // Check for single-line comments
   if (trimmedLine.startsWith('//') || trimmedLine.startsWith('///')) {
     return true;
   }
 
-  // Check if we're inside a multi-line comment block
-  bool inMultiLineComment = _isInsideMultiLineComment(lines, targetLineIndex);
-
-  return inMultiLineComment;
+  // Check if inside multi-line comment
+  return _isInsideMultiLineComment(lines, targetLineIndex);
 }
 
-// FIXED: More robust multi-line comment detection
+// Multi-line comment detection
 bool _isInsideMultiLineComment(List<String> lines, int targetLineIndex) {
   bool inComment = false;
 
-  // Check from the beginning of file up to target line
   for (int lineIdx = 0; lineIdx <= targetLineIndex; lineIdx++) {
     String line = lines[lineIdx];
 
-    // Process each character in the line
     for (int charIdx = 0; charIdx < line.length; charIdx++) {
-      // Skip if we're inside a string literal
       if (_isInsideString(line, charIdx)) {
         continue;
       }
 
-      // Check for comment start /*
       if (charIdx < line.length - 1 &&
           line[charIdx] == '/' &&
           line[charIdx + 1] == '*') {
         inComment = true;
-        charIdx++; // Skip the '*'
-      }
-      // Check for comment end */
-      else if (charIdx < line.length - 1 &&
+        charIdx++;
+      } else if (charIdx < line.length - 1 &&
           line[charIdx] == '*' &&
           line[charIdx + 1] == '/') {
         inComment = false;
-        charIdx++; // Skip the '/'
+        charIdx++;
       }
     }
 
-    // If we've reached the target line and we're in a comment, return true
     if (lineIdx == targetLineIndex && inComment) {
       return true;
     }
@@ -263,21 +565,34 @@ bool _isInsideString(String line, int position) {
   return inSingleQuote || inDoubleQuote;
 }
 
+// Enhanced function call detection
 bool _isFunctionCall(String line) {
   String trimmed = line.trim();
 
-  // Check for method calls with dot notation
+  if (trimmed.isEmpty || trimmed == '{' || trimmed == '}') {
+    return false;
+  }
+
+  // Method calls with dot notation
   if (RegExp(r'\w+\.\w+\s*\(').hasMatch(trimmed)) {
     return true;
   }
 
-  // Check for other call patterns
+  // Variable assignments with function calls
+  if (RegExp(r'^\s*\w+\s*=\s*\w+(?:\.\w+)?\s*\(').hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Other call patterns
   List<String> callPatterns = [
-    r'await\s+\w+(?:\.\w+)?\s*\(',
-    r'\w+\s*=\s*\w+(?:\.\w+)?\s*\(',
-    r'return\s+\w+(?:\.\w+)?\s*\(',
-    r'if\s*\(\s*\w+(?:\.\w+)?\s*\(',
-    r'while\s*\(\s*\w+(?:\.\w+)?\s*\(',
+    r'^\s*await\s+\w+(?:\.\w+)?\s*\(',
+    r'^\s*return\s+\w+(?:\.\w+)?\s*\(',
+    r'^\s*if\s*\(\s*\w+(?:\.\w+)?\s*\(',
+    r'^\s*while\s*\(\s*\w+(?:\.\w+)?\s*\(',
+    r'^\s*for\s*\(',
+    r'^\s*switch\s*\(',
+    r'^\s*print\s*\(',
+    r'^\s*throw\s+',
   ];
 
   for (String pattern in callPatterns) {
@@ -289,11 +604,64 @@ bool _isFunctionCall(String line) {
   return false;
 }
 
+// Check if this is a return statement
+bool _isReturnStatement(String line) {
+  String trimmed = line.trim();
+  return trimmed.startsWith('return ') || trimmed == 'return;';
+}
+
+// Check if this is a constructor call or instantiation
+bool _isConstructorCall(String line) {
+  String trimmed = line.trim();
+
+  if (trimmed.startsWith('new ')) {
+    return true;
+  }
+
+  // Variable assignments with constructor calls
+  if (RegExp(r'^\s*(?:final|var|const|\w+)\s+\w+\s*=\s*[A-Z]\w*\s*\(')
+      .hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Direct constructor calls in return statements
+  if (RegExp(r'^\s*return\s+[A-Z]\w*\s*\(').hasMatch(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
+
+// NEW: Check if this is a variable declaration
+bool _isVariableDeclaration(String line) {
+  String trimmed = line.trim();
+
+  // Simple variable declarations
+  if (RegExp(r'^\s*(?:final|var|const|late)\s+\w+').hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Typed variable declarations
+  if (RegExp(r'^\s*(?:int|double|String|bool|List|Map|Set)\s+\w+\s*[=;]')
+      .hasMatch(trimmed)) {
+    return true;
+  }
+
+  // Class member variables (private or public)
+  if (RegExp(r'^\s*(?:static\s+)?(?:final\s+|const\s+)?[A-Z]\w*\s+_?\w+\s*[=;]')
+      .hasMatch(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
+
+// FIXED: Better validation for function definitions
 bool _isValidFunctionDefinition(
     String line, RegExpMatch match, String functionName) {
   String beforeMatch = line.substring(0, match.start).trim();
 
-  // If there's a dot right before the function name, it's likely a method call
+  // If there's a dot right before the function name, it's a method call
   if (beforeMatch.endsWith('.')) {
     return false;
   }
@@ -303,8 +671,58 @@ bool _isValidFunctionDefinition(
     return false;
   }
 
-  // Check for assignment patterns
-  if (RegExp(r'=\s*$').hasMatch(beforeMatch)) {
+  // Check for assignment patterns (but allow arrow functions)
+  if (RegExp(r'=\s*$').hasMatch(beforeMatch) && !line.contains('=>')) {
+    return false;
+  }
+
+  // Skip if it's clearly a function call inside parentheses
+  if (beforeMatch.endsWith('(') || beforeMatch.endsWith(',')) {
+    return false;
+  }
+
+  // FIXED: Enhanced check for class declarations
+  if (_isClassDeclaration(line)) {
+    return false;
+  }
+
+  // Skip if the line starts with common non-function keywords
+  String lineStart = line.trim();
+  List<String> skipPatterns = [
+    'return ',
+    'throw ',
+    'print(',
+    'debugPrint(',
+    'log(',
+    'if(',
+    'while(',
+    'for(',
+    'switch(',
+    'assert(',
+    'class ',
+    'abstract class ',
+    'enum ',
+    'mixin ',
+    'extension ',
+  ];
+
+  for (String pattern in skipPatterns) {
+    if (lineStart.startsWith(pattern)) {
+      return false;
+    }
+  }
+
+  // Check if we're inside a parameter list or argument list
+  int openParenCount =
+      beforeMatch.split('(').length - beforeMatch.split(')').length;
+  if (openParenCount > 0) {
+    return false;
+  }
+
+  // FIXED: Additional validation - check if this is actually a function definition
+  // Must have proper function signature: name(params) followed by { or => or ;
+  if (!RegExp(r'\([^)]*\)\s*(?:\{|=>|;)')
+      .hasMatch(line.substring(match.start))) {
     return false;
   }
 

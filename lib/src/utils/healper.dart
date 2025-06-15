@@ -140,65 +140,55 @@ String sanitizeFilePath(String filePath) {
 
 // Expanded list of prebuilt Flutter and framework methods
 final Set<String> prebuiltFlutterMethods = {
-  'toString',
-  'onWillPop',
-  'if',
-  'for',
-  'while',
-  'switch',
-  'try',
-  'catch',
-  'finally',
+  // core
+  'print',
+  'debugPrint',
   'main',
   'runApp',
   'runZoned',
-  'super',
-  'InkWell',
-  // Widget Lifecycle
-  'build',
-  'createElement',
-  'debugFillProperties',
-  'canUpdate',
-  'updateChild',
-  'inflateWidget',
-  'deactivateChild',
-  'debugGetCreatorChain',
-  'toStringShallow',
-  'toStringDeep',
-  'toDiagnosticsNode',
+  'setState',
+  'for',
+  'forEach',
+  'map',
+  'where',
+  'any',
+  'every',
+  'firstWhere',
+  'fold',
+  'reduce',
+  'toList',
+  'toSet',
+  'catch',
+  'throw',
+  'return',
 
-  // StatefulWidget Lifecycle
+  // Core Object methods that are commonly overridden
+  'toString',
+  'hashCode',
+  'noSuchMethod',
+
+  // Widget Lifecycle methods that are overridden
+  'createElement',
+  'canUpdate',
+
+  // StatefulWidget Lifecycle methods that are overridden
   'createState',
   'initState',
   'didChangeDependencies',
   'didUpdateWidget',
   'reassemble',
-  'setState',
   'deactivate',
   'dispose',
-  'activate',
-  'mounted',
 
-  // StatelessWidget
+  // StatelessWidget/RenderObjectWidget methods that are overridden
   'createRenderObject',
   'updateRenderObject',
   'didUnmountRenderObject',
 
-  // InheritedWidget
+  // InheritedWidget methods that are overridden
   'updateShouldNotify',
-  'inheritFromWidgetOfExactType',
-  'dependOnInheritedWidgetOfExactType',
-  'dependOnInheritedElement',
-  'getElementForInheritedWidgetOfExactType',
 
-  // Object Lifecycle (Dart)
-  'toStringShort',
-  'hashCode',
-  'runtimeType',
-  'noSuchMethod',
-  '==',
-
-  // RenderObject Methods
+  // RenderObject methods that are commonly overridden
   'performLayout',
   'performResize',
   'paint',
@@ -219,388 +209,39 @@ final Set<String> prebuiltFlutterMethods = {
   'redepthChildren',
   'attach',
   'detach',
-  'owner',
-  'depth',
-  'constraints',
-  'size',
-  'hasSize',
-  'parentData',
-  'parent',
-  'markNeedsLayout',
-  'markNeedsLayoutForSizedByParentChange',
-  'markNeedsPaint',
-  'markNeedsCompositingBitsUpdate',
-  'markNeedsSemanticsUpdate',
-  'scheduleInitialPaint',
-  'scheduleInitialLayout',
-  'scheduleInitialSemantics',
-  'replaceRootLayer',
   'showOnScreen',
   'describeSemanticsConfiguration',
   'assembleSemanticsNode',
   'clearSemantics',
 
-  // Animation Methods
+  // Animation methods that are overridden
   'addListener',
   'removeListener',
   'addStatusListener',
   'removeStatusListener',
-  'forward',
-  'reverse',
-  'reset',
-  'stop',
-  'repeat',
-  'drive',
-  'animateWith',
-  'value',
-  'status',
-  'isCompleted',
-  'isDismissed',
-  'isAnimating',
-  'velocity',
 
-  // StreamController Methods
+  // StreamController methods that are overridden
   'onListen',
   'onPause',
   'onResume',
   'onCancel',
-  'add',
-  'addError',
-  'close',
-  'stream',
-  'sink',
-  'hasListener',
-  'isPaused',
-  'isClosed',
 
-  // Future Methods
-  'then',
-  'catchError',
-  'whenComplete',
-  'timeout',
-  'asStream',
-
-  // Stream Methods
-  'listen',
-  'where',
-  'map',
-  'asyncMap',
-  'asyncExpand',
-  'handleError',
-  'expand',
-  'pipe',
-  'transform',
-  'reduce',
-  'fold',
-  'join',
-  'contains',
-  'forEach',
-  'every',
-  'any',
-  'length',
-  'isEmpty',
-  'isBroadcast',
-  'asBroadcastStream',
-  'skip',
-  'skipWhile',
-  'take',
-  'takeWhile',
-  'toList',
-  'toSet',
-  'drain',
-  'cast',
-  'retype',
-  'first',
-  'last',
-  'single',
-  'firstWhere',
-  'lastWhere',
-  'singleWhere',
-  'elementAt',
-  'distinct',
-
-  // Serialization Methods
-  'toJson',
-  'fromJson',
-  'toMap',
-  'fromMap',
-  'copyWith',
-
-  // List/Collection Methods
-  'addAll',
-  'insert',
-  'insertAll',
-  'remove',
-  'removeAt',
-  'removeLast',
-  'removeWhere',
-  'retainWhere',
-  'clear',
-  'sort',
-  'shuffle',
-  'indexOf',
-  'lastIndexOf',
-  'isNotEmpty',
-  'reversed',
-  'iterator',
-  'asMap',
-  'getRange',
-  'setRange',
-  'removeRange',
-  'fillRange',
-  'replaceRange',
-  'setAll',
-  'sublist',
-
-  // Map Methods
-  'putIfAbsent',
-  'update',
-  'updateAll',
-  'addEntries',
-  'containsKey',
-  'containsValue',
-  'keys',
-  'values',
-  'entries',
-
-  // Set Methods
-  'union',
-  'intersection',
-  'difference',
-  'lookup',
-
-  // Navigator Methods
-  'push',
-  'pop',
-  'pushReplacement',
-  'pushAndRemoveUntil',
-  'replace',
-  'replaceRouteBelow',
-  'canPop',
-  'maybePop',
-  'popUntil',
-  'removeRoute',
-  'removeRouteBelow',
-  'popAndPushNamed',
-  'pushNamed',
-  'pushReplacementNamed',
-  'pushNamedAndRemoveUntil',
-  'restorablePush',
-  'restorablePushNamed',
-  'restorablePushReplacement',
-  'restorablePushReplacementNamed',
-  'restorablePushAndRemoveUntil',
-  'restorablePushNamedAndRemoveUntil',
-
-  // MediaQuery Methods
-  'of',
-  'maybeOf',
-  'fromView',
-  'fromWindow',
-  'removePadding',
-  'removeViewInsets',
-  'removeViewPadding',
-  'textScaleFactorOf',
-  'platformBrightnessOf',
-  'highContrastOf',
-  'disableAnimationsOf',
-  'accessibleNavigationOf',
-  'invertColorsOf',
-  'reduceMotionOf',
-  'videoPlaybackControlsOf',
-
-  // Scaffold Methods
-  'hasDrawer',
-  'hasEndDrawer',
-  'hasFloatingActionButton',
-  'isDrawerOpen',
-  'isEndDrawerOpen',
-  'openDrawer',
-  'openEndDrawer',
-  'showBottomSheet',
-  'showSnackBar',
-  'hideCurrentSnackBar',
-  'removeCurrentSnackBar',
-  'showBodyScrim',
-  'hideBodyScrim',
-
-  // Form Methods
-  'save',
-  'validate',
-
-  // FormField Methods
-  'didChange',
-  'setValue',
-
-  // Focus Methods
-  'requestFocus',
-  'unfocus',
-  'consumeKeyboardToken',
-  'hasFocus',
-  'hasPrimaryFocus',
-  'canRequestFocus',
-  'descendantsAreFocusable',
-  'descendantsAreTraversable',
-  'skipTraversal',
-  'reparent',
-  'setFirstFocus',
-  'setLastFocus',
-  'invalidateScopeData',
-  'traversalDescendants',
-  'inDirection',
-  'findFirstFocusInDirection',
-  'sortDescendants',
-
-  // Overlay Methods
-  'rearrange',
-
-  // PageController Methods
-  'animateToPage',
-  'nextPage',
-  'previousPage',
-  'jumpToPage',
-  'animateTo',
-  'jumpTo',
-  'createScrollPosition',
-  'debugFillDescription',
-
-  // ScrollController Methods
-  'hasClients',
-  'position',
-  'positions',
-  'offset',
-  'initialScrollOffset',
-  'keepScrollOffset',
-  'debugLabel',
-
-  // TabController Methods
-  'indexIsChanging',
-  'index',
-  'previousIndex',
-  'animation',
-
-  // TextEditingController Methods
-  'notifyListeners',
-  'clearComposing',
-  'isSelectionWithinTextBounds',
-  'buildTextSpan',
-  'text',
-  'selection',
-
-  // ValueNotifier Methods
-  'hasListeners',
-
-  // GlobalKey Methods
-  'currentState',
-  'currentContext',
-  'currentWidget',
-
-  // BuildContext Methods
-  'findAncestorWidgetOfExactType',
-  'findAncestorStateOfType',
-  'findRootAncestorStateOfType',
-  'findAncestorRenderObjectOfType',
-  'visitAncestorElements',
-  'visitChildElements',
-  'findRenderObject',
-  'widget',
-  'debugDoingBuild',
-
-  // Element Methods
+  // Element methods that are overridden
   'mount',
   'updateSlotForChild',
   'attachRenderObject',
   'detachRenderObject',
   'unmount',
-  'inheritFromElement',
-  'updateDependencies',
   'performRebuild',
-  'markNeedsBuild',
-  'rebuild',
   'debugVisitOnstageChildren',
   'debugDescribeChildren',
 
-  // Ticker Methods
+  // Ticker methods that are overridden
   'start',
-  'scheduled',
   'shouldScheduleTick',
   'unscheduleTick',
 
-  // GestureDetector callback methods
-  'onTap',
-  'onTapDown',
-  'onTapUp',
-  'onTapCancel',
-  'onSecondaryTap',
-  'onSecondaryTapDown',
-  'onSecondaryTapUp',
-  'onSecondaryTapCancel',
-  'onTertiaryTapDown',
-  'onTertiaryTapUp',
-  'onTertiaryTapCancel',
-  'onDoubleTap',
-  'onDoubleTapDown',
-  'onDoubleTapCancel',
-  'onLongPress',
-  'onLongPressStart',
-  'onLongPressMoveUpdate',
-  'onLongPressUp',
-  'onLongPressEnd',
-  'onSecondaryLongPress',
-  'onSecondaryLongPressStart',
-  'onSecondaryLongPressMoveUpdate',
-  'onSecondaryLongPressUp',
-  'onSecondaryLongPressEnd',
-  'onVerticalDragDown',
-  'onVerticalDragStart',
-  'onVerticalDragUpdate',
-  'onVerticalDragEnd',
-  'onVerticalDragCancel',
-  'onHorizontalDragDown',
-  'onHorizontalDragStart',
-  'onHorizontalDragUpdate',
-  'onHorizontalDragEnd',
-  'onHorizontalDragCancel',
-  'onPanDown',
-  'onPanStart',
-  'onPanUpdate',
-  'onPanEnd',
-  'onPanCancel',
-  'onScaleStart',
-  'onScaleUpdate',
-  'onScaleEnd',
-
-  // Common Widget Properties/Methods (callback style)
-  'onPressed',
-  'onHover',
-  'onFocusChange',
-  'onChanged',
-  'onSubmitted',
-  'onEditingComplete',
-  'onSaved',
-  'validator',
-  'builder',
-  'itemBuilder',
-  'separatorBuilder',
-  'itemCount',
-  'itemExtent',
-  'prototypeItem',
-  'addAutomaticKeepAlives',
-  'addRepaintBoundaries',
-  'addSemanticIndexes',
-  'cacheExtent',
-  'controller',
-  'dragStartBehavior',
-  'keyboardDismissBehavior',
-  'physics',
-  'primary',
-  'restorationId',
-  'scrollDirection',
-  'semanticChildCount',
-  'shrinkWrap',
-  'clipBehavior',
-
-  // AppLifecycleState methods
+  // AppLifecycleState methods that are overridden
   'didChangeAppLifecycleState',
   'didHaveMemoryPressure',
   'didChangeLocales',
@@ -608,37 +249,30 @@ final Set<String> prebuiltFlutterMethods = {
   'didChangePlatformBrightness',
   'didChangeAccessibilityFeatures',
 
-  // WidgetsBindingObserver methods
+  // WidgetsBindingObserver methods that are overridden
   'didChangeMetrics',
   'didRequestAppExit',
   'didPopRoute',
   'didPushRoute',
   'didPushRouteInformation',
 
-  // Hero methods
+  // Hero methods that are overridden
   'createRectTween',
   'flightShuttleBuilder',
   'placeholderBuilder',
-  'transitionOnUserGestures',
 
-  // PageRoute methods
+  // PageRoute methods that are overridden
   'buildPage',
   'buildTransitions',
   'canTransitionFrom',
   'canTransitionTo',
 
-  // Common Dart methods that might be overridden
-  'compareTo',
-  'call',
-
-  // Diagnostics methods
-
-  // Custom painter methods
+  // Custom painter methods that are overridden
   'shouldRepaint',
   'shouldRebuildSemantics',
   'semanticsBuilder',
 
-  // Sliver methods
+  // Sliver methods that are overridden
   'childMainAxisPosition',
   'childCrossAxisPosition',
   'childScrollOffset',
@@ -648,12 +282,6 @@ final Set<String> prebuiltFlutterMethods = {
   'updateOutOfBandData',
   'updateParentData',
 
-  // Platform channel methods
-  'invokeMethod',
-  'invokeListMethod',
-  'invokeMapMethod',
+  // Platform channel methods that are overridden
   'setMethodCallHandler',
-
-  // Error handling
-  'onError',
 };
