@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/models/code_info.dart';
 
 class Healper {
   static List<File> getDartFiles(Directory dir) {

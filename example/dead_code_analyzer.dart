@@ -1,5 +1,5 @@
-import 'package:dead_code_analyzer/src/collecter/class_collector.dart';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
+import 'package:dead_code_analyzer/src/collectors/class_collector.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
 
 final ckassTestFile = '''
   // This widget is the home page of your application. It is stateful, meaning

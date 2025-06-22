@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:dead_code_analyzer/src/collecter/class_collector.dart';
-import 'package:dead_code_analyzer/src/collecter/function_collector.dart';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
-import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/collectors/class_collector.dart';
+import 'package:dead_code_analyzer/src/collectors/function_collector.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/models/code_info.dart';
+import 'package:dead_code_analyzer/src/utils/helper.dart';
 import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 

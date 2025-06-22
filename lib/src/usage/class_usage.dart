@@ -1,7 +1,7 @@
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/import_info.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/models/import_info.dart';
 
-class ClassUages {
+class ClassUsage {
   static void analyzeClassUsages(
       String content, String filePath, Map<String, ClassInfo> classes) {
     // Parse all imports in the current file

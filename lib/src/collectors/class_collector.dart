@@ -1,5 +1,5 @@
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/utils/helper.dart';
 
 class ClassCollector {
   static void classCollector(

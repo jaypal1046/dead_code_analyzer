@@ -1,9 +1,9 @@
 import 'dart:math';
-import 'package:dead_code_analyzer/src/model/categorized_classes.dart';
-import 'package:dead_code_analyzer/src/model/categorized_functions.dart';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
-import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/models/categorized_classes.dart';
+import 'package:dead_code_analyzer/src/models/categorized_functions.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/models/code_info.dart';
+import 'package:dead_code_analyzer/src/utils/helper.dart';
 import 'package:path/path.dart' as path;
 
 class ConsoleReporter {

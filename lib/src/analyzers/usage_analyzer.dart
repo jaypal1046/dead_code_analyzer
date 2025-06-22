@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
-import 'package:dead_code_analyzer/src/usage/class_uages.dart';
-import 'package:dead_code_analyzer/src/usage/function_usages.dart';
-import 'package:dead_code_analyzer/src/utils/healper.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/models/code_info.dart';
+import 'package:dead_code_analyzer/src/usage/class_usage.dart';
+import 'package:dead_code_analyzer/src/usage/function_usage.dart';
+import 'package:dead_code_analyzer/src/utils/helper.dart';
 import 'package:dead_code_analyzer/src/utils/progress_bar.dart';
 import 'package:path/path.dart' as path;
 
@@ -30,8 +30,8 @@ class UsageAnalyzer {
       try {
         final content = File(filePath).readAsStringSync();
 
-        // Analyze class usages
-        ClassUages.analyzeClassUsages(content, filePath, classes);
+        // Analyze class usage
+        ClassUsage.analyzeClassUsages(content, filePath, classes);
 
         // Analyze function usages
         if (analyzeFunctions) {

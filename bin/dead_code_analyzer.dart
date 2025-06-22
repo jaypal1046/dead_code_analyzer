@@ -1,43 +1,43 @@
 import 'dart:io';
 import 'package:args/args.dart';
-import 'package:dead_code_analyzer/src/analyzers/code_analyzer.dart';
-import 'package:dead_code_analyzer/src/analyzers/usage_analyzer.dart';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
-import 'package:dead_code_analyzer/src/reporters/dead_code_cleaner.dart';
-import 'package:dead_code_analyzer/src/reporters/console_reporter.dart';
-import 'package:dead_code_analyzer/src/reporters/file_reporter.dart';
-import 'package:dead_code_analyzer/src/utils/healper.dart';
-import 'package:dead_code_analyzer/src/utils/varsion_info.dart';
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> arguments) {
   final parser = ArgParser()
-    ..addOption('project-path',
+    ..addOption('path',
         abbr: 'p',
         help: 'Path to the Flutter project to analyze',
         defaultsTo: '.')
-    ..addOption('output-dir',
+    ..addOption('out',
         abbr: 'o',
         help: 'Directory to save the report file (default: Desktop)',
         defaultsTo: '')
-    ..addOption('max-unused',
+    ..addOption('limit',
+        abbr: 'l',
         help: 'Maximum number of unused entities to display in console',
         defaultsTo: '10')
-    ..addFlag('analyze-functions',
-        help: 'Include function usage analysis', defaultsTo: false)
+    ..addFlag('funcs',
+        abbr: 'f', help: 'Include function usage analysis', defaultsTo: false)
     ..addFlag('clean',
+        abbr: 'c',
         help: 'Clean up files containing only dead or commented-out classes',
         negatable: false)
     ..addFlag('help',
         abbr: 'h', help: 'Show usage information', negatable: false)
-    ..addFlag('verbose',
-        abbr: 'v', help: 'Show detailed output', negatable: false)
-    ..addFlag('no-progress',
-        help: 'Disable progress indicators', negatable: false);
+    ..addFlag('trace',
+        abbr: 't', help: 'Show detailed execution trace', defaultsTo: false)
+    ..addFlag('quiet',
+        abbr: 'q', help: 'Disable progress indicators', negatable: false);
 
   // Try to get version from version file or pubspec.yaml
-  VarsionInfo.versionfind(parser, arguments);
+  VersionInfo.versionfind(parser, arguments);
+
+  //  if (results['help'] as bool) {
+  //     showHelp(parser);
+  //     return;
+  //   }
+    
 
   late ArgResults args;
   try {

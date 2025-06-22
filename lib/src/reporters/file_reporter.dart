@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:dead_code_analyzer/src/model/class_info.dart';
-import 'package:dead_code_analyzer/src/model/code_info.dart';
+import 'package:dead_code_analyzer/src/models/class_info.dart';
+import 'package:dead_code_analyzer/src/models/code_info.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
