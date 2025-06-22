@@ -1,13 +1,24 @@
 import 'dart:math';
-import 'package:dead_code_analyzer/src/models/categorized_classes.dart';
-import 'package:dead_code_analyzer/src/models/categorized_functions.dart';
+
 import 'package:dead_code_analyzer/src/models/class_info.dart';
 import 'package:dead_code_analyzer/src/models/code_info.dart';
+import 'package:dead_code_analyzer/src/models/reporter/categorized_classes.dart';
+import 'package:dead_code_analyzer/src/models/reporter/categorized_functions.dart';
 import 'package:dead_code_analyzer/src/utils/helper.dart';
 import 'package:path/path.dart' as path;
 
+/// A console reporter for displaying dead code analysis results.
+/// 
+/// This class provides methods to categorize and display information about
+/// unused classes and functions in a Flutter/Dart project.
 class ConsoleReporter {
-  // Helper function to convert absolute path to lib-relative path
+  /// Private constructor to prevent instantiation.
+  ConsoleReporter._();
+
+  /// Converts an absolute path to a lib-relative path for cleaner output.
+  /// 
+  /// Returns a path relative to the lib directory if the file is within lib,
+  /// otherwise returns a path relative to the project root.
   static String toLibRelativePath(String absolutePath, String projectPath) {
     final libPath = path.join(projectPath, 'lib');
     if (absolutePath.startsWith(libPath)) {
@@ -16,7 +27,10 @@ class ConsoleReporter {
     return path.relative(absolutePath, from: projectPath);
   }
 
-// Categorize classes based on their usage patterns
+  /// Categorizes classes based on their usage patterns.
+  /// 
+  /// Returns a [CategorizedClasses] object containing lists of classes
+  /// grouped by their usage characteristics.
   static CategorizedClasses categorizeClasses(Map<String, ClassInfo> classes) {
     final sortedClasses = classes.entries.toList()
       ..sort((a, b) => b.value.totalUsages.compareTo(a.value.totalUsages));
@@ -64,9 +78,13 @@ class ConsoleReporter {
     );
   }
 
-// Categorize functions based on their usage patterns
+  /// Categorizes functions based on their usage patterns.
+  /// 
+  /// Returns a [CategorizedFunctions] object containing lists of functions
+  /// grouped by their usage characteristics.
   static CategorizedFunctions categorizeFunctions(
-      Map<String, CodeInfo> functions) {
+    Map<String, CodeInfo> functions,
+  ) {
     final unusedFunctions = <String>[];
     final internalOnlyFunctions = <String>[];
     final externalOnlyFunctions = <String>[];
@@ -121,7 +139,7 @@ class ConsoleReporter {
     );
   }
 
-// Print analysis summary
+  /// Prints a summary of the analysis results.
   static void printAnalysisSummary(
     Map<String, ClassInfo> classes,
     Map<String, CodeInfo> functions,
@@ -135,39 +153,71 @@ class ConsoleReporter {
         classes.entries.where((entry) => !entry.value.commentedOut).length;
     print('Total classes analyzed: ${classes.length}');
     print('Commented Classes: ${categorizedClasses.commented.length}');
+    
+    final unusedPercentage = activeClasses > 0 
+        ? (categorizedClasses.unused.length / activeClasses * 100)
+        : 0.0;
     print(
-        'Unused Classes: ${categorizedClasses.unused.length} (${(categorizedClasses.unused.length / (activeClasses > 0 ? activeClasses : 1) * 100).toStringAsFixed(1)}%)');
+      'Unused Classes: ${categorizedClasses.unused.length} '
+      '(${unusedPercentage.toStringAsFixed(1)}%)',
+    );
+    
     print(
-        'Classes used only internally: ${categorizedClasses.internalOnly.length}');
+      'Classes used only internally: '
+      '${categorizedClasses.internalOnly.length}',
+    );
     print(
-        'Classes used only externally: ${categorizedClasses.externalOnly.length}');
+      'Classes used only externally: '
+      '${categorizedClasses.externalOnly.length}',
+    );
     print(
-        'Classes used both internally and externally: ${categorizedClasses.bothInternalExternal.length}');
+      'Classes used both internally and externally: '
+      '${categorizedClasses.bothInternalExternal.length}',
+    );
     print('State classes: ${categorizedClasses.state.length}');
     print(
-        'Entry-point classes (@pragma("vm:entry-point")): ${categorizedClasses.entryPoint.length}');
+      'Entry-point classes (@pragma("vm:entry-point")): '
+      '${categorizedClasses.entryPoint.length}',
+    );
 
     if (analyzeFunctions) {
       final activeFunctions =
           functions.entries.where((entry) => !entry.value.commentedOut).length;
       print('Total functions analyzed: ${functions.length}');
       print('Commented functions: ${categorizedFunctions.commented.length}');
+      
+      final unusedFuncPercentage = activeFunctions > 0
+          ? (categorizedFunctions.unused.length / activeFunctions * 100)
+          : 0.0;
       print(
-          'Unused functions: ${categorizedFunctions.unused.length} (${(categorizedFunctions.unused.length / (activeFunctions > 0 ? activeFunctions : 1) * 100).toStringAsFixed(1)}%)');
+        'Unused functions: ${categorizedFunctions.unused.length} '
+        '(${unusedFuncPercentage.toStringAsFixed(1)}%)',
+      );
+      
       print(
-          'Functions used only internally: ${categorizedFunctions.internalOnly.length}');
+        'Functions used only internally: '
+        '${categorizedFunctions.internalOnly.length}',
+      );
       print(
-          'Functions used only externally: ${categorizedFunctions.externalOnly.length}');
+        'Functions used only externally: '
+        '${categorizedFunctions.externalOnly.length}',
+      );
       print(
-          'Functions used both internally and externally: ${categorizedFunctions.bothInternalExternal.length}');
+        'Functions used both internally and externally: '
+        '${categorizedFunctions.bothInternalExternal.length}',
+      );
       print(
-          'Empty prebuilt Flutter functions: ${categorizedFunctions.emptyPrebuilt.length}');
+        'Empty prebuilt Flutter functions: '
+        '${categorizedFunctions.emptyPrebuilt.length}',
+      );
       print(
-          'Entry-point functions (@pragma("vm:entry-point")): ${categorizedFunctions.entryPoint.length}');
+        'Entry-point functions (@pragma("vm:entry-point")): '
+        '${categorizedFunctions.entryPoint.length}',
+      );
     }
   }
 
-// Print unused classes section
+  /// Prints the unused classes section.
   static void printUnusedClasses(
     List<String> unusedClasses,
     Map<String, ClassInfo> classes,
@@ -177,18 +227,23 @@ class ConsoleReporter {
     if (unusedClasses.isEmpty) return;
 
     print('\nUnused Classes:');
-    for (int i = 0; i < min(unusedClasses.length, maxUnused); i++) {
+    final itemsToShow = min(unusedClasses.length, maxUnused);
+    
+    for (int i = 0; i < itemsToShow; i++) {
       final className = unusedClasses[i];
-      final definedIn =
-          toLibRelativePath(classes[className]!.definedInFile, projectPath);
-      print(' - $className (in $definedIn)');
+      final classInfo = classes[className];
+      if (classInfo != null) {
+        final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
+        print(' - $className (in $definedIn)');
+      }
     }
+    
     if (unusedClasses.length > maxUnused) {
       print(' - ... and ${unusedClasses.length - maxUnused} more');
     }
   }
 
-// Print commented functions section
+  /// Prints the commented functions section.
   static void printCommentedFunctions(
     List<String> commentedFunctions,
     Map<String, CodeInfo> functions,
@@ -198,19 +253,28 @@ class ConsoleReporter {
     if (commentedFunctions.isEmpty) return;
 
     print('\nCommented Functions:');
-    for (int i = 0; i < min(commentedFunctions.length, maxUnused); i++) {
+    final itemsToShow = min(commentedFunctions.length, maxUnused);
+    
+    for (int i = 0; i < itemsToShow; i++) {
       final functionName = commentedFunctions[i];
-      final cleanName = Healper.getCleanFunctionName(functionName);
-      final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
-      print(' - $cleanName (in $definedIn) [COMMENTED OUT]');
+      final cleanName = Helper.cleanFunctionName(functionName);
+      final functionInfo = functions[functionName];
+      
+      if (functionInfo != null) {
+        final definedIn = toLibRelativePath(
+          functionInfo.definedInFile,
+          projectPath,
+        );
+        print(' - $cleanName (in $definedIn) [COMMENTED OUT]');
+      }
     }
+    
     if (commentedFunctions.length > maxUnused) {
       print(' - ... and ${commentedFunctions.length - maxUnused} more');
     }
   }
 
-// Print entry-point classes section
+  /// Prints the entry-point classes section.
   static void printEntryPointClasses(
     List<String> entryPointClasses,
     Map<String, ClassInfo> classes,
@@ -220,15 +284,19 @@ class ConsoleReporter {
 
     print('\nEntry-Point Classes (@pragma("vm:entry-point")):');
     for (final className in entryPointClasses) {
-      final classInfo = classes[className]!;
-      final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
-      final totalUses = classInfo.totalUsages;
-      print(
-          ' - $className (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}');
+      final classInfo = classes[className];
+      if (classInfo != null) {
+        final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
+        final totalUses = classInfo.totalUsages;
+        final usageNote = totalUses == 0 ? ' [Used by native code]' : '';
+        print(
+          ' - $className (in $definedIn, total references: $totalUses)$usageNote',
+        );
+      }
     }
   }
 
-// Print unused functions section
+  /// Prints the unused functions section.
   static void printUnusedFunctions(
     List<String> unusedFunctions,
     Map<String, CodeInfo> functions,
@@ -238,18 +306,27 @@ class ConsoleReporter {
     if (unusedFunctions.isEmpty) return;
 
     print('\nUnused Functions:');
-    for (int i = 0; i < min(unusedFunctions.length, maxUnused); i++) {
+    final itemsToShow = min(unusedFunctions.length, maxUnused);
+    
+    for (int i = 0; i < itemsToShow; i++) {
       final functionName = unusedFunctions[i];
-      final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
-      print(' - $functionName (in $definedIn)');
+      final functionInfo = functions[functionName];
+      
+      if (functionInfo != null) {
+        final definedIn = toLibRelativePath(
+          functionInfo.definedInFile,
+          projectPath,
+        );
+        print(' - $functionName (in $definedIn)');
+      }
     }
+    
     if (unusedFunctions.length > maxUnused) {
       print(' - ... and ${unusedFunctions.length - maxUnused} more');
     }
   }
 
-// Print empty prebuilt Flutter functions section
+  /// Prints the empty prebuilt Flutter functions section.
   static void printEmptyPrebuiltFunctions(
     List<String> emptyPrebuiltFunctions,
     Map<String, CodeInfo> functions,
@@ -259,19 +336,30 @@ class ConsoleReporter {
     if (emptyPrebuiltFunctions.isEmpty) return;
 
     print('\nEmpty Prebuilt Flutter Functions:');
-    for (int i = 0; i < min(emptyPrebuiltFunctions.length, maxUnused); i++) {
+    final itemsToShow = min(emptyPrebuiltFunctions.length, maxUnused);
+    
+    for (int i = 0; i < itemsToShow; i++) {
       final functionName = emptyPrebuiltFunctions[i];
-      final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
-      final totalUses = functions[functionName]!.totalUsages;
-      print(' - $functionName (in $definedIn, total references: $totalUses)');
+      final functionInfo = functions[functionName];
+      
+      if (functionInfo != null) {
+        final definedIn = toLibRelativePath(
+          functionInfo.definedInFile,
+          projectPath,
+        );
+        final totalUses = functionInfo.totalUsages;
+        print(
+          ' - $functionName (in $definedIn, total references: $totalUses)',
+        );
+      }
     }
+    
     if (emptyPrebuiltFunctions.length > maxUnused) {
       print(' - ... and ${emptyPrebuiltFunctions.length - maxUnused} more');
     }
   }
 
-// Print entry-point functions section
+  /// Prints the entry-point functions section.
   static void printEntryPointFunctions(
     List<String> entryPointFunctions,
     Map<String, CodeInfo> functions,
@@ -281,16 +369,22 @@ class ConsoleReporter {
 
     print('\nEntry-Point Functions (@pragma("vm:entry-point")):');
     for (final functionName in entryPointFunctions) {
-      final functionInfo = functions[functionName]!;
-      final definedIn =
-          toLibRelativePath(functionInfo.definedInFile, projectPath);
-      final totalUses = functionInfo.totalUsages;
-      print(
-          ' - $functionName (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}');
+      final functionInfo = functions[functionName];
+      if (functionInfo != null) {
+        final definedIn = toLibRelativePath(
+          functionInfo.definedInFile,
+          projectPath,
+        );
+        final totalUses = functionInfo.totalUsages;
+        final usageNote = totalUses == 0 ? ' [Used by native code]' : '';
+        print(
+          ' - $functionName (in $definedIn, total references: $totalUses)$usageNote',
+        );
+      }
     }
   }
 
-// Print detailed class usage information
+  /// Prints detailed class usage information.
   static void printDetailedClassUsage(
     Map<String, ClassInfo> classes,
     CategorizedClasses categorizedClasses,
@@ -329,22 +423,16 @@ class ConsoleReporter {
         print('  External usage files: $usageFiles');
       }
 
-      if (classInfo.type == 'state_class') {
-        print('  Category: State Class');
-      } else if (categorizedClasses.unused.contains(className)) {
-        print('  Category: Unused');
-      } else if (categorizedClasses.internalOnly.contains(className)) {
-        print('  Category: Internal Only');
-      } else if (categorizedClasses.externalOnly.contains(className)) {
-        print('  Category: External Only');
-      } else if (categorizedClasses.bothInternalExternal.contains(className)) {
-        print('  Category: Both Internal and External');
+      final category = _getClassCategory(className, categorizedClasses, classInfo);
+      if (category.isNotEmpty) {
+        print('  Category: $category');
       }
+      
       print('');
     }
   }
 
-// Print detailed function usage information
+  /// Prints detailed function usage information.
   static void printDetailedFunctionUsage(
     Map<String, CodeInfo> functions,
     CategorizedFunctions categorizedFunctions,
@@ -355,8 +443,10 @@ class ConsoleReporter {
     for (final entry in functions.entries) {
       final functionName = entry.key;
       final functionInfo = entry.value;
-      final definedIn =
-          toLibRelativePath(functionInfo.definedInFile, projectPath);
+      final definedIn = toLibRelativePath(
+        functionInfo.definedInFile,
+        projectPath,
+      );
       final internalUses = functionInfo.internalUsageCount;
       final externalUses = functionInfo.totalExternalUsages;
       final totalUses = internalUses + externalUses;
@@ -378,31 +468,28 @@ class ConsoleReporter {
       }
 
       if (functionInfo.isPrebuiltFlutter) {
-        print(
-            '  Prebuilt Flutter: Yes${functionInfo.isEmpty ? ' (Empty)' : ''}');
+        final emptyNote = functionInfo.isEmpty ? ' (Empty)' : '';
+        print('  Prebuilt Flutter: Yes$emptyNote');
       }
 
       if (usageFiles.isNotEmpty) {
         print('  External usage files: $usageFiles');
       }
 
-      if (functionInfo.isPrebuiltFlutter && functionInfo.isEmpty) {
-        print('  Category: Empty Prebuilt Flutter Function');
-      } else if (categorizedFunctions.unused.contains(functionName)) {
-        print('  Category: Unused');
-      } else if (categorizedFunctions.internalOnly.contains(functionName)) {
-        print('  Category: Internal Only');
-      } else if (categorizedFunctions.externalOnly.contains(functionName)) {
-        print('  Category: External Only');
-      } else if (categorizedFunctions.bothInternalExternal
-          .contains(functionName)) {
-        print('  Category: Both Internal and External');
+      final category = _getFunctionCategory(
+        functionName,
+        categorizedFunctions,
+        functionInfo,
+      );
+      if (category.isNotEmpty) {
+        print('  Category: $category');
       }
+      
       print('');
     }
   }
 
-// Print recommendations based on analysis results
+  /// Prints recommendations based on analysis results.
   static void printRecommendations(
     CategorizedClasses categorizedClasses,
     CategorizedFunctions categorizedFunctions,
@@ -414,23 +501,35 @@ class ConsoleReporter {
     print('\nRecommendations:');
 
     if (categorizedClasses.unused.isNotEmpty) {
-      print(
-          '- Review unused classes (e.g., in ${toLibRelativePath(classes[categorizedClasses.unused.first]!.definedInFile, projectPath)}) for potential removal.');
+      final firstUnusedClass = classes[categorizedClasses.unused.first];
+      if (firstUnusedClass != null) {
+        final relativePath = toLibRelativePath(
+          firstUnusedClass.definedInFile,
+          projectPath,
+        );
+        print(
+          '- Review unused classes (e.g., in $relativePath) for potential removal.',
+        );
+      }
     }
 
     if (categorizedClasses.internalOnly.isNotEmpty) {
       print(
-          '- Consider reducing the scope of classes used only internally (e.g., make them private).');
+        '- Consider reducing the scope of classes used only internally '
+        '(e.g., make them private).',
+      );
     }
 
     if (categorizedClasses.externalOnly.isNotEmpty) {
       print(
-          '- Verify classes used only externally are necessary as public APIs.');
+        '- Verify classes used only externally are necessary as public APIs.',
+      );
     }
 
     if (categorizedClasses.bothInternalExternal.isNotEmpty) {
       print(
-          '- Evaluate classes used both internally and externally for optimization.');
+        '- Evaluate classes used both internally and externally for optimization.',
+      );
     }
 
     if (categorizedClasses.state.isNotEmpty) {
@@ -439,117 +538,185 @@ class ConsoleReporter {
 
     if (categorizedClasses.entryPoint.isNotEmpty) {
       print(
-          '- Verify entry-point classes are correctly referenced by native code, especially those with no Dart references.');
+        '- Verify entry-point classes are correctly referenced by native code, '
+        'especially those with no Dart references.',
+      );
     }
 
-    if (analyzeFunctions) {
-      if (categorizedFunctions.commented.isNotEmpty) {
-        print(
-            '- Review commented functions (${categorizedFunctions.commented.length} found) - consider removing if no longer needed.');
-      }
+    if (!analyzeFunctions) return;
 
-      if (categorizedFunctions.unused.isNotEmpty) {
-        print(
-            '- Review unused functions (e.g., in ${toLibRelativePath(functions[categorizedFunctions.unused.first]!.definedInFile, projectPath)}) for potential removal.');
-      }
+    if (categorizedFunctions.commented.isNotEmpty) {
+      print(
+        '- Review commented functions (${categorizedFunctions.commented.length} found) '
+        '- consider removing if no longer needed.',
+      );
+    }
 
-      if (categorizedFunctions.internalOnly.isNotEmpty) {
+    if (categorizedFunctions.unused.isNotEmpty) {
+      final firstUnusedFunction = functions[categorizedFunctions.unused.first];
+      if (firstUnusedFunction != null) {
+        final relativePath = toLibRelativePath(
+          firstUnusedFunction.definedInFile,
+          projectPath,
+        );
         print(
-            '- Consider reducing the scope of functions used only internally.');
+          '- Review unused functions (e.g., in $relativePath) for potential removal.',
+        );
       }
+    }
 
-      if (categorizedFunctions.externalOnly.isNotEmpty) {
-        print('- Verify functions used only externally are necessary.');
-      }
+    if (categorizedFunctions.internalOnly.isNotEmpty) {
+      print(
+        '- Consider reducing the scope of functions used only internally.',
+      );
+    }
 
-      if (categorizedFunctions.bothInternalExternal.isNotEmpty) {
+    if (categorizedFunctions.externalOnly.isNotEmpty) {
+      print('- Verify functions used only externally are necessary.');
+    }
+
+    if (categorizedFunctions.bothInternalExternal.isNotEmpty) {
+      print(
+        '- Evaluate functions used both internally and externally for optimization.',
+      );
+    }
+
+    if (categorizedFunctions.emptyPrebuilt.isNotEmpty) {
+      final firstEmptyFunction = functions[categorizedFunctions.emptyPrebuilt.first];
+      if (firstEmptyFunction != null) {
+        final relativePath = toLibRelativePath(
+          firstEmptyFunction.definedInFile,
+          projectPath,
+        );
         print(
-            '- Evaluate functions used both internally and externally for optimization.');
+          '- Implement empty prebuilt Flutter functions '
+          '(e.g., ${categorizedFunctions.emptyPrebuilt.first} in $relativePath) '
+          'to ensure proper functionality.',
+        );
       }
+    }
 
-      if (categorizedFunctions.emptyPrebuilt.isNotEmpty) {
-        print(
-            '- Implement empty prebuilt Flutter functions (e.g., ${categorizedFunctions.emptyPrebuilt.first} in ${toLibRelativePath(functions[categorizedFunctions.emptyPrebuilt.first]!.definedInFile, projectPath)}) to ensure proper functionality.');
-      }
-
-      if (categorizedFunctions.entryPoint.isNotEmpty) {
-        print(
-            '- Verify entry-point functions are correctly referenced by native code.');
-      }
+    if (categorizedFunctions.entryPoint.isNotEmpty) {
+      print(
+        '- Verify entry-point functions are correctly referenced by native code.',
+      );
     }
   }
 
-// Main function that orchestrates the entire printing process
+  /// Main function that orchestrates the entire printing process.
   static void printResults({
     required Map<String, ClassInfo> classes,
     required Map<String, CodeInfo> functions,
-    required bool verbose,
+    required bool showTrace,
     required String projectPath,
     required bool analyzeFunctions,
-    int maxUnused = 10,
+    int maxUnusedEntities = 10,
   }) {
     // Categorize classes and functions
     final categorizedClasses = categorizeClasses(classes);
     final categorizedFunctions = analyzeFunctions
         ? categorizeFunctions(functions)
         : CategorizedFunctions(
-            unused: [],
-            internalOnly: [],
-            externalOnly: [],
-            bothInternalExternal: [],
-            emptyPrebuilt: [],
-            entryPoint: [],
-            commented: [],
+            unused: const [],
+            internalOnly: const [],
+            externalOnly: const [],
+            bothInternalExternal: const [],
+            emptyPrebuilt: const [],
+            entryPoint: const [],
+            commented: const [],
           );
 
     // Print analysis summary
-    printAnalysisSummary(classes, functions, categorizedClasses,
-        categorizedFunctions, analyzeFunctions);
+    printAnalysisSummary(
+      classes,
+      functions,
+      categorizedClasses,
+      categorizedFunctions,
+      analyzeFunctions,
+    );
 
     // Print specific sections
     printUnusedClasses(
-        categorizedClasses.unused, classes, projectPath, maxUnused);
+      categorizedClasses.unused,
+      classes,
+      projectPath,
+      maxUnusedEntities,
+    );
 
     if (analyzeFunctions) {
       printCommentedFunctions(
-          categorizedFunctions.commented, functions, projectPath, maxUnused);
+        categorizedFunctions.commented,
+        functions,
+        projectPath,
+        maxUnusedEntities,
+      );
     }
 
-    printEntryPointClasses(categorizedClasses.entryPoint, classes, projectPath);
+    printEntryPointClasses(
+      categorizedClasses.entryPoint,
+      classes,
+      projectPath,
+    );
 
     if (analyzeFunctions) {
       printUnusedFunctions(
-          categorizedFunctions.unused, functions, projectPath, maxUnused);
-      printEmptyPrebuiltFunctions(categorizedFunctions.emptyPrebuilt, functions,
-          projectPath, maxUnused);
+        categorizedFunctions.unused,
+        functions,
+        projectPath,
+        maxUnusedEntities,
+      );
+      printEmptyPrebuiltFunctions(
+        categorizedFunctions.emptyPrebuilt,
+        functions,
+        projectPath,
+        maxUnusedEntities,
+      );
       printEntryPointFunctions(
-          categorizedFunctions.entryPoint, functions, projectPath);
+        categorizedFunctions.entryPoint,
+        functions,
+        projectPath,
+      );
     }
 
     // Print verbose details if requested
-    if (verbose) {
+    if (showTrace) {
       printDetailedClassUsage(classes, categorizedClasses, projectPath);
       if (analyzeFunctions) {
         printDetailedFunctionUsage(
-            functions, categorizedFunctions, projectPath);
+          functions,
+          categorizedFunctions,
+          projectPath,
+        );
       }
     }
 
     // Print recommendations
-    printRecommendations(categorizedClasses, categorizedFunctions, classes,
-        functions, projectPath, analyzeFunctions);
+    printRecommendations(
+      categorizedClasses,
+      categorizedFunctions,
+      classes,
+      functions,
+      projectPath,
+      analyzeFunctions,
+    );
 
     // Print tip for verbose mode
-    if (!verbose &&
+    if (!showTrace &&
         _shouldShowVerboseTip(
-            categorizedClasses, categorizedFunctions, analyzeFunctions)) {
+          categorizedClasses,
+          categorizedFunctions,
+          analyzeFunctions,
+        )) {
       print('\nTip: Use --verbose to see detailed code usage information.');
     }
   }
 
-// Helper function to determine if verbose tip should be shown
-  static bool _shouldShowVerboseTip(CategorizedClasses categorizedClasses,
-      CategorizedFunctions categorizedFunctions, bool analyzeFunctions) {
+  /// Helper function to determine if verbose tip should be shown.
+  static bool _shouldShowVerboseTip(
+    CategorizedClasses categorizedClasses,
+    CategorizedFunctions categorizedFunctions,
+    bool analyzeFunctions,
+  ) {
     return categorizedClasses.unused.isNotEmpty ||
         categorizedClasses.internalOnly.isNotEmpty ||
         categorizedClasses.externalOnly.isNotEmpty ||
@@ -560,5 +727,45 @@ class ConsoleReporter {
                 categorizedFunctions.externalOnly.isNotEmpty ||
                 categorizedFunctions.bothInternalExternal.isNotEmpty ||
                 categorizedFunctions.emptyPrebuilt.isNotEmpty));
+  }
+
+  /// Gets the category string for a class.
+  static String _getClassCategory(
+    String className,
+    CategorizedClasses categorizedClasses,
+    ClassInfo classInfo,
+  ) {
+    if (classInfo.type == 'state_class') {
+      return 'State Class';
+    } else if (categorizedClasses.unused.contains(className)) {
+      return 'Unused';
+    } else if (categorizedClasses.internalOnly.contains(className)) {
+      return 'Internal Only';
+    } else if (categorizedClasses.externalOnly.contains(className)) {
+      return 'External Only';
+    } else if (categorizedClasses.bothInternalExternal.contains(className)) {
+      return 'Both Internal and External';
+    }
+    return '';
+  }
+
+  /// Gets the category string for a function.
+  static String _getFunctionCategory(
+    String functionName,
+    CategorizedFunctions categorizedFunctions,
+    CodeInfo functionInfo,
+  ) {
+    if (functionInfo.isPrebuiltFlutter && functionInfo.isEmpty) {
+      return 'Empty Prebuilt Flutter Function';
+    } else if (categorizedFunctions.unused.contains(functionName)) {
+      return 'Unused';
+    } else if (categorizedFunctions.internalOnly.contains(functionName)) {
+      return 'Internal Only';
+    } else if (categorizedFunctions.externalOnly.contains(functionName)) {
+      return 'External Only';
+    } else if (categorizedFunctions.bothInternalExternal.contains(functionName)) {
+      return 'Both Internal and External';
+    }
+    return '';
   }
 }

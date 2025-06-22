@@ -1,37 +1,77 @@
 import 'dart:io';
-import 'package:dead_code_analyzer/src/models/class_info.dart';
-import 'package:dead_code_analyzer/src/models/code_info.dart';
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:path/path.dart' as path;
 
+/// Handles cleanup of dead code files
 class DeadCodeCleaner {
-  static void deadCodeCleaner({
+  /// Performs cleanup of files containing only dead or commented-out code
+  static Future<void> performCleanup({
     required Map<String, ClassInfo> classes,
     required Map<String, CodeInfo> functions,
     required String projectPath,
     required bool analyzeFunctions,
-  }) {
-    // Group classes and functions by file
+  }) async {
+    final cleaner = DeadCodeCleaner._(
+      classes: classes,
+      functions: functions,
+      projectPath: projectPath,
+      analyzeFunctions: analyzeFunctions,
+    );
+
+    await cleaner._executeCleanup();
+  }
+
+  const DeadCodeCleaner._({
+    required this.classes,
+    required this.functions,
+    required this.projectPath,
+    required this.analyzeFunctions,
+  });
+
+  final Map<String, ClassInfo> classes;
+  final Map<String, CodeInfo> functions;
+  final String projectPath;
+  final bool analyzeFunctions;
+
+  /// Executes the cleanup process
+  Future<void> _executeCleanup() async {
+    final entitiesByFile = _groupEntitiesByFile();
+    final analysisResult = _analyzeFiles(entitiesByFile);
+
+    _printFilesWithIssues(analysisResult.filesWithIssues);
+
+    if (analysisResult.filesToDelete.isNotEmpty) {
+      await _handleFileDeletion(analysisResult.filesToDelete);
+    } else {
+      _printNoFilesEligible();
+    }
+  }
+
+  /// Groups all entities (classes and functions) by their file paths
+  Map<String, List<dynamic>> _groupEntitiesByFile() {
     final Map<String, List<dynamic>> entitiesByFile = {};
 
-    // Add classes to the map
-    for (final entry in classes.entries) {
-      final classInfo = entry.value;
+    // Group classes by file
+    for (final classInfo in classes.values) {
       entitiesByFile
           .putIfAbsent(classInfo.definedInFile, () => [])
           .add(classInfo);
     }
 
-    // Add functions to the map if analyzing functions
+    // Group functions by file if analyzing functions
     if (analyzeFunctions) {
-      for (final entry in functions.entries) {
-        final functionInfo = entry.value;
+      for (final functionInfo in functions.values) {
         entitiesByFile
             .putIfAbsent(functionInfo.definedInFile, () => [])
             .add(functionInfo);
       }
     }
 
-    // Collect files with only dead or commented entities
+    return entitiesByFile;
+  }
+
+  /// Analyzes files to determine which can be deleted
+  FileAnalysisResult _analyzeFiles(Map<String, List<dynamic>> entitiesByFile) {
     final filesToDelete = <String>[];
     final filesWithIssues = <String, String>{};
 
@@ -39,21 +79,8 @@ class DeadCodeCleaner {
       final filePath = entry.key;
       final entities = entry.value;
 
-      // Check if all entities in the file are either commented-out or unused
-      bool allDeadOrCommented = entities.every((entity) {
-        if (entity is ClassInfo) {
-          return entity.totalUsages == 0 || entity.commentedOut;
-        } else if (entity is CodeInfo) {
-          return entity.totalUsages == 0 ||
-              entity.commentedOut ||
-              entity.isPrebuiltFlutter;
-        }
-        return false;
-      });
-
-      if (allDeadOrCommented) {
-        // Check for other used entities (variables or non-analyzed entities)
-        if (!_hasUsedEntities(filePath, classes, functions, analyzeFunctions)) {
+      if (_areAllEntitiesDeadOrCommented(entities)) {
+        if (!_hasUsedEntities(filePath)) {
           filesToDelete.add(filePath);
         } else {
           filesWithIssues[filePath] =
@@ -65,97 +92,147 @@ class DeadCodeCleaner {
       }
     }
 
-    // Print files that cannot be deleted
-    if (filesWithIssues.isNotEmpty) {
-      print('\nThe following files cannot be deleted:');
-      for (final entry in filesWithIssues.entries) {
-        final relativePath = toLibRelativePath(entry.key, projectPath);
-        print(' - $relativePath: ${entry.value}');
-      }
-    }
-
-    // Prompt for confirmation if there are files to delete
-    if (filesToDelete.isNotEmpty) {
-      print(
-          '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:');
-      for (final filePath in filesToDelete) {
-        final relativePath = toLibRelativePath(filePath, projectPath);
-        print(' - $relativePath');
-      }
-      print(
-          '\nWARNING: Deleting files may affect useful code due to edge cases (e.g., dynamic calls, reflection, or external references not detected by the analyzer).');
-      print('We strongly recommend reviewing and deleting files manually.');
-      print('Are you sure you want to delete these files? (y/N): ');
-
-      final response = stdin.readLineSync()?.trim().toLowerCase();
-      if (response != 'y') {
-        print('Deletion cancelled.');
-        return;
-      }
-
-      // Perform deletion
-      for (final filePath in filesToDelete) {
-        try {
-          File(filePath).deleteSync();
-          print('Deleted: ${toLibRelativePath(filePath, projectPath)}');
-        } catch (e) {
-          print('Error deleting $filePath: $e');
-        }
-      }
-      print('Cleanup completed.');
-    } else {
-      print(
-          '\nNo files eligible for deletion (all files with dead or commented classes/functions contain other used entities).');
-    }
+    return FileAnalysisResult(
+      filesToDelete: filesToDelete,
+      filesWithIssues: filesWithIssues,
+    );
   }
 
-// Helper function to check for used entities (classes, functions, variables)
-  static bool _hasUsedEntities(String filePath, Map<String, ClassInfo> classes,
-      Map<String, CodeInfo> functions, bool analyzeFunctions) {
-    // Check for used classes in the file
-    for (final classInfo in classes.values) {
-      if (classInfo.definedInFile == filePath &&
-          classInfo.totalUsages > 0 &&
-          !classInfo.commentedOut) {
-        return true;
+  /// Checks if all entities in a list are either dead or commented out
+  bool _areAllEntitiesDeadOrCommented(List<dynamic> entities) {
+    return entities.every((entity) {
+      if (entity is ClassInfo) {
+        return entity.totalUsages == 0 || entity.commentedOut;
+      } else if (entity is CodeInfo) {
+        return entity.totalUsages == 0 ||
+            entity.commentedOut ||
+            entity.isPrebuiltFlutter;
       }
-    }
+      return false;
+    });
+  }
 
-    // Check for used functions in the file (if analyzeFunctions is true)
-    if (analyzeFunctions) {
-      for (final functionInfo in functions.values) {
-        if (functionInfo.definedInFile == filePath &&
-            functionInfo.totalUsages > 0 &&
-            !functionInfo.commentedOut &&
-            !functionInfo.isPrebuiltFlutter) {
-          return true;
-        }
-      }
-    }
+  /// Checks if a file contains any used entities (classes, functions, or variables)
+  bool _hasUsedEntities(String filePath) {
+    return _hasUsedClasses(filePath) ||
+        _hasUsedFunctions(filePath) ||
+        _hasUsedVariables(filePath);
+  }
 
-    // Check for variables or other entities
+  /// Checks for used classes in the specified file
+  bool _hasUsedClasses(String filePath) {
+    return classes.values.any((classInfo) =>
+        classInfo.definedInFile == filePath &&
+        classInfo.totalUsages > 0 &&
+        !classInfo.commentedOut);
+  }
+
+  /// Checks for used functions in the specified file
+  bool _hasUsedFunctions(String filePath) {
+    if (!analyzeFunctions) return false;
+
+    return functions.values.any((functionInfo) =>
+        functionInfo.definedInFile == filePath &&
+        functionInfo.totalUsages > 0 &&
+        !functionInfo.commentedOut &&
+        !functionInfo.isPrebuiltFlutter);
+  }
+
+  /// Checks for used variables in the specified file
+  bool _hasUsedVariables(String filePath) {
     try {
       final content = File(filePath).readAsStringSync();
-      final lines = content.split('\n');
-      final variableRegex = RegExp(
-          r'^(?:\s*(?:\/\/.*|\/\*.*\*\/)?\s*)*(?:var|final|const)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*[=;]',
-          multiLine: true);
-      for (final line in lines) {
-        if (variableRegex.hasMatch(line.trim()) &&
-            !line.trim().startsWith('//') &&
-            !line.trim().startsWith('/*')) {
-          return true; // Found a variable declaration
-        }
-      }
-    } catch (e) {
+      return _containsVariableDeclarations(content);
+    } on FileSystemException catch (e) {
       print('Warning: Could not read $filePath for variable check: $e');
+      return false;
     }
-
-    return false;
   }
 
-// Reuse toLibRelativePath from console_reporter.dart
-  static String toLibRelativePath(String absolutePath, String projectPath) {
+  /// Checks if content contains variable declarations
+  bool _containsVariableDeclarations(String content) {
+    final lines = content.split('\n');
+    final variableRegex = RegExp(
+      r'^(?:\s*(?:\/\/.*|\/\*.*\*\/)?\s*)*(?:var|final|const)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*[=;]',
+      multiLine: true,
+    );
+
+    return lines.any((line) {
+      final trimmedLine = line.trim();
+      return variableRegex.hasMatch(trimmedLine) &&
+          !trimmedLine.startsWith('//') &&
+          !trimmedLine.startsWith('/*');
+    });
+  }
+
+  /// Prints files that have issues and cannot be deleted
+  void _printFilesWithIssues(Map<String, String> filesWithIssues) {
+    if (filesWithIssues.isEmpty) return;
+
+    print('\nThe following files cannot be deleted:');
+    for (final entry in filesWithIssues.entries) {
+      final relativePath = _toLibRelativePath(entry.key);
+      print(' - $relativePath: ${entry.value}');
+    }
+  }
+
+  /// Handles the file deletion process with user confirmation
+  Future<void> _handleFileDeletion(List<String> filesToDelete) async {
+    _printFilesEligibleForDeletion(filesToDelete);
+    _printDeletionWarning();
+
+    if (await _getUserConfirmation()) {
+      await _deleteFiles(filesToDelete);
+      print('Cleanup completed.');
+    } else {
+      print('Deletion cancelled.');
+    }
+  }
+
+  /// Prints files that are eligible for deletion
+  void _printFilesEligibleForDeletion(List<String> filesToDelete) {
+    print(
+        '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:');
+    for (final filePath in filesToDelete) {
+      final relativePath = _toLibRelativePath(filePath);
+      print(' - $relativePath');
+    }
+  }
+
+  /// Prints deletion warning message
+  void _printDeletionWarning() {
+    print('\nWARNING: Deleting files may affect useful code due to edge cases '
+        '(e.g., dynamic calls, reflection, or external references not detected by the analyzer).');
+    print('We strongly recommend reviewing and deleting files manually.');
+  }
+
+  /// Gets user confirmation for file deletion
+  Future<bool> _getUserConfirmation() async {
+    print('Are you sure you want to delete these files? (y/N): ');
+    final response = stdin.readLineSync()?.trim().toLowerCase();
+    return response == 'y';
+  }
+
+  /// Deletes the specified files
+  Future<void> _deleteFiles(List<String> filesToDelete) async {
+    for (final filePath in filesToDelete) {
+      try {
+        await File(filePath).delete();
+        print('Deleted: ${_toLibRelativePath(filePath)}');
+      } on FileSystemException catch (e) {
+        print('Error deleting $filePath: $e');
+      }
+    }
+  }
+
+  /// Prints message when no files are eligible for deletion
+  void _printNoFilesEligible() {
+    print('\nNo files eligible for deletion (all files with dead or commented '
+        'classes/functions contain other used entities).');
+  }
+
+  /// Converts absolute path to lib-relative path
+  String _toLibRelativePath(String absolutePath) {
     final libPath = path.join(projectPath, 'lib');
     if (absolutePath.startsWith(libPath)) {
       return path.relative(absolutePath, from: libPath);

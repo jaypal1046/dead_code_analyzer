@@ -3,134 +3,226 @@ import 'package:args/args.dart';
 import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:path/path.dart' as path;
 
-void main(List<String> arguments) {
-  final parser = ArgParser()
-    ..addOption('path',
-        abbr: 'p',
-        help: 'Path to the Flutter project to analyze',
-        defaultsTo: '.')
-    ..addOption('out',
-        abbr: 'o',
-        help: 'Directory to save the report file (default: Desktop)',
-        defaultsTo: '')
-    ..addOption('limit',
-        abbr: 'l',
-        help: 'Maximum number of unused entities to display in console',
-        defaultsTo: '10')
-    ..addFlag('funcs',
-        abbr: 'f', help: 'Include function usage analysis', defaultsTo: false)
-    ..addFlag('clean',
-        abbr: 'c',
-        help: 'Clean up files containing only dead or commented-out classes',
-        negatable: false)
-    ..addFlag('help',
-        abbr: 'h', help: 'Show usage information', negatable: false)
-    ..addFlag('trace',
-        abbr: 't', help: 'Show detailed execution trace', defaultsTo: false)
-    ..addFlag('quiet',
-        abbr: 'q', help: 'Disable progress indicators', negatable: false);
+/// Entry point for the dead code analyzer CLI tool
+void main(List<String> arguments) async {
+  final parser = _createArgParser();
 
-  // Try to get version from version file or pubspec.yaml
-  VersionInfo.versionfind(parser, arguments);
-
-  //  if (results['help'] as bool) {
-  //     showHelp(parser);
-  //     return;
-  //   }
-    
+  // Handle version display
+  VersionInfo.findAndDisplayVersion(parser, arguments);
 
   late ArgResults args;
   try {
     args = parser.parse(arguments);
-  } catch (e) {
+  } on FormatException catch (e) {
     print('Error parsing arguments: $e');
-    Healper.printUsage(parser);
+    Helper.printUsage(parser);
     exit(1);
   }
 
-  if (args['help']) {
-    Healper.printUsage(parser);
+  if (args['help'] as bool) {
+    Helper.printUsage(parser);
     return;
   }
 
-  final projectPathStr = args['project-path'];
-  final projectPath = path.normalize(path.absolute(projectPathStr));
-  final projectDir = Directory(projectPath);
+  final config = _createAnalysisConfig(args);
 
-  String outputDir = args['output-dir'];
-  if (outputDir.isEmpty) {
-    final home = Platform.environment['HOME'] ??
-        Platform.environment['USERPROFILE'] ??
-        '.';
-    outputDir = path.join(home, 'Desktop');
-  }
-
-  if (!projectDir.existsSync()) {
-    print('Error: Project directory not found at $projectPath');
+  if (!await _validateProjectDirectory(config.projectPath)) {
     exit(1);
   }
 
-  print('Analyzing Flutter project at: $projectPath');
+  await _runAnalysis(config);
+}
 
-  final verbose = args['verbose'];
-  final showProgress = !args['no-progress'];
-  final maxUnused = int.parse(args['max-unused']);
-  final analyzeFunctions = args['analyze-functions'];
-  final clean = args['clean'];
+/// Creates and configures the argument parser
+ArgParser _createArgParser() {
+  return ArgParser()
+    ..addOption(
+      'path',
+      abbr: 'p',
+      help: 'Path to the Flutter project to analyze',
+      defaultsTo: '.',
+    )
+    ..addOption(
+      'out',
+      abbr: 'o',
+      help: 'Directory to save the report file (default: Desktop)',
+      defaultsTo: '',
+    )
+    ..addOption(
+      'limit',
+      abbr: 'l',
+      help: 'Maximum number of unused entities to display in console',
+      defaultsTo: '10',
+    )
+    ..addFlag(
+      'funcs',
+      abbr: 'f',
+      help: 'Include function usage analysis',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'clean',
+      abbr: 'c',
+      help: 'Clean up files containing only dead or commented-out classes',
+      negatable: false,
+    )
+    ..addFlag(
+      'help',
+      abbr: 'h',
+      help: 'Show usage information',
+      negatable: false,
+    )
+    ..addFlag(
+      'trace',
+      abbr: 't',
+      help: 'Show detailed execution trace',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'quiet',
+      abbr: 'q',
+      help: 'Disable progress indicators',
+      negatable: false,
+    );
+}
 
-  if (verbose) {
+/// Creates analysis configuration from parsed arguments
+AnalysisConfig _createAnalysisConfig(ArgResults args) {
+  final projectPathStr = args['path'] as String;
+  final projectPath = path.normalize(path.absolute(projectPathStr));
+
+  String outputDir = args['out'] as String;
+  if (outputDir.isEmpty) {
+    outputDir = _getDefaultOutputDirectory();
+  }
+
+  return AnalysisConfig(
+    projectPath: projectPath,
+    outputDir: outputDir,
+    maxUnusedEntities: int.parse(args['limit'] as String),
+    includeFunctions: args['funcs'] as bool,
+    shouldClean: args['clean'] as bool,
+    showTrace: args['trace'] as bool,
+    showProgress: !(args['quiet'] as bool),
+  );
+}
+
+/// Gets the default output directory (Desktop)
+String _getDefaultOutputDirectory() {
+  final home = Platform.environment['HOME'] ??
+      Platform.environment['USERPROFILE'] ??
+      '.';
+  return path.join(home, 'Desktop');
+}
+
+/// Validates that the project directory exists
+Future<bool> _validateProjectDirectory(String projectPath) async {
+  final projectDir = Directory(projectPath);
+  print('Error: Project directory not found at $projectPath ${await projectDir.exists()}');
+  if (!await projectDir.exists()) {
+    print('Error: Project directory not found at $projectPath');
+    return false;
+  }
+
+  return true;
+}
+
+/// Runs the complete analysis process
+Future<void> _runAnalysis(AnalysisConfig config) async {
+  print('Analyzing Flutter project at: ${config.projectPath}');
+
+  final projectDir = Directory(config.projectPath);
+  final analysisResult = await _performCodeAnalysis(projectDir, config);
+
+  await _generateReports(analysisResult, config);
+
+  if (config.shouldClean) {
+    await _performCleanup(analysisResult, config);
+  }
+}
+
+/// Performs the code analysis and returns results
+Future<AnalysisResult> _performCodeAnalysis(
+  Directory projectDir,
+  AnalysisConfig config,
+) async {
+  if (config.showTrace) {
     print('Collecting code entities...');
   }
 
   final classes = <String, ClassInfo>{};
   final functions = <String, CodeInfo>{};
-  // Collect all code entities (classes and functions) from the project directory
-  CodeAnalyzer.collectCodeEntities(
-      dir: projectDir,
-      classes: classes,
-      functions: functions,
-      showProgress: showProgress,
-      analyzeFunctions: analyzeFunctions);
+  final exportList = <ImportInfo>[];
 
-  if (verbose) {
-    print(
-        '\nFound ${classes.length} classes${analyzeFunctions ? ' and ${functions.length} functions' : ''}.');
+  // Collect all code entities
+  CodeAnalyzer.collectCodeEntities(
+    directory: projectDir,
+    classes: classes,
+    functions: functions,
+    showProgress: config.showProgress,
+    analyzeFunctions: config.includeFunctions,
+    exportList: exportList
+  );
+
+  if (config.showTrace) {
+    final entitiesFound = config.includeFunctions
+        ? '${classes.length} classes and ${functions.length} functions'
+        : '${classes.length} classes';
+    print('\nFound $entitiesFound.');
     print('Analyzing code references...');
   }
 
-  // Find all usages/references of the collected code entities
+  // Find all usages/references
   UsageAnalyzer.findUsages(
-      dir: projectDir,
-      classes: classes,
-      functions: functions,
-      showProgress: showProgress,
-      analyzeFunctions: analyzeFunctions);
+    directory: projectDir,
+    classes: classes,
+    functions: functions,
+    showProgress: config.showProgress,
+    analyzeFunctions: config.includeFunctions,
+    exportList: exportList
+  );
 
-  // Print analysis results to console
+  return AnalysisResult(
+    classes: classes,
+    functions: functions,
+  );
+}
+/// Generates console and file reports
+Future<void> _generateReports(
+  AnalysisResult result,
+  AnalysisConfig config,
+) async {
+  // Print results to console
   ConsoleReporter.printResults(
-      classes: classes,
-      functions: functions,
-      verbose: verbose,
-      projectPath: projectPath,
-      analyzeFunctions: analyzeFunctions,
-      maxUnused: maxUnused);
+    classes: result.classes,
+    functions: result.functions,
+    showTrace: config.showTrace,
+    projectPath: config.projectPath,
+    analyzeFunctions: config.includeFunctions,
+    maxUnusedEntities: config.maxUnusedEntities,
+  );
 
-  // Save analysis results to output file
+  // Save results to file
   FileReporter.saveResultsToFile(
-      classes: classes,
-      functions: functions,
-      outputDir: outputDir,
-      projectPath: projectPath,
-      analyzeFunctions: analyzeFunctions);
+    classes: result.classes,
+    functions: result.functions,
+    outputDirectory: config.outputDir,
+    projectPath: config.projectPath,
+    analyzeFunctions: config.includeFunctions,
+  );
+}
 
-  // Perform cleanup if --clean flag is provided
-  if (clean) {
-    print('\nStarting cleanup of dead and commented-out classes...');
-    DeadCodeCleaner.deadCodeCleaner(
-      classes: classes,
-      functions: functions,
-      projectPath: projectPath,
-      analyzeFunctions: analyzeFunctions,
-    );
-  }
+/// Performs cleanup of dead code
+Future<void> _performCleanup(
+  AnalysisResult result,
+  AnalysisConfig config,
+) async {
+  print('\nStarting cleanup of dead and commented-out classes...');
+
+  await DeadCodeCleaner.performCleanup(
+    classes: result.classes,
+    functions: result.functions,
+    projectPath: config.projectPath,
+    analyzeFunctions: config.includeFunctions,
+  );
 }

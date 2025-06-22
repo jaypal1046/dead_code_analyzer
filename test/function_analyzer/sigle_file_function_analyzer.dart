@@ -14,7 +14,7 @@ void functionAnalyzerTest() {
   for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     String line = lines[lineIndex];
 
-    FunctionCollector.functionCollecter(
+    FunctionCollector.collectFunctions(
       analyzeFunctions: true,
       line: line,
       insideStateClass: insideStateClass,

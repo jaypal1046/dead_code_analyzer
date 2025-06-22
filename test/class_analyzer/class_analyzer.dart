@@ -16,14 +16,14 @@ void classAnalyzerTest() {
       multiLine: true,
     ).firstMatch(line.replaceFirst(RegExp(r'^\s*//+\s*'), ''));
 
-    ClassCollector.classCollector(
-      classMatch,
-      lineIndex,
-      pragmaRegex,
-      lines,
-      classes,
-      'text_class_file.dart',
-      insideStateClass,
+    ClassCollector.collectClassFromLine(
+      classMatch: classMatch,
+      lineIndex: lineIndex,
+      pragmaRegex: pragmaRegex,
+      lines: lines,
+      classes: classes,
+      filePath: 'text_class_file.dart',
+      insideStateClass: insideStateClass,
     );
 
     // Update insideStateClass

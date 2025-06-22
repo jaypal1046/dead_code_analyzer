@@ -1,41 +1,81 @@
+/// A utility class for generating and saving detailed reports of Flutter code usage analysis.
+///
+/// The [FileReporter] class processes class and function information, categorizes them based on usage,
+/// and generates a formatted text report. The report includes summaries, detailed sections for classes
+/// and functions, and relative file paths for better readability. It adheres to Flutter package guidelines
+/// for documentation, error handling, and code style.
+///
+/// Example usage:
+/// ```dart
+/// FileReporter.saveResultsToFile(
+///   classes: classMap,
+///   functions: functionMap,
+///   outputDirectory: 'reports',
+///   projectPath: '/path/to/project',
+///   analyzeFunctions: true,
+/// );
+/// ```
+
 import 'dart:io';
-import 'package:dead_code_analyzer/src/models/class_info.dart';
-import 'package:dead_code_analyzer/src/models/code_info.dart';
+
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
 class FileReporter {
-  // Helper function to convert absolute path to lib-relative path
-  static String toLibRelativePath(String absolutePath, String projectPath) {
+  /// Converts an absolute file path to a path relative to the project's `lib` directory or root.
+  ///
+  /// [absolutePath] is the full path to the file.
+  /// [projectPath] is the root directory of the project.
+  /// Returns a relative path string, normalized for readability.
+  static String _toLibRelativePath(String absolutePath, String projectPath) {
     final libPath = path.join(projectPath, 'lib');
-    if (absolutePath.startsWith(libPath)) {
-      return path.relative(absolutePath, from: libPath);
-    }
-    return path.relative(absolutePath, from: projectPath);
+    return absolutePath.startsWith(libPath)
+        ? path.relative(absolutePath, from: libPath)
+        : path.relative(absolutePath, from: projectPath);
   }
 
-// Helper function to format usage files
-  static String formatUsageFiles(
-      Map<String, int> externalUsages, String projectPath) {
+  /// Formats a map of external usage files into a readable string.
+  ///
+  /// [externalUsages] maps file paths to the number of references.
+  /// [projectPath] is the root directory of the project.
+  /// Returns a formatted string of file paths and reference counts.
+  static String _formatUsageFiles(
+    Map<String, int> externalUsages,
+    String projectPath,
+  ) {
     final usageFiles = externalUsages.entries.map((entry) {
-      final fileName = toLibRelativePath(entry.key, projectPath);
+      final fileName = _toLibRelativePath(entry.key, projectPath);
       final count = entry.value;
       return '$fileName ($count references)';
-    }).toList();
-    return usageFiles.toString();
+    }).join(', ');
+    return '[$usageFiles]';
   }
 
-// Helper function to write category section for classes
-  static void writeCategoryClassSection(
+  /// Writes a categorized section for class entities to the report buffer.
+  ///
+  /// [buffer] is the output buffer for the report.
+  /// [title] is the section title.
+  /// [entries] are the class entries to report.
+  /// [entityType] describes the type of entities (e.g., 'unused classes').
+  /// [projectPath] is the root directory of the project.
+  static void _writeCategoryClassSection(
     StringBuffer buffer,
     String title,
     List<MapEntry<String, ClassInfo>> entries,
     String entityType,
     String projectPath,
   ) {
-    buffer.writeln(title);
-    buffer.writeln('-' * 30);
-    int count = 0;
+    buffer
+      ..writeln(title)
+      ..writeln('-' * title.length)
+      ..writeln();
+
+    if (entries.isEmpty) {
+      buffer.writeln('No $entityType found.');
+      buffer.writeln();
+      return;
+    }
 
     for (final entry in entries) {
       final name = entry.key;
@@ -43,37 +83,45 @@ class FileReporter {
       final internalUses = info.internalUsageCount;
       final externalUses = info.totalExternalUsages;
       final totalUses = internalUses + externalUses;
-      count++;
-
-      final definedIn = toLibRelativePath(info.definedInFile, projectPath);
+      final definedIn = _toLibRelativePath(info.definedInFile, projectPath);
       final usageFilesStr = externalUses > 0
-          ? ' ${formatUsageFiles(info.externalUsages, projectPath)}'
+          ? ' ${_formatUsageFiles(info.externalUsages, projectPath)}'
           : '';
       final entryPointNote = info.isEntryPoint && totalUses == 0
           ? ' [Used by native code via @pragma("vm:entry-point")]'
           : '';
 
       buffer.writeln(
-          ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote');
+        '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+      );
     }
-
-    if (count == 0) {
-      buffer.writeln('No $entityType found.');
-    }
-    buffer.writeln('');
+    buffer.writeln();
   }
 
-// Helper function to write category section for functions
-  static void writeCategoryFunctionSection(
+  /// Writes a categorized section for function entities to the report buffer.
+  ///
+  /// [buffer] is the output buffer for the report.
+  /// [title] is the section title.
+  /// [entries] are the function entries to report.
+  /// [entityType] describes the type of entities (e.g., 'unused functions').
+  /// [projectPath] is the root directory of the project.
+  static void _writeCategoryFunctionSection(
     StringBuffer buffer,
     String title,
     List<MapEntry<String, CodeInfo>> entries,
     String entityType,
     String projectPath,
   ) {
-    buffer.writeln(title);
-    buffer.writeln('-' * 30);
-    int count = 0;
+    buffer
+      ..writeln(title)
+      ..writeln('-' * title.length)
+      ..writeln();
+
+    if (entries.isEmpty) {
+      buffer.writeln('No $entityType found.');
+      buffer.writeln();
+      return;
+    }
 
     for (final entry in entries) {
       final name = entry.key;
@@ -81,49 +129,49 @@ class FileReporter {
       final internalUses = info.internalUsageCount;
       final externalUses = info.totalExternalUsages;
       final totalUses = internalUses + externalUses;
-      count++;
-
-      final definedIn = toLibRelativePath(info.definedInFile, projectPath);
+      final definedIn = _toLibRelativePath(info.definedInFile, projectPath);
       final usageFilesStr = externalUses > 0
-          ? ' ${formatUsageFiles(info.externalUsages, projectPath)}'
+          ? ' ${_formatUsageFiles(info.externalUsages, projectPath)}'
           : '';
       final entryPointNote = info.isEntryPoint && totalUses == 0
           ? ' [Used by native code via @pragma]'
           : '';
 
       buffer.writeln(
-          ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote');
+        '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+      );
     }
-
-    if (count == 0) {
-      buffer.writeln('No $entityType found.');
-    }
-    buffer.writeln('');
+    buffer.writeln();
   }
 
-// Function to categorize classes
-  static Map<String, List<MapEntry<String, ClassInfo>>> categorizeClasses(
-      Map<String, ClassInfo> classes) {
+  /// Categorizes classes based on their usage patterns.
+  ///
+  /// [classes] is a map of class names to their [ClassInfo].
+  /// Returns a map of category names to lists of class entries, sorted by usage.
+  static Map<String, List<MapEntry<String, ClassInfo>>> _categorizeClasses(
+    Map<String, ClassInfo> classes,
+  ) {
     final sortedClasses = classes.entries.toList()
       ..sort((a, b) {
         final externalComparison =
             a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
-        if (externalComparison != 0) return externalComparison;
-        return a.value.totalUsages.compareTo(b.value.totalUsages);
+        return externalComparison != 0
+            ? externalComparison
+            : a.value.totalUsages.compareTo(b.value.totalUsages);
       });
 
     final categories = <String, List<MapEntry<String, ClassInfo>>>{
-      'unused': <MapEntry<String, ClassInfo>>[],
-      'internalOnly': <MapEntry<String, ClassInfo>>[],
-      'externalOnly': <MapEntry<String, ClassInfo>>[],
-      'bothInternalExternal': <MapEntry<String, ClassInfo>>[],
-      'stateClass': <MapEntry<String, ClassInfo>>[],
-      'entryPoint': <MapEntry<String, ClassInfo>>[],
-      'commented': <MapEntry<String, ClassInfo>>[],
-      'mixing': <MapEntry<String, ClassInfo>>[],
-      'enum': <MapEntry<String, ClassInfo>>[],
-      'extension': <MapEntry<String, ClassInfo>>[],
-      'typedef': <MapEntry<String, ClassInfo>>[],
+      'unused': [],
+      'internalOnly': [],
+      'externalOnly': [],
+      'bothInternalExternal': [],
+      'stateClass': [],
+      'entryPoint': [],
+      'commented': [],
+      'mixing': [],
+      'enum': [],
+      'extension': [],
+      'typedef': [],
     };
 
     for (final entry in sortedClasses) {
@@ -160,26 +208,31 @@ class FileReporter {
     return categories;
   }
 
-// Function to categorize functions
-  static Map<String, List<MapEntry<String, CodeInfo>>> categorizeFunctions(
-      Map<String, CodeInfo> functions) {
+  /// Categorizes functions based on their usage patterns.
+  ///
+  /// [functions] is a map of function names to their [CodeInfo].
+  /// Returns a map of category names to lists of function entries, sorted by usage.
+  static Map<String, List<MapEntry<String, CodeInfo>>> _categorizeFunctions(
+    Map<String, CodeInfo> functions,
+  ) {
     final sortedFunctions = functions.entries.toList()
       ..sort((a, b) {
         final externalComparison =
             a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
-        if (externalComparison != 0) return externalComparison;
-        return a.value.totalUsages.compareTo(b.value.totalUsages);
+        return externalComparison != 0
+            ? externalComparison
+            : a.value.totalUsages.compareTo(b.value.totalUsages);
       });
 
     final categories = <String, List<MapEntry<String, CodeInfo>>>{
-      'unused': <MapEntry<String, CodeInfo>>[],
-      'internalOnly': <MapEntry<String, CodeInfo>>[],
-      'externalOnly': <MapEntry<String, CodeInfo>>[],
-      'bothInternalExternal': <MapEntry<String, CodeInfo>>[],
-      'emptyPrebuilt': <MapEntry<String, CodeInfo>>[],
-      'entryPoint': <MapEntry<String, CodeInfo>>[],
-      'commented': <MapEntry<String, CodeInfo>>[],
-      'commentedPrebuilt': <MapEntry<String, CodeInfo>>[],
+      'unused': [],
+      'internalOnly': [],
+      'externalOnly': [],
+      'bothInternalExternal': [],
+      'emptyPrebuilt': [],
+      'entryPoint': [],
+      'commented': [],
+      'commentedPrebuilt': [],
     };
 
     for (final entry in sortedFunctions) {
@@ -192,7 +245,7 @@ class FileReporter {
         if (functionInfo.isEmpty) {
           categories['emptyPrebuilt']!.add(entry);
         }
-        continue; // Skip non-empty prebuilt functions
+        continue;
       }
 
       if (functionInfo.isEntryPoint) {
@@ -215,109 +268,136 @@ class FileReporter {
     return categories;
   }
 
-// Function to write class analysis section
-  static void writeClassAnalysis(
+  /// Writes the class analysis section to the report buffer.
+  ///
+  /// [buffer] is the output buffer for the report.
+  /// [categories] is a map of class categories to their entries.
+  /// [projectPath] is the root directory of the project.
+  static void _writeClassAnalysis(
     StringBuffer buffer,
     Map<String, List<MapEntry<String, ClassInfo>>> categories,
     String projectPath,
   ) {
-    buffer.writeln('Class Analysis');
-    buffer.writeln('=' * 30);
+    buffer
+      ..writeln('Class Analysis')
+      ..writeln('=' * 14)
+      ..writeln();
 
-    writeCategoryClassSection(buffer, 'Unused Classes', categories['unused']!,
-        'unused_classes', projectPath);
-    writeCategoryClassSection(buffer, 'Commented Classes',
-        categories['commented']!, 'commented_classes', projectPath);
-    writeCategoryClassSection(
-        buffer,
+    const classSections = [
+      ('Unused Classes', 'unused', 'unused classes'),
+      ('Commented Classes', 'commented', 'commented classes'),
+      (
         'Classes Used Only Internally',
-        categories['internalOnly']!,
-        'classes_used_only_internally',
-        projectPath);
-    writeCategoryClassSection(
-        buffer,
+        'internalOnly',
+        'internally used classes'
+      ),
+      (
         'Classes Used Only Externally',
-        categories['externalOnly']!,
-        'classes_used_only_externally',
-        projectPath);
-    writeCategoryClassSection(
-        buffer,
+        'externalOnly',
+        'externally used classes'
+      ),
+      (
         'Classes Used Both Internally and Externally',
-        categories['bothInternalExternal']!,
-        'classes_used_both',
-        projectPath);
-    writeCategoryClassSection(buffer, 'Mixing Classes', categories['mixing']!,
-        'mixing_classes', projectPath);
-    writeCategoryClassSection(buffer, 'Enum Classes', categories['enum']!,
-        'enum_classes', projectPath);
-    writeCategoryClassSection(buffer, 'Extension Classes',
-        categories['extension']!, 'extension_classes', projectPath);
-    writeCategoryClassSection(buffer, 'Typedef Classes', categories['typedef']!,
-        'typedef_classes', projectPath);
-    writeCategoryClassSection(buffer, 'State Classes',
-        categories['stateClass']!, 'state_classes', projectPath);
-    writeCategoryClassSection(
+        'bothInternalExternal',
+        'internally and externally used classes'
+      ),
+      ('Mixin Classes', 'mixing', 'mixin classes'),
+      ('Enum Classes', 'enum', 'enum classes'),
+      ('Extension Classes', 'extension', 'extension classes'),
+      ('Typedef Classes', 'typedef', 'typedef classes'),
+      ('State Classes', 'stateClass', 'state classes'),
+      ('Entry-Point Classes (@pragma)', 'entryPoint', 'entry-point classes'),
+    ];
+
+    for (final (title, category, entityType) in classSections) {
+      _writeCategoryClassSection(
         buffer,
-        '@pragma Classes: Hints for Dart compiler/runtime optimizations.',
-        categories['entryPoint']!,
-        'entry_point_classes',
-        projectPath);
+        title,
+        categories[category]!,
+        entityType,
+        projectPath,
+      );
+    }
   }
 
-// Function to write function analysis section
-  static void writeFunctionAnalysis(
+  /// Writes the function analysis section to the report buffer.
+  ///
+  /// [buffer] is the output buffer for the report.
+  /// [categories] is a map of function categories to their entries.
+  /// [projectPath] is the root directory of the project.
+  static void _writeFunctionAnalysis(
     StringBuffer buffer,
     Map<String, List<MapEntry<String, CodeInfo>>> categories,
     String projectPath,
   ) {
-    buffer.writeln('Function Analysis');
-    buffer.writeln('=' * 30);
+    buffer
+      ..writeln('Function Analysis')
+      ..writeln('=' * 17)
+      ..writeln();
 
-    writeCategoryFunctionSection(buffer, 'Unused Functions',
-        categories['unused']!, 'unused functions', projectPath);
-    writeCategoryFunctionSection(buffer, 'Commented Functions',
-        categories['commented']!, 'commented functions', projectPath);
-    writeCategoryFunctionSection(
-        buffer,
+    const functionSections = [
+      ('Unused Functions', 'unused', 'unused functions'),
+      ('Commented Functions', 'commented', 'commented functions'),
+      (
         'Functions Used Only Internally',
-        categories['internalOnly']!,
-        'functions used only internally',
-        projectPath);
-    writeCategoryFunctionSection(
-        buffer,
+        'internalOnly',
+        'internally used functions'
+      ),
+      (
         'Functions Used Only Externally',
-        categories['externalOnly']!,
-        'functions used only externally',
-        projectPath);
-    writeCategoryFunctionSection(
-        buffer,
+        'externalOnly',
+        'externally used functions'
+      ),
+      (
         'Functions Used Both Internally and Externally',
-        categories['bothInternalExternal']!,
-        'functions used both internally and externally',
-        projectPath);
-    writeCategoryFunctionSection(
-        buffer,
+        'bothInternalExternal',
+        'internally and externally used functions'
+      ),
+      (
         'Empty Prebuilt Flutter Functions',
-        categories['emptyPrebuilt']!,
-        'empty prebuilt Flutter functions',
-        projectPath);
-    writeCategoryFunctionSection(
+        'emptyPrebuilt',
+        'empty prebuilt functions'
+      ),
+      (
+        'Commented Prebuilt Flutter Functions',
+        'commentedPrebuilt',
+        'commented prebuilt functions'
+      ),
+      (
+        'Entry-Point Functions (@pragma)',
+        'entryPoint',
+        'entry-point functions'
+      ),
+    ];
+
+    for (final (title, category, entityType) in functionSections) {
+      _writeCategoryFunctionSection(
         buffer,
-        'Pre build element Commented',
-        categories['commentedPrebuilt']!,
-        'Pre build element Commented',
-        projectPath);
-    writeCategoryFunctionSection(buffer, 'Entry-Point Functions (@pragma)',
-        categories['entryPoint']!, 'entry-point functions', projectPath);
+        title,
+        categories[category]!,
+        entityType,
+        projectPath,
+      );
+    }
   }
 
-// Function to calculate percentage
-  static double calculatePercentage(int count, int total) {
-    return count / (total > 0 ? total : 1) * 100;
-  }
+  /// Calculates the percentage of a count relative to a total.
+  ///
+  /// [count] is the number of items in the category.
+  /// [total] is the total number of items.
+  /// Returns the percentage as a double, avoiding division by zero.
+  static double _calculatePercentage(int count, int total) =>
+      (count / (total > 0 ? total : 1)) * 100;
 
-// Function to write summary section
-  static void writeSummary(
+  /// Writes the summary section to the report buffer.
+  ///
+  /// [buffer] is the output buffer for the report.
+  /// [classes] is a map of class names to their [ClassInfo].
+  /// [functions] is a map of function names to their [CodeInfo].
+  /// [classCategories] is a map of class categories to their entries.
+  /// [functionCategories] is a map of function categories to their entries.
+  /// [analyzeFunctions] determines whether to include function statistics.
+  static void _writeSummary(
     StringBuffer buffer,
     Map<String, ClassInfo> classes,
     Map<String, CodeInfo> functions,
@@ -325,114 +405,177 @@ class FileReporter {
     Map<String, List<MapEntry<String, CodeInfo>>> functionCategories,
     bool analyzeFunctions,
   ) {
-    buffer.writeln('Summary');
-    buffer.writeln('-' * 30);
+    buffer
+      ..writeln('Summary')
+      ..writeln('-' * 7)
+      ..writeln();
 
     final totalClasses = classes.length;
-    buffer.writeln('Total classes: $totalClasses');
-    buffer.writeln(
-        'Unused classes: ${classCategories['unused']!.length} (${calculatePercentage(classCategories['unused']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Classes used only internally: ${classCategories['internalOnly']!.length} (${calculatePercentage(classCategories['internalOnly']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Classes used only externally: ${classCategories['externalOnly']!.length} (${calculatePercentage(classCategories['externalOnly']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Classes used both internally and externally: ${classCategories['bothInternalExternal']!.length} (${calculatePercentage(classCategories['bothInternalExternal']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Mixin classed: ${classCategories['mixing']!.length} (${calculatePercentage(classCategories['mixing']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Enum classes: ${classCategories['enum']!.length} (${calculatePercentage(classCategories['enum']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Extension classes: ${classCategories['extension']!.length} (${calculatePercentage(classCategories['extension']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'State classes: ${classCategories['stateClass']!.length} (${calculatePercentage(classCategories['stateClass']!.length, totalClasses).toStringAsFixed(1)}%)');
-    buffer.writeln(
-        'Entry-point classes: ${classCategories['entryPoint']!.length} (${calculatePercentage(classCategories['entryPoint']!.length, totalClasses).toStringAsFixed(1)}%)');
+    buffer
+      ..writeln('Total classes: $totalClasses')
+      ..writeln(
+        'Unused classes: ${classCategories['unused']!.length} '
+        '(${_calculatePercentage(classCategories['unused']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Classes used only internally: ${classCategories['internalOnly']!.length} '
+        '(${_calculatePercentage(classCategories['internalOnly']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Classes used only externally: ${classCategories['externalOnly']!.length} '
+        '(${_calculatePercentage(classCategories['externalOnly']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Classes used both internally and externally: ${classCategories['bothInternalExternal']!.length} '
+        '(${_calculatePercentage(classCategories['bothInternalExternal']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Mixin classes: ${classCategories['mixing']!.length} '
+        '(${_calculatePercentage(classCategories['mixing']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Enum classes: ${classCategories['enum']!.length} '
+        '(${_calculatePercentage(classCategories['enum']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Extension classes: ${classCategories['extension']!.length} '
+        '(${_calculatePercentage(classCategories['extension']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'State classes: ${classCategories['stateClass']!.length} '
+        '(${_calculatePercentage(classCategories['stateClass']!.length, totalClasses).toStringAsFixed(1)}%)',
+      )
+      ..writeln(
+        'Entry-point classes: ${classCategories['entryPoint']!.length} '
+        '(${_calculatePercentage(classCategories['entryPoint']!.length, totalClasses).toStringAsFixed(1)}%)',
+      );
 
     if (analyzeFunctions) {
       final totalFunctions = functions.length;
-      buffer.writeln('Total functions: $totalFunctions');
-      buffer.writeln(
-          'Unused functions: ${functionCategories['unused']!.length} (${calculatePercentage(functionCategories['unused']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used only internally: ${functionCategories['internalOnly']!.length} (${calculatePercentage(functionCategories['internalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used only externally: ${functionCategories['externalOnly']!.length} (${calculatePercentage(functionCategories['externalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used both internally and externally: ${functionCategories['bothInternalExternal']!.length} (${calculatePercentage(functionCategories['bothInternalExternal']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Empty prebuilt Flutter functions: ${functionCategories['emptyPrebuilt']!.length} (${calculatePercentage(functionCategories['emptyPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Commented prebuilt Flutter functions: ${functionCategories['commentedPrebuilt']!.length} (${calculatePercentage(functionCategories['commentedPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Entry-point functions: ${functionCategories['entryPoint']!.length} (${calculatePercentage(functionCategories['entryPoint']!.length, totalFunctions).toStringAsFixed(1)}%)');
+      buffer
+        ..writeln()
+        ..writeln('Total functions: $totalFunctions')
+        ..writeln(
+          'Unused functions: ${functionCategories['unused']!.length} '
+          '(${_calculatePercentage(functionCategories['unused']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Functions used only internally: ${functionCategories['internalOnly']!.length} '
+          '(${_calculatePercentage(functionCategories['internalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Functions used only externally: ${functionCategories['externalOnly']!.length} '
+          '(${_calculatePercentage(functionCategories['externalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Functions used both internally and externally: ${functionCategories['bothInternalExternal']!.length} '
+          '(${_calculatePercentage(functionCategories['bothInternalExternal']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Empty prebuilt Flutter functions: ${functionCategories['emptyPrebuilt']!.length} '
+          '(${_calculatePercentage(functionCategories['emptyPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Commented prebuilt Flutter functions: ${functionCategories['commentedPrebuilt']!.length} '
+          '(${_calculatePercentage(functionCategories['commentedPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        )
+        ..writeln(
+          'Entry-point functions: ${functionCategories['entryPoint']!.length} '
+          '(${_calculatePercentage(functionCategories['entryPoint']!.length, totalFunctions).toStringAsFixed(1)}%)',
+        );
     }
   }
 
-// Function to generate report header
-  static String generateReportHeader() {
+  /// Generates the report header with a timestamp and description.
+  ///
+  /// Returns a formatted header string.
+  static String _generateReportHeader() {
     final now = DateTime.now();
-    final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
-
-    final buffer = StringBuffer();
-    buffer.writeln('Flutter Code Usage Analysis - ${formatter.format(now)}');
-    buffer.writeln('=' * 50);
-    buffer.writeln(
-        'This report lists classes and functions (if analyzed) by usage type. Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately. Empty prebuilt Flutter functions (e.g., build, initState) are listed separately. File paths are relative to the lib/ directory or project root.');
-    buffer.writeln('');
-
-    return buffer.toString();
-  }
-
-// Function to generate filename with timestamp
-  static String generateFilename() {
-    final now = DateTime.now();
-    final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final timestamp = formatter.format(now);
-    return 'flutter_code_analysis_$timestamp.txt';
+
+    return '''
+Flutter Code Usage Analysis - $timestamp
+${'=' * 50}
+This report analyzes class and function usage in a Flutter project.
+- Classes and functions are categorized by usage type (e.g., unused, internal, external).
+- Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately.
+- Empty or commented prebuilt Flutter functions (e.g., build, initState) are listed separately.
+- File paths are relative to the lib/ directory or project root.
+
+''';
   }
 
-// Main refactored function
+  /// Generates a filename for the report based on the current timestamp.
+  ///
+  /// Returns a filename string in the format `flutter_code_analysis_YYYY-MM-DD_HH-mm-ss.txt`.
+  static String _generateFilename() {
+    final now = DateTime.now();
+    final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    return 'flutter_code_analysis_${formatter.format(now)}.txt';
+  }
+
+  /// Saves the code usage analysis report to a file.
+  ///
+  /// [classes] is a map of class names to their [ClassInfo].
+  /// [functions] is a map of function names to their [CodeInfo].
+  /// [outputDirectory] is the directory where the report will be saved.
+  /// [projectPath] is the root directory of the project.
+  /// [analyzeFunctions] determines whether to include function analysis.
+  ///
+  /// Throws an [IOException] if the report cannot be saved (e.g., due to permissions).
   static void saveResultsToFile({
     required Map<String, ClassInfo> classes,
     required Map<String, CodeInfo> functions,
-    required String outputDir,
+    required String outputDirectory,
     required String projectPath,
     required bool analyzeFunctions,
   }) {
+    final filename = _generateFilename();
+    final filePath = path.join(outputDirectory, filename);
+    final buffer = StringBuffer();
+
     try {
-      final filename = generateFilename();
-      final filePath = path.join(outputDir, filename);
-      final buffer = StringBuffer();
-
-      // Add header
-      buffer.write(generateReportHeader());
-
-      // Categorize classes and functions
-      final classCategories = categorizeClasses(classes);
-      final functionCategories = analyzeFunctions
-          ? categorizeFunctions(functions)
-          : <String, List<MapEntry<String, CodeInfo>>>{};
-
-      // Write class analysis
-      writeClassAnalysis(buffer, classCategories, projectPath);
-
-      // Write function analysis if enabled
-      if (analyzeFunctions) {
-        writeFunctionAnalysis(buffer, functionCategories, projectPath);
+      // Ensure the output directory exists
+      final dir = Directory(outputDirectory);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
       }
 
-      // Write summary
-      writeSummary(buffer, classes, functions, classCategories,
-          functionCategories, analyzeFunctions);
+      // Generate report content
+      buffer.write(_generateReportHeader());
 
-      // Save to file
-      final file = File(filePath);
-      file.writeAsStringSync(buffer.toString());
-      print('\nAnalysis report saved to: $filePath');
-    } catch (e) {
-      print(
-          '\nError saving analysis report: $e. Ensure you have write permissions for $outputDir.');
+      Map<String, List<MapEntry<String, ClassInfo>>> classCategories =
+          _categorizeClasses(classes);
+      Map<String, List<MapEntry<String, CodeInfo>>> functionCategories =
+          analyzeFunctions ? _categorizeFunctions(functions) : {};
+
+      _writeClassAnalysis(buffer, classCategories, projectPath);
+      if (analyzeFunctions) {
+        _writeFunctionAnalysis(buffer, functionCategories, projectPath);
+      }
+      _writeSummary(
+        buffer,
+        classes,
+        functions,
+        classCategories,
+        functionCategories,
+        analyzeFunctions,
+      );
+
+      // Write to file
+      File(filePath).writeAsStringSync(buffer.toString());
+      print('Analysis report saved to: $filePath');
+    } catch (e, stackTrace) {
+      final errorMessage = '''
+Error saving analysis report to $filePath:
+$e
+Ensure the output directory ($outputDirectory) exists and you have write permissions.
+Stack trace:
+$stackTrace
+''';
+      print(errorMessage);
+      rethrow;
     }
   }
 }

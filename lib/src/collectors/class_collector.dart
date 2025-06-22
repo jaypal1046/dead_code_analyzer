@@ -1,277 +1,322 @@
-import 'package:dead_code_analyzer/src/models/class_info.dart';
-import 'package:dead_code_analyzer/src/utils/helper.dart';
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 
+/// Collects and analyzes class definitions from Dart source code
 class ClassCollector {
-  static void classCollector(
-    RegExpMatch? classMatch,
-    int lineIndex,
-    RegExp pragmaRegex,
-    List<String> lines,
-    Map<String, ClassInfo> classes,
-    String filePath,
-    bool insideStateClass,
-  ) {
-    String line = lines[lineIndex];
-    String trimmedLine = line.trim();
+  /// Collects class information from a specific line in the source code
+  static void collectClassFromLine({
+    required RegExpMatch? classMatch,
+    required int lineIndex,
+    required RegExp pragmaRegex,
+    required List<String> lines,
+    required Map<String, ClassInfo> classes,
+    required String filePath,
+    required bool insideStateClass,
+  }) {
+    final analyzer = _ClassLineAnalyzer(
+      lines: lines,
+      lineIndex: lineIndex,
+      pragmaRegex: pragmaRegex,
+      filePath: filePath,
+      insideStateClass: insideStateClass,
+    );
 
-    // Skip empty lines
-    if (trimmedLine.isEmpty) return;
-
-    // Enhanced patterns to handle multi-line comments
-    List<RegExp> classPatterns = [
-      // 0. Regular class declarations (including all modifiers and commented ones)
-      RegExp(
-          r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
-          multiLine: false),
-
-      // 1. Enum declarations
-      RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
-          multiLine: false),
-
-      // 2. Mixin declarations
-      RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)',
-          multiLine: false),
-
-      // 3. Extension with name
-      RegExp(
-          r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
-          multiLine: false),
-
-      // 4. Anonymous extension
-      RegExp(
-          r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>,\s]*)',
-          multiLine: false),
-
-      // 5. Typedef declarations
-      RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
-          multiLine: false),
-
-      // 6. Mixin class declarations (Dart 3.0+)
-      RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
-          multiLine: false),
-    ];
-
-    String? className;
-    String classType = 'class';
-    bool isCommentedOut = false;
-    if (trimmedLine.contains("enum")) {
-      print('Testing line: $line');
-    }
-
-    // Check if we're inside a multi-line comment
-    bool inMultiLineComment = _isInMultiLineComment(lines, lineIndex);
-
-    // Check mixin class first (specific case before general mixin)
-    if (trimmedLine.contains('mixin class') || trimmedLine.contains('mixin')) {
-      for (RegExp pattern in classPatterns) {
-        RegExpMatch? match = pattern.firstMatch(trimmedLine);
-        if (match != null && pattern == classPatterns[6]) {
-          // mixin class pattern
-          className = match.group(1)!;
-          classType = 'mixin_class';
-          isCommentedOut = _isLineCommented(trimmedLine, inMultiLineComment);
-          break;
-        }
-      }
-    }
-
-    // If not found yet, check other patterns
-    if (className == null) {
-      for (int i = 0; i < classPatterns.length; i++) {
-        if (i == 6) continue; // Skip mixin class as we handled it above
-
-        RegExp pattern = classPatterns[i];
-        RegExpMatch? match = pattern.firstMatch(trimmedLine);
-
-        if (match != null) {
-          className = match.group(1)!;
-          isCommentedOut = _isLineCommented(trimmedLine, inMultiLineComment);
-
-          // Don't match mixin class with regular mixin pattern
-          if (i == 2 && trimmedLine.contains('mixin class')) {
-            continue;
-          }
-
-          switch (i) {
-            case 0:
-              classType = _determineClassType(trimmedLine, insideStateClass);
-              break;
-            case 1:
-              classType = 'enum';
-              break;
-            case 2:
-              classType = 'mixin';
-              break;
-            case 3:
-              classType = 'extension';
-              break;
-            case 4:
-              classType = 'extension';
-              className =
-                  'ExtensionOn ${className.replaceAll(RegExp(r'[<>,\s]'), '')}';
-              break;
-            case 5:
-              classType = 'typedef';
-              break;
-          }
-          break;
-        }
-      }
-    }
-
-    if (className != null) {
-      // Skip if it's a Dart keyword or built-in type
-      if (_isDartKeyword(className)) {
-        return;
-      }
-
-      // Entry point check
-      bool isEntryPoint = _checkEntryPoint(lines, lineIndex, pragmaRegex);
-
-      // Calculate startPosition
-      int startPosition =
-          _calculateStartPosition(lines, lineIndex, trimmedLine, line);
-
-      // Store class information
-      classes[className] = ClassInfo(
-        filePath,
-        isEntryPoint: isEntryPoint,
-        commentedOut: isCommentedOut,
-        type: classType,
-        lineIndex: lineIndex, // Use the provided lineIndex directly
-        startPosition: startPosition, // Use the calculated startPosition
-      );
+    final classInfo = analyzer.analyzeClassDefinition();
+    if (classInfo != null) {
+      classes[classInfo.name] = classInfo.info;
     }
   }
+}
 
-// Helper function to calculate startPosition
-  static int _calculateStartPosition(List<String> lines, int lineIndex,
-      String trimmedLine, String originalLine) {
-    int startPosition = 0;
+/// Analyzes a single line for class definitions
+class _ClassLineAnalyzer {
+  const _ClassLineAnalyzer({
+    required this.lines,
+    required this.lineIndex,
+    required this.pragmaRegex,
+    required this.filePath,
+    required this.insideStateClass,
+  });
 
-    // Sum the lengths of all previous lines, including newline characters
-    for (int i = 0; i < lineIndex; i++) {
-      startPosition += lines[i].length + 1; // Add 1 for the newline character
-    }
+  final List<String> lines;
+  final int lineIndex;
+  final RegExp pragmaRegex;
+  final String filePath;
+  final bool insideStateClass;
 
-    // Add the offset within the current line (position where trimmedLine starts in originalLine)
-    int leadingWhitespaceLength =
-        originalLine.length - originalLine.trimLeft().length;
-    startPosition += leadingWhitespaceLength;
+  String get currentLine => lines[lineIndex];
+  String get trimmedLine => currentLine.trim();
 
-    return startPosition;
+  /// Analyzes the current line for class definitions
+  ClassDefinitionResult? analyzeClassDefinition() {
+    if (trimmedLine.isEmpty) return null;
+
+    final patternMatcher = _ClassPatternMatcher(trimmedLine);
+    final matchResult = patternMatcher.findClassDefinition();
+
+    if (matchResult == null) return null;
+    if (_isDartKeyword(matchResult.className)) return null;
+
+    final commentAnalyzer = _CommentAnalyzer(lines, lineIndex);
+    final isCommentedOut = commentAnalyzer.isLineCommented();
+
+    final classInfo = ClassInfo(
+      filePath,
+      isEntryPoint: _hasEntryPointPragma(),
+      commentedOut: isCommentedOut,
+      type: matchResult.classType,
+      lineIndex: lineIndex,
+      startPosition: _calculateStartPosition(),
+    );
+
+    return ClassDefinitionResult(
+      name: matchResult.className,
+      info: classInfo,
+    );
   }
 
-  /// Enhanced function to check if a line is commented out
-  static bool _isLineCommented(String trimmedLine, bool inMultiLineComment) {
-    // Check for single-line comments
-    if (trimmedLine.startsWith('//')) {
-      return true;
-    }
+  /// Checks if the class has an entry point pragma annotation
+  bool _hasEntryPointPragma() {
+    const maxLookback = 5;
 
-    // Check for multi-line comment markers
-    if (trimmedLine.startsWith('*') || trimmedLine.startsWith('*/')) {
-      return true;
-    }
+    for (int i = 1; i <= maxLookback && lineIndex - i >= 0; i++) {
+      final prevLine = lines[lineIndex - i].trim();
 
-    // If we're inside a multi-line comment block
-    if (inMultiLineComment) {
-      return true;
+      if (pragmaRegex.hasMatch(prevLine)) {
+        return true;
+      }
+
+      // Stop if we hit actual code (not comments or annotations)
+      if (_isActualCode(prevLine)) {
+        break;
+      }
     }
 
     return false;
   }
 
-  /// Enhanced function to check if we're inside a multi-line comment
-  static bool _isInMultiLineComment(List<String> lines, int lineIndex) {
+  /// Checks if a line contains actual code (not comments or annotations)
+  bool _isActualCode(String line) {
+    if (line.isEmpty ||
+        line.startsWith('//') ||
+        line.startsWith('/*') ||
+        line.startsWith('*') ||
+        line.startsWith('*/') ||
+        line.startsWith('@') ||
+        line.startsWith('///')) {
+      return false;
+    }
+
+    // Check if it's a class/enum/mixin/extension/typedef declaration
+    final classKeywords = ['class', 'enum', 'mixin', 'extension', 'typedef'];
+    return !classKeywords.any(line.contains);
+  }
+
+  /// Calculates the start position of the class definition in the file
+  int _calculateStartPosition() {
+    int position = 0;
+
+    // Sum lengths of all previous lines including newline characters
+    for (int i = 0; i < lineIndex; i++) {
+      position += lines[i].length + 1;
+    }
+
+    // Add leading whitespace offset
+    final leadingWhitespace =
+        currentLine.length - currentLine.trimLeft().length;
+    return position + leadingWhitespace;
+  }
+
+  /// Checks if an identifier is a reserved Dart keyword
+  bool _isDartKeyword(String identifier) {
+    return Helper.keywords.contains(identifier.toLowerCase());
+  }
+}
+
+/// Matches class definition patterns in source code
+class _ClassPatternMatcher {
+  const _ClassPatternMatcher(this.line);
+
+  final String line;
+
+  /// Finds class definitions using pattern matching
+  ClassMatchResult? findClassDefinition() {
+    // Check mixin class first (most specific)
+    final mixinClassResult = _tryMatchMixinClass();
+    if (mixinClassResult != null) return mixinClassResult;
+
+    // Check other patterns
+    for (final pattern in _classPatterns) {
+      final match = pattern.regex.firstMatch(line);
+      if (match != null) {
+        final className = _extractClassName(match, pattern);
+        final classType = _determineClassType(pattern.type);
+
+        return ClassMatchResult(
+          className: className,
+          classType: classType,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Attempts to match mixin class pattern specifically
+  ClassMatchResult? _tryMatchMixinClass() {
+    if (!line.contains('mixin class')) return null;
+
+    final pattern = _classPatterns.firstWhere(
+      (p) => p.type == PatternType.mixinClass,
+    );
+
+    final match = pattern.regex.firstMatch(line);
+    if (match != null) {
+      return ClassMatchResult(
+        className: match.group(1)!,
+        classType: 'mixin_class',
+      );
+    }
+
+    return null;
+  }
+
+  /// Extracts class name from regex match based on pattern type
+  String _extractClassName(RegExpMatch match, ClassPattern pattern) {
+    final baseName = match.group(1)!;
+
+    if (pattern.type == PatternType.anonymousExtension) {
+      return 'ExtensionOn ${baseName.replaceAll(RegExp(r'[<>,\s]'), '')}';
+    }
+
+    return baseName;
+  }
+
+  /// Determines the specific class type from the matched line
+  String _determineClassType(PatternType patternType) {
+    switch (patternType) {
+      case PatternType.regularClass:
+        return _analyzeClassModifiers();
+      case PatternType.enumType:
+        return 'enum';
+      case PatternType.mixinType:
+        return 'mixin';
+      case PatternType.namedExtension:
+      case PatternType.anonymousExtension:
+        return 'extension';
+      case PatternType.typedef:
+        return 'typedef';
+      case PatternType.mixinClass:
+        return 'mixin_class';
+    }
+  }
+
+  /// Analyzes class modifiers and inheritance to determine specific type
+  String _analyzeClassModifiers() {
+    final lowerLine = line.toLowerCase();
+
+    if (lowerLine.contains('sealed')) return 'sealed_class';
+    if (lowerLine.contains('base')) return 'base_class';
+    if (lowerLine.contains('final')) return 'final_class';
+    if (lowerLine.contains('interface')) return 'interface_class';
+    if (lowerLine.contains('abstract')) return 'abstract_class';
+    if (lowerLine.contains('extends state<') || lowerLine.contains('state<')) {
+      return 'state_class';
+    }
+    if (lowerLine.contains('extends statelesswidget')) {
+      return 'stateless_widget';
+    }
+    if (lowerLine.contains('extends statefulwidget')) return 'stateful_widget';
+
+    return 'class';
+  }
+
+  /// Predefined patterns for different class definition types
+  static final List<ClassPattern> _classPatterns = [
+    ClassPattern(
+      regex:
+          r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      type: PatternType.regularClass,
+    ),
+    ClassPattern(
+      regex: r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
+      type: PatternType.enumType,
+    ),
+    ClassPattern(
+      regex: r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)',
+      type: PatternType.mixinType,
+    ),
+    ClassPattern(
+      regex:
+          r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
+      type: PatternType.namedExtension,
+    ),
+    ClassPattern(
+      regex:
+          r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>,\s]*)',
+      type: PatternType.anonymousExtension,
+    ),
+    ClassPattern(
+      regex: r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
+      type: PatternType.typedef,
+    ),
+    ClassPattern(
+      regex: r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      type: PatternType.mixinClass,
+    ),
+  ];
+}
+
+/// Analyzes comment patterns in source code
+class _CommentAnalyzer {
+  const _CommentAnalyzer(this.lines, this.lineIndex);
+
+  final List<String> lines;
+  final int lineIndex;
+
+  String get currentLine => lines[lineIndex].trim();
+
+  /// Checks if the current line is commented out
+  bool isLineCommented() {
+    // Check for single-line comments
+    if (currentLine.startsWith('//')) return true;
+
+    // Check for multi-line comment markers
+    if (currentLine.startsWith('*') || currentLine.startsWith('*/')) {
+      return true;
+    }
+
+    // Check if we're inside a multi-line comment block
+    return _isInsideMultiLineComment();
+  }
+
+  /// Checks if the current line is inside a multi-line comment
+  bool _isInsideMultiLineComment() {
     bool inComment = false;
 
     for (int i = 0; i <= lineIndex; i++) {
-      String line = lines[i];
-
-      // Process line character by character to handle nested comments
-      int j = 0;
-      while (j < line.length - 1) {
-        if (line.substring(j, j + 2) == '/*') {
-          inComment = true;
-          j += 2; // Skip both characters
-        } else if (line.substring(j, j + 2) == '*/') {
-          inComment = false;
-          j += 2; // Skip both characters
-        } else {
-          j++;
-        }
-      }
+      final line = lines[i];
+      inComment = _processLineForComments(line, inComment);
     }
 
     return inComment;
   }
 
-  /// Determine the specific type of class with improved detection
-  static String _determineClassType(String line, bool insideStateClass) {
-    String lowerLine = line.toLowerCase();
+  /// Processes a line to track multi-line comment state
+  bool _processLineForComments(String line, bool currentlyInComment) {
+    bool inComment = currentlyInComment;
 
-    // Check for mixin class first (Dart 3.0+)
-    if (lowerLine.contains('mixin class')) {
-      return 'mixin_class';
-    } else if (lowerLine.contains('sealed class') ||
-        lowerLine.contains('sealed')) {
-      return 'sealed_class';
-    } else if (lowerLine.contains('base class') || lowerLine.contains('base')) {
-      return 'base_class';
-    } else if (lowerLine.contains('final class') ||
-        lowerLine.contains('final')) {
-      return 'final_class';
-    } else if (lowerLine.contains('interface class') ||
-        lowerLine.contains('interface')) {
-      return 'interface_class';
-    } else if (lowerLine.contains('abstract class') ||
-        lowerLine.contains('abstract')) {
-      return 'abstract_class';
-    } else if (lowerLine.contains('extends state<') ||
-        lowerLine.contains('state<')) {
-      return 'state_class';
-    } else if (lowerLine.contains('extends statelesswidget')) {
-      return 'stateless_widget';
-    } else if (lowerLine.contains('extends statefulwidget')) {
-      return 'stateful_widget';
-    } else {
-      return 'class';
-    }
-  }
+    for (int i = 0; i < line.length - 1; i++) {
+      final twoChar = line.substring(i, i + 2);
 
-  /// Check if the class has an entry point pragma
-  static bool _checkEntryPoint(
-      List<String> lines, int lineIndex, RegExp pragmaRegex) {
-    // Check the previous 5 lines for pragma annotations
-    for (int i = 1; i <= 5 && lineIndex - i >= 0; i++) {
-      String prevLine = lines[lineIndex - i].trim();
-      if (pragmaRegex.hasMatch(prevLine)) {
-        return true;
-      }
-      // Continue checking even if we hit comments or annotations
-      if (prevLine.isNotEmpty &&
-          !prevLine.startsWith('//') &&
-          !prevLine.startsWith('/*') &&
-          !prevLine.startsWith('*') &&
-          !prevLine.startsWith('*/') &&
-          !prevLine.startsWith('@') &&
-          !prevLine.startsWith('///')) {
-        // Only stop if we hit actual code (not comments or annotations)
-        if (!prevLine.contains('class') &&
-            !prevLine.contains('enum') &&
-            !prevLine.contains('mixin') &&
-            !prevLine.contains('extension') &&
-            !prevLine.contains('typedef')) {
-          break;
-        }
+      if (twoChar == '/*') {
+        inComment = true;
+        i++; // Skip next character
+      } else if (twoChar == '*/') {
+        inComment = false;
+        i++; // Skip next character
       }
     }
-    return false;
-  }
 
-  /// Check if the identifier is a Dart keyword that should be ignored
-  static bool _isDartKeyword(String identifier) {
-    return Healper.keywords.contains(identifier.toLowerCase());
+    return inComment;
   }
 }

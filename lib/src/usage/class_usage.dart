@@ -1,12 +1,15 @@
-import 'package:dead_code_analyzer/src/models/class_info.dart';
-import 'package:dead_code_analyzer/src/models/import_info.dart';
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 
 class ClassUsage {
-  static void analyzeClassUsages(
-      String content, String filePath, Map<String, ClassInfo> classes) {
+  static void analyzeClassUsages({
+    required String content,
+    required String filePath,
+    required Map<String, ClassInfo> classes,
+    required List<ImportInfo> exportList,
+  }) {
     // Parse all imports in the current file
     final imports = parseImports(content);
-
+    
     for (final entry in classes.entries) {
       final className = entry.key;
       final classInfo = entry.value;
@@ -17,15 +20,15 @@ class ClassUsage {
             _countClassUsages(content, className, isInternalFile: true);
         classInfo.internalUsageCount = usageCount;
       } else {
-        // For external files, check if there's a matching import
+        // Check if class is accessible via imports or exports
         if (!isClassAccessibleInFile(
-            className, classInfo.definedInFile, imports)) {
-          continue; // Skip if class is not accessible via imports
+            className, classInfo.definedInFile, imports, exportList)) {
+          continue; // Skip if class is not accessible
         }
 
         // Get the effective class name (with alias if applicable)
         final effectiveClassName =
-            getEffectiveClassName(className, classInfo.definedInFile, imports);
+            getEffectiveClassName(className, classInfo.definedInFile, imports, exportList);
 
         final usageCount = _countClassUsages(content, effectiveClassName,
             isInternalFile: false);
@@ -192,7 +195,6 @@ class ClassUsage {
     return (singleQuoteCount % 2 == 1) || (doubleQuoteCount % 2 == 1);
   }
 
-// Keep your existing helper functions
   static List<ImportInfo> parseImports(String content) {
     final imports = <ImportInfo>[];
 
@@ -238,8 +240,8 @@ class ClassUsage {
   }
 
   static bool isClassAccessibleInFile(
-      String className, String classDefinedInFile, List<ImportInfo> imports) {
-    // Check if there's an import that makes this class accessible
+      String className, String classDefinedInFile, List<ImportInfo> imports, List<ImportInfo> exportList) {
+    // Check imports first
     for (final import in imports) {
       if (import.path == classDefinedInFile) {
         // Check if class is hidden
@@ -257,18 +259,49 @@ class ClassUsage {
       }
     }
 
+    // Check exports
+    for (final export in exportList) {
+      // print("Checking export: ${export.path} for class $classDefinedInFile -- rouse path ${export.sourceFile}");
+      if (export.path == classDefinedInFile) {
+        // Check if class is hidden
+        if (export.hiddenClasses.contains(className)) {
+          return false;
+        }
+
+        // Check if using 'show' and class is not in the show list
+        if (export.shownClasses.isNotEmpty &&
+            !export.shownClasses.contains(className)) {
+          return false;
+        }
+
+        return true;
+      }
+    }
+
     return false;
   }
 
   static String getEffectiveClassName(String originalClassName,
-      String classDefinedInFile, List<ImportInfo> imports) {
-    // Find the import that brings this class
+      String classDefinedInFile, List<ImportInfo> imports, List<ImportInfo> exportList) {
+    // Check imports first
     for (final import in imports) {
       if (import.path == classDefinedInFile) {
         // If import has 'as' alias, the class should be accessed via alias
         if (import.asAlias != null) {
           return '${import.asAlias}.$originalClassName';
         }
+        return originalClassName;
+      }
+    }
+
+    // Check exports
+    for (final export in exportList) {
+      if (export.sourceFile == classDefinedInFile) {
+        // If export has 'as' alias, the class should be accessed via alias
+        if (export.asAlias != null) {
+          return '${export.asAlias}.$originalClassName';
+        }
+        return originalClassName;
       }
     }
 

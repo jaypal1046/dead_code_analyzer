@@ -4,7 +4,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 
 class VersionInfo {
-  static void versionfind(ArgParser parser, List<String> arguments) {
+  static void findAndDisplayVersion(ArgParser parser, List<String> arguments) {
     // Try to get version from version file or pubspec.yaml
     String version = 'unknown';
     String versionSource = 'none';
