@@ -3,12 +3,44 @@ class ImportInfo {
   final String? asAlias;
   final List<String> hiddenClasses;
   final List<String> shownClasses; // for 'show' keyword
+  final List<String> hiddenFunctions;
+  final List<String> shownFunctions; // for 'show' keyword with functions
   final String? sourceFile;
+  final bool isExport; // New field to distinguish exports from imports
+  final bool isWildcardExport; // New field for export * statements
+  
   ImportInfo({
     required this.path,
     this.asAlias,
     this.hiddenClasses = const [],
     this.shownClasses = const [],
+    this.hiddenFunctions = const [],
+    this.shownFunctions = const [],
     this.sourceFile,
+    this.isExport = false, // Default to false for backward compatibility
+    this.isWildcardExport = false,
   });
+
+  // Helper method to check if this is a selective export
+  bool get isSelectiveExport => isExport && (shownClasses.isNotEmpty || shownFunctions.isNotEmpty);
+  
+  // Helper method to check if this is a hiding export
+  bool get isHidingExport => isExport && (hiddenClasses.isNotEmpty || hiddenFunctions.isNotEmpty);
+  
+  // Helper method to check if this is a simple export (no show/hide/wildcard)
+  bool get isSimpleExport => isExport && !isWildcardExport && 
+      shownClasses.isEmpty && hiddenClasses.isEmpty && 
+      shownFunctions.isEmpty && hiddenFunctions.isEmpty;
+
+  // Helper methods to get all shown/hidden items
+  List<String> get allShownItems => [...shownClasses, ...shownFunctions];
+  List<String> get allHiddenItems => [...hiddenClasses, ...hiddenFunctions];
+
+  @override
+  String toString() {
+    return 'ImportInfo(path: $path, isExport: $isExport, isWildcardExport: $isWildcardExport, '
+           'shownClasses: $shownClasses, hiddenClasses: $hiddenClasses, '
+           'shownFunctions: $shownFunctions, hiddenFunctions: $hiddenFunctions, '
+           'asAlias: $asAlias, sourceFile: $sourceFile)';
+  }
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:dead_code_analyzer/src/collectors/class_collector.dart';
+import 'package:dead_code_analyzer/src/collectors/export_collector.dart';
 import 'package:dead_code_analyzer/src/collectors/function_collector.dart';
 import 'package:dead_code_analyzer/src/models/class_info.dart';
 import 'package:dead_code_analyzer/src/models/code_info.dart';
@@ -148,7 +149,7 @@ class CodeAnalyzer {
 
       // Handle export statements
       if (line.startsWith('export')) {
-        _handleExport(
+        ExportCollector.handleExport(
           line: trimmedLine,
           currentFile: file,
           classes: classes,
@@ -296,89 +297,6 @@ class CodeAnalyzer {
       filePath: filePath,
       currentClassName: context.currentClassName,
     );
-  }
-
-  /// Handles an export statement by resolving and processing the exported file.
-  static void _handleExport({
-    required String line,
-    required File currentFile,
-    required Map<String, ClassInfo> classes,
-    required Map<String, CodeInfo> functions,
-    required List<ImportInfo> exportList,
-    required bool analyzeFunctions,
-  }) {
-    final exportRegex = RegExp(
-      r'''export\s+['"](.+?)['"]\s*(?:as\s+(\w+))?\s*(?:show\s+([\w\s,]+))?\s*(?:hide\s+([\w\s,]+))?;''',
-    );
-    final match = exportRegex.firstMatch(line);
-    if (match == null) return;
-
-    final exportPath = match.group(1)!;
-    final asAlias = match.group(2);
-    final showClasses = match
-            .group(3)
-            ?.split(',')
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
-            .toList() ??
-        [];
-    final hideClasses = match
-            .group(4)
-            ?.split(',')
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
-            .toList() ??
-        [];
-
-    // Resolve the export path relative to the current file's directory
-    final currentDir = path.dirname(currentFile.path);
-    // Normalize and resolve the export path for all OS (Windows, Mac, Linux)
-    String resolvedPath = path.normalize(path.join(currentDir, exportPath));
-    // Convert to absolute path if not already
-    if (!path.isAbsolute(resolvedPath)) {
-      resolvedPath = path.absolute(resolvedPath);
-    }
-    // On Windows, convert all separators to backslash for consistency
-    if (Platform.isWindows) {
-      resolvedPath = path.canonicalize(resolvedPath);
-    }
-
-    // Validate the exported file
-    final exportedFile = File(resolvedPath);
-    if (!exportedFile.existsSync()) {
-      print('Warning: Exported file does not exist: $resolvedPath');
-      return;
-    }
-
-    // Check if it's a Dart file
-    if (path.extension(resolvedPath) != '.dart') {
-      print('Warning: Exported file is not a Dart file: $resolvedPath');
-      return;
-    }
-
-    // Store export information
-    exportList.add(
-      ImportInfo(
-        path: resolvedPath, // Store absolute path
-        asAlias: asAlias,
-        shownClasses: showClasses,
-        hiddenClasses: hideClasses,
-        sourceFile: path.absolute(currentFile.path), // Track the source of the export
-      ),
-    );
-
-    // Recursively process the exported file
-    try {
-      _processFile(
-        file: exportedFile,
-        classes: classes,
-        functions: functions,
-        exportList: exportList,
-        analyzeFunctions: analyzeFunctions,
-      );
-    } catch (e) {
-      print('Warning: Error processing exported file $resolvedPath: $e');
-    }
   }
 }
 
