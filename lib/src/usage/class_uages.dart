@@ -3,6 +3,11 @@ import 'package:dead_code_analyzer/src/model/import_info.dart';
 
 void analyzeClassUsages(
     String content, String filePath, Map<String, ClassInfo> classes) {
+  // Reset usage counts for all classes
+  for (final classInfo in classes.values) {
+    classInfo.internalUsageCount = 0;
+    classInfo.externalUsages.clear();
+  }
   // Parse all imports in the current file
   final imports = parseImports(content);
 
@@ -238,8 +243,8 @@ List<ImportInfo> parseImports(String content) {
 
 bool isClassAccessibleInFile(
     String className, String classDefinedInFile, List<ImportInfo> imports) {
-  // Check if there's an import that makes this class accessible
   for (final import in imports) {
+    // Check if there's an import that makes this class accessible
     if (import.path == classDefinedInFile) {
       // Check if class is hidden
       if (import.hiddenClasses.contains(className)) {
@@ -254,8 +259,27 @@ bool isClassAccessibleInFile(
 
       return true;
     }
-  }
 
+    // Support package: imports by matching URI suffix to file path
+    if (import.path.startsWith('package:')) {
+      final slashIndex = import.path.indexOf('/');
+      if (slashIndex != -1) {
+        final packageRelative = import.path.substring(slashIndex + 1);
+        // Normalize backslashes for Windows paths
+        final normalizedFilePath = classDefinedInFile.replaceAll('\\', '/');
+        if (normalizedFilePath.endsWith(packageRelative)) {
+          if (import.hiddenClasses.contains(className)) {
+            return false;
+          }
+          if (import.shownClasses.isNotEmpty &&
+              !import.shownClasses.contains(className)) {
+            return false;
+          }
+          return true;
+        }
+      }
+    }
+  }
   return false;
 }
 

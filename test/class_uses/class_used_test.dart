@@ -241,6 +241,18 @@ void main() {
       expect(imports[0].hiddenClasses, ['MyWidget', 'OtherClass']);
       expect(imports[0].shownClasses, isEmpty);
     });
+    test('should parse package import', () {
+      final content = '''
+        import 'package:translator/domain/repositories/subtitle_repository.dart';
+      ''';
+      final imports = parseImports(content);
+      expect(imports.length, 1);
+      expect(imports[0].path,
+          'package:translator/domain/repositories/subtitle_repository.dart');
+      expect(imports[0].asAlias, isNull);
+      expect(imports[0].shownClasses, isEmpty);
+      expect(imports[0].hiddenClasses, isEmpty);
+    });
   });
 
   group('isClassAccessibleInFile', () {
@@ -284,6 +296,33 @@ void main() {
           isClassAccessibleInFile(
               'MyWidget', '/path/to/my_widget.dart', imports),
           isFalse);
+    });
+    test('should return true for accessible class with package import', () {
+      final imports = [
+        ImportInfo(
+            path:
+                'package:translator/domain/repositories/subtitle_repository.dart'),
+      ];
+      final classPath =
+          '/Users/developer/project/lib/domain/repositories/subtitle_repository.dart';
+      expect(
+        isClassAccessibleInFile('SubtitleRepository', classPath, imports),
+        isTrue,
+      );
+    });
+
+    test('should return false for non-matching package import', () {
+      final imports = [
+        ImportInfo(
+            path:
+                'package:translator/domain/repositories/other_repository.dart'),
+      ];
+      final classPath =
+          '/Users/developer/project/lib/domain/repositories/subtitle_repository.dart';
+      expect(
+        isClassAccessibleInFile('SubtitleRepository', classPath, imports),
+        isFalse,
+      );
     });
   });
 

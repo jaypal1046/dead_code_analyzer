@@ -1,4 +1,41 @@
 # https://dart.dev/guides/libraries/private-files
 # Created by `dart pub`
 .dart_tool/
-.DS_Store
+.packages
+.pub/
+
+# Dependency lock file (for libraries)
+pubspec.lock
+
+# Build outputs
+build/
+
+# Flutter specific
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-version
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/
+*.xcworkspace
+*.xcconfig
+
+# Xcode
+*.xcuserstate
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+
+# Misc
+*.log
