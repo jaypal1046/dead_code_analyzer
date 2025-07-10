@@ -14,14 +14,50 @@ void saveResultsToFile(
     final now = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final timestamp = formatter.format(now);
-    final filename = 'flutter_code_analysis_$timestamp.txt';
+    final filename = 'flutter_code_analysis_$timestamp.md';
     final filePath = path.join(outputDir, filename);
 
     final buffer = StringBuffer();
-    buffer.writeln('Flutter Code Usage Analysis - ${formatter.format(now)}');
+    buffer.writeln('# Flutter Code Usage Analysis - ${formatter.format(now)}');
     buffer.writeln('=' * 50);
     buffer.writeln(
-        'This report lists classes and functions (if analyzed) by usage type. Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately. Empty prebuilt Flutter functions (e.g., build, initState) are listed separately. File paths are relative to the lib/ directory or project root.');
+        'This report lists classes and functions (if analyzed) by usage type.'
+        'Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately.'
+        'Empty prebuilt Flutter functions (e.g., build, initState) are listed separately.'
+        'File paths are relative to the lib/ directory or project root.');
+    buffer.writeln('');
+    // Summary badges and table
+    final summaryUnusedCount = classes.values
+        .where((c) => c.totalUsages == 0 && !c.commentedOut && !c.isEntryPoint)
+        .length;
+    final summaryInternalCount = classes.values
+        .where((c) => c.internalUsageCount > 0 && c.totalExternalUsages == 0)
+        .length;
+    final summaryExternalCount = classes.values
+        .where((c) => c.internalUsageCount == 0 && c.totalExternalUsages > 0)
+        .length;
+    final summaryBothCount = classes.values
+        .where((c) => c.internalUsageCount > 0 && c.totalExternalUsages > 0)
+        .length;
+
+    // Badges
+    buffer.writeln(
+        '![❌ Unused](https://img.shields.io/badge/Unused_$summaryUnusedCount-red) '
+        '![🏠 Internal](https://img.shields.io/badge/Internal_$summaryInternalCount-yellow) '
+        '![🌐 External](https://img.shields.io/badge/External_$summaryExternalCount-blue) '
+        '![✅ Both](https://img.shields.io/badge/Both_$summaryBothCount-brightgreen)');
+    buffer.writeln('');
+    // Summary table
+    buffer.writeln('## 🔖 Summary');
+    buffer.writeln('| Category                          | Count |');
+    buffer.writeln('|:----------------------------------|:-----:|');
+    buffer
+        .writeln('| ❌ Unused Classes                 | $summaryUnusedCount |');
+    buffer.writeln(
+        '| 🏠 Classes Used Only Internally   | $summaryInternalCount |');
+    buffer.writeln(
+        '| 🌐 Classes Used Only Externally   | $summaryExternalCount |');
+    buffer.writeln('| ✅ Classes Used Both              | $summaryBothCount |');
     buffer.writeln('');
 
     // Helper function to convert absolute path to lib-relative path
@@ -36,34 +72,32 @@ void saveResultsToFile(
     // Helper function to write category section
     void writeCategoryClassSection(String title,
         List<MapEntry<String, ClassInfo>> entries, String entityType) {
-      buffer.writeln(title);
-      buffer.writeln('-' * 30);
-      int count = 0;
-      for (final entry in entries) {
-        final name = entry.key;
-        final info = entry.value;
-        final internalUses = info.internalUsageCount;
-        final externalUses = info.totalExternalUsages;
-        final totalUses = internalUses + externalUses;
-        count++;
-        final definedIn = toLibRelativePath(info.definedInFile, projectPath);
-        final usageFiles = info.externalUsageFiles.map((filePath) {
-          final fileName = toLibRelativePath(filePath, projectPath);
-          final count = info.externalUsages[filePath] ?? 0;
-          return '$fileName ($count references)';
-        }).toList();
-        final usageFilesStr = usageFiles.toString();
-        if (entityType == "commented_classes") {
+      // Collapsible section for each category
+      buffer.writeln('<details>');
+      buffer.writeln('<summary>$title (${entries.length})</summary>');
+      buffer.writeln('');
+      buffer.writeln('---');
+      if (entries.isEmpty) {
+        buffer.writeln('No $entityType found.');
+      } else {
+        // Table header
+        buffer.writeln('| Class | Internal | External | Total |');
+        buffer.writeln('|:---|:---:|:---:|:---:|');
+        for (final entry in entries) {
+          final name = entry.key;
+          final info = entry.value;
+          final internalUses = info.internalUsageCount;
+          final externalUses = info.totalExternalUsages;
+          final totalUses = internalUses + externalUses;
+          final fileUri = Uri.file(info.definedInFile).toString();
+          final lineNum = info.lineIndex + 1;
+          final linkDestination = '<$fileUri#L$lineNum>';
           buffer.writeln(
-              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
-        } else {
-          buffer.writeln(
-              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+              '| 📄 [$name]($linkDestination) | $internalUses | $externalUses | $totalUses |');
         }
       }
-      if (count == 0) {
-        buffer.writeln('No $entityType found.');
-      }
+      buffer.writeln('');
+      buffer.writeln('</details>');
       buffer.writeln('');
     }
 
@@ -245,45 +279,97 @@ void saveResultsToFile(
           entryPointFunctionEntries, 'entry-point functions');
     }
 
-    // Summary
-    buffer.writeln('Summary');
-    buffer.writeln('-' * 30);
-    buffer.writeln('Total classes: ${classes.length}');
+    // Markdown table summary
+    buffer.writeln('## 📋 Summary');
+    buffer.writeln('| Metric | Count | Percent |');
+    buffer.writeln('|:-----------------------------|------:|--------:|');
     buffer.writeln(
-        'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🧮 **Total classes**          | ${classes.length} | 100% |');
     buffer.writeln(
-        'Classes used only internally: ${internalOnlyClasses.length} (${(internalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| ❌ Unused classes             | ${unusedClasses.length} | ${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🏠 Internal only              | ${internalOnlyClasses.length} | ${(internalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🌐 External only              | ${externalOnlyClasses.length} | ${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Mixin classed: ${mixingClasses.length} (${(mixingClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| ✅ Both internal & external   | ${bothInternalExternalClasses.length} | ${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Enum classes: ${enumClasses.length} (${(enumClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🧩 Mixin classes              | ${mixingClasses.length} | ${(mixingClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Extension classes: ${extensionClasses.length} (${(extensionClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🔢 Enum classes               | ${enumClasses.length} | ${(enumClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🧩 Extension classes          | ${extensionClasses.length} | ${(extensionClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
     buffer.writeln(
-        'Entry-point classes: ${entryPointClassEntries.length} (${(entryPointClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
-    if (analyzeFunctions) {
-      buffer.writeln('Total functions: ${functions.length}');
-      buffer.writeln(
-          'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used only internally: ${internalOnlyFunctions.length} (${(internalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used only externally: ${externalOnlyFunctions.length} (${(externalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Commented prebuilt Flutter functions: ${commentedPrebuildFunctions.length} (${(commentedPrebuildFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
-      buffer.writeln(
-          'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        '| 🧬 State classes              | ${stateClassEntries.length} | ${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
+    buffer.writeln(
+        '| 🚩 Entry-point classes        | ${entryPointClassEntries.length} | ${(entryPointClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}% |');
+    buffer.writeln('');
+
+    // ASCII Class Usage Distribution
+    buffer.writeln('## 📊 Class Usage Distribution (ASCII)');
+    final classUsageData = [
+      ['❌ Unused', summaryUnusedCount],
+      ['🏠 Internal', summaryInternalCount],
+      ['🌐 External', summaryExternalCount],
+      ['✅ Both', summaryBothCount],
+    ];
+    final classMax =
+        classUsageData.map((e) => e[1] as int).reduce((a, b) => a > b ? a : b);
+    // Markdown table for ASCII bar chart
+    buffer.writeln('| Category      | Count |');
+    buffer.writeln('|:------------- |:------|');
+    for (final row in classUsageData) {
+      final label = row[0] as String;
+      final count = row[1] as int;
+      final bar =
+          count > 0 ? '█' * (count * 30 ~/ (classMax == 0 ? 1 : classMax)) : '';
+      buffer.writeln('| $label | $bar${bar.isNotEmpty ? ' ' : ''}$count |');
     }
+    buffer.writeln('');
+
+    // Compute file size distribution bins
+    final dartFiles = Directory(projectPath)
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .toList();
+    final bins = <String, int>{
+      '<50 lines': 0,
+      '50-200 lines': 0,
+      '201-500 lines': 0,
+      '501-1000 lines': 0,
+      '>1000 lines': 0,
+    };
+    for (final f in dartFiles) {
+      final len = f.readAsLinesSync().length;
+      if (len < 50) {
+        bins['<50 lines'] = bins['<50 lines']! + 1;
+      } else if (len <= 200) {
+        bins['50-200 lines'] = bins['50-200 lines']! + 1;
+      } else if (len <= 500) {
+        bins['201-500 lines'] = bins['201-500 lines']! + 1;
+      } else if (len <= 1000) {
+        bins['501-1000 lines'] = bins['501-1000 lines']! + 1;
+      } else {
+        bins['>1000 lines'] = bins['>1000 lines']! + 1;
+      }
+    }
+    // ASCII File Size Distribution
+    buffer.writeln('## 📄 File Size Distribution (ASCII)');
+    final fileBins = bins.entries.toList();
+    final fileMax =
+        fileBins.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+    // Markdown table for ASCII file size chart
+    buffer.writeln('| File Size      | Count |');
+    buffer.writeln('|:-------------- |:------|');
+    for (final bin in fileBins) {
+      final bar = bin.value > 0
+          ? '█' * (bin.value * 30 ~/ (fileMax == 0 ? 1 : fileMax))
+          : '';
+      buffer.writeln(
+          '| ${bin.key} | $bar${bar.isNotEmpty ? ' ' : ''}${bin.value} |');
+    }
+    buffer.writeln('');
 
     final file = File(filePath);
     file.writeAsStringSync(buffer.toString());

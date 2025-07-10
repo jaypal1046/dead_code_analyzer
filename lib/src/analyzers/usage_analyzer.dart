@@ -14,6 +14,17 @@ void findUsages({
   required bool showProgress,
   required bool analyzeFunctions,
 }) {
+  // Reset usage counts before scanning all files
+  for (final classInfo in classes.values) {
+    classInfo.internalUsageCount = 0;
+    classInfo.externalUsages.clear();
+  }
+  if (analyzeFunctions) {
+    for (final functionInfo in functions.values) {
+      functionInfo.internalUsageCount = 0;
+      functionInfo.externalUsages.clear();
+    }
+  }
   final dartFiles = getDartFiles(dir);
 
   ProgressBar? progressBar;
@@ -30,7 +41,7 @@ void findUsages({
       final content = File(filePath).readAsStringSync();
 
       // Analyze class usages
-      analyzeClassUsages(content, filePath, classes);
+      analyzeClassUsages(content, filePath, classes, reset: false);
 
       // Analyze function usages
       if (analyzeFunctions) {

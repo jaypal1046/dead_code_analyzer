@@ -2,11 +2,14 @@ import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/import_info.dart';
 
 void analyzeClassUsages(
-    String content, String filePath, Map<String, ClassInfo> classes) {
-  // Reset usage counts for all classes
-  for (final classInfo in classes.values) {
-    classInfo.internalUsageCount = 0;
-    classInfo.externalUsages.clear();
+    String content, String filePath, Map<String, ClassInfo> classes,
+    {bool reset = true}) {
+  if (reset) {
+    // Reset usage counts for all classes
+    for (final classInfo in classes.values) {
+      classInfo.internalUsageCount = 0;
+      classInfo.externalUsages.clear();
+    }
   }
   // Parse all imports in the current file
   final imports = parseImports(content);
