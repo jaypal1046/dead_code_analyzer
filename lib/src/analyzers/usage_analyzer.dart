@@ -50,7 +50,7 @@ void _processFileIsolate(SendPort sendPort) {
     if (message is FileProcessingTask) {
       try {
         final content = File(message.filePath).readAsStringSync();
-        
+
         // Create copies to avoid modifying shared data
         final classescopy = Map<String, ClassInfo>.from(message.classes);
         final functionsCity = Map<String, CodeInfo>.from(message.functions);
@@ -93,13 +93,15 @@ Future<void> findUsages({
   bool useIsolates = false,
 }) async {
   final dartFiles = getDartFiles(dir);
-  
+
   // Determine optimal concurrency level
-  final concurrency = maxConcurrency ?? (Platform.numberOfProcessors * 2).clamp(2, 8);
-  
+  final concurrency =
+      maxConcurrency ?? (Platform.numberOfProcessors * 2).clamp(2, 8);
+
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length, description: 'Analyzing code usage');
+    progressBar =
+        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
   }
 
   List<FileProcessingResult> results;
@@ -132,7 +134,8 @@ Future<void> findUsages({
   // Print warnings for failed files
   for (final result in results) {
     if (!result.success) {
-      print('\nWarning: Could not read file ${result.filePath}: ${result.error}');
+      print(
+          '\nWarning: Could not read file ${result.filePath}: ${result.error}');
     }
   }
 
@@ -163,42 +166,45 @@ Future<List<FileProcessingResult>> _processWithIsolates(
     for (int i = 0; i < concurrency; i++) {
       final receivePort = ReceivePort();
       receivePorts.add(receivePort);
-      
-      final isolate = await Isolate.spawn(_processFileIsolate, receivePort.sendPort);
+
+      final isolate =
+          await Isolate.spawn(_processFileIsolate, receivePort.sendPort);
       isolates.add(isolate);
-      
+
       // Get the SendPort from the isolate
       final sendPort = await receivePort.first as SendPort;
       sendPorts.add(sendPort);
     }
 
     // Create tasks queue
-    final tasks = dartFiles.map((file) => FileProcessingTask(
-      filePath: path.absolute(file.path),
-      classes: classes,
-      functions: functions,
-      analyzeFunctions: analyzeFunctions,
-    )).toList();
+    final tasks = dartFiles
+        .map((file) => FileProcessingTask(
+              filePath: path.absolute(file.path),
+              classes: classes,
+              functions: functions,
+              analyzeFunctions: analyzeFunctions,
+            ))
+        .toList();
 
     // Process tasks using isolates
     final completers = <Completer<FileProcessingResult>>[];
     final taskIndex = <int>[];
-    
+
     int currentTask = 0;
-    
+
     // Start initial tasks
     for (int i = 0; i < concurrency && currentTask < tasks.length; i++) {
       final completer = Completer<FileProcessingResult>();
       completers.add(completer);
       taskIndex.add(i);
-      
+
       // Listen for response from this isolate
       receivePorts[i].listen((message) {
         if (message is FileProcessingResult) {
           completer.complete(message);
         }
       });
-      
+
       // Send task to isolate
       sendPorts[i].send(tasks[currentTask]);
       currentTask++;
@@ -209,29 +215,29 @@ Future<List<FileProcessingResult>> _processWithIsolates(
       final result = await Future.any(completers.map((c) => c.future));
       results.add(result);
       processedCount++;
-      
+
       if (progressBar != null) {
         progressBar.update(processedCount);
       }
-      
+
       // Find which completer completed and remove it
       final completedIndex = completers.indexWhere((c) => c.isCompleted);
       completers.removeAt(completedIndex);
       final isolateIndex = taskIndex.removeAt(completedIndex);
-      
+
       // If there are more tasks, assign next task to this isolate
       if (currentTask < tasks.length) {
         final completer = Completer<FileProcessingResult>();
         completers.add(completer);
         taskIndex.add(isolateIndex);
-        
+
         // Update listener for this isolate
         receivePorts[isolateIndex].listen((message) {
           if (message is FileProcessingResult) {
             completer.complete(message);
           }
         });
-        
+
         sendPorts[isolateIndex].send(tasks[currentTask]);
         currentTask++;
       }
@@ -271,11 +277,11 @@ Future<List<FileProcessingResult>> _processWithFutures(
   for (final batch in batches) {
     // Process batch in parallel
     final futures = batch.map((file) => _processFile(
-      filePath: path.absolute(file.path),
-      classes: classes,
-      functions: functions,
-      analyzeFunctions: analyzeFunctions,
-    ));
+          filePath: path.absolute(file.path),
+          classes: classes,
+          functions: functions,
+          analyzeFunctions: analyzeFunctions,
+        ));
 
     final batchResults = await Future.wait(futures);
     results.addAll(batchResults);
@@ -300,12 +306,13 @@ Future<void> findUsagesWithCompute({
   int? maxConcurrency,
 }) async {
   final dartFiles = getDartFiles(dir);
-  
+
   final concurrency = maxConcurrency ?? Platform.numberOfProcessors;
-  
+
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length, description: 'Analyzing code usage');
+    progressBar =
+        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
   }
 
   var processedCount = 0;
@@ -315,7 +322,7 @@ Future<void> findUsagesWithCompute({
   for (int i = 0; i < dartFiles.length; i += concurrency) {
     final end = (i + concurrency).clamp(0, dartFiles.length);
     final batch = dartFiles.sublist(i, end);
-    
+
     final futures = batch.map((file) async {
       try {
         final filePath = path.absolute(file.path);
@@ -325,7 +332,7 @@ Future<void> findUsagesWithCompute({
           functions: functions,
           analyzeFunctions: analyzeFunctions,
         );
-        
+
         // Use Future.sync for CPU-bound work or consider using compute
         return await _processFileSync(task);
       } catch (e) {
@@ -352,7 +359,8 @@ Future<void> findUsagesWithCompute({
   // Print warnings
   for (final result in results) {
     if (!result.success) {
-      print('\nWarning: Could not read file ${result.filePath}: ${result.error}');
+      print(
+          '\nWarning: Could not read file ${result.filePath}: ${result.error}');
     }
   }
 
@@ -370,7 +378,7 @@ Future<FileProcessingResult> _processFile({
   return await Future(() {
     try {
       final content = File(filePath).readAsStringSync();
-      
+
       final classesCity = Map<String, ClassInfo>.from(classes);
       final functionsCity = Map<String, CodeInfo>.from(functions);
 
@@ -399,7 +407,7 @@ Future<FileProcessingResult> _processFile({
 FileProcessingResult _processFileSync(FileProcessingTask task) {
   try {
     final content = File(task.filePath).readAsStringSync();
-    
+
     final classesCity = Map<String, ClassInfo>.from(task.classes);
     final functionsCity = Map<String, CodeInfo>.from(task.functions);
 
@@ -440,7 +448,7 @@ void _mergeResults(
           originalClasses[entry.key] = entry.value;
         }
       }
-      
+
       // Merge function usage information
       if (result.updatedFunctions != null) {
         for (final entry in result.updatedFunctions!.entries) {

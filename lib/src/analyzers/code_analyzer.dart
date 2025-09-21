@@ -85,15 +85,15 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
       'enum': RegExp(r'enum\s+(\w+)(?:\s+with\s+[\w\s,<>]+)?\s*\{'),
       'extension':
           RegExp(r'extension\s+(\w+)(?:<[^>]*>)?\s+on\s+[\w<>\s,]+\s*\{'),
-      'mixin':
-          RegExp(r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{'),
+      'mixin': RegExp(r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{'),
     };
 
     // Track class context with type information
     String currentClassName = '';
     String currentType = '';
     int classDepth = 0;
-    List<Map<String, String>> classStack = []; // Stack to handle nested classes with type info
+    List<Map<String, String>> classStack =
+        []; // Stack to handle nested classes with type info
 
     int lineIndex = 0;
     bool insideStateClass = false;
@@ -129,7 +129,8 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
         // Track if inside a State class (only applies to classes, not enums/extensions/mixins)
         insideStateClass = matchedType == 'class' &&
             className.endsWith('State') &&
-            (classes.containsKey(className.substring(0, className.length - 5)) ||
+            (classes.containsKey(
+                    className.substring(0, className.length - 5)) ||
                 className.startsWith('_'));
 
         // Process class/enum/extension/mixin
@@ -162,7 +163,8 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
           // Update insideStateClass based on new current class
           if (currentClassName.isNotEmpty && currentType == 'class') {
             insideStateClass = currentClassName.endsWith('State') &&
-                (classes.containsKey(currentClassName.substring(0, currentClassName.length - 5)) ||
+                (classes.containsKey(currentClassName.substring(
+                        0, currentClassName.length - 5)) ||
                     currentClassName.startsWith('_'));
           } else {
             insideStateClass = false;
@@ -216,11 +218,13 @@ Future<void> collectCodeEntities({
   final dartFiles = getDartFiles(dir);
 
   // Determine optimal concurrency level
-  final concurrency = maxConcurrency ?? (Platform.numberOfProcessors * 2).clamp(2, 8);
+  final concurrency =
+      maxConcurrency ?? (Platform.numberOfProcessors * 2).clamp(2, 8);
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length, description: 'Scanning files for code entities');
+    progressBar = ProgressBar(dartFiles.length,
+        description: 'Scanning files for code entities');
   }
 
   List<CodeCollectionResult> results;
@@ -253,7 +257,8 @@ Future<void> collectCodeEntities({
   // Print warnings for failed files
   for (final result in results) {
     if (!result.success) {
-      print('\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
+      print(
+          '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
     }
   }
 
@@ -284,42 +289,45 @@ Future<List<CodeCollectionResult>> _collectWithIsolates(
     for (int i = 0; i < concurrency; i++) {
       final receivePort = ReceivePort();
       receivePorts.add(receivePort);
-      
-      final isolate = await Isolate.spawn(_collectCodeEntitiesIsolate, receivePort.sendPort);
+
+      final isolate = await Isolate.spawn(
+          _collectCodeEntitiesIsolate, receivePort.sendPort);
       isolates.add(isolate);
-      
+
       // Get the SendPort from the isolate
       final sendPort = await receivePort.first as SendPort;
       sendPorts.add(sendPort);
     }
 
     // Create tasks queue
-    final tasks = dartFiles.map((file) => CodeCollectionTask(
-      filePath: path.absolute(file.path),
-      analyzeFunctions: analyzeFunctions,
-      classes: classes,
-      functions: functions,
-    )).toList();
+    final tasks = dartFiles
+        .map((file) => CodeCollectionTask(
+              filePath: path.absolute(file.path),
+              analyzeFunctions: analyzeFunctions,
+              classes: classes,
+              functions: functions,
+            ))
+        .toList();
 
     // Process tasks using isolates
     final completers = <Completer<CodeCollectionResult>>[];
     final taskIndex = <int>[];
-    
+
     int currentTask = 0;
-    
+
     // Start initial tasks
     for (int i = 0; i < concurrency && currentTask < tasks.length; i++) {
       final completer = Completer<CodeCollectionResult>();
       completers.add(completer);
       taskIndex.add(i);
-      
+
       // Listen for response from this isolate
       receivePorts[i].listen((message) {
         if (message is CodeCollectionResult) {
           completer.complete(message);
         }
       });
-      
+
       // Send task to isolate
       sendPorts[i].send(tasks[currentTask]);
       currentTask++;
@@ -330,29 +338,29 @@ Future<List<CodeCollectionResult>> _collectWithIsolates(
       final result = await Future.any(completers.map((c) => c.future));
       results.add(result);
       processedCount++;
-      
+
       if (progressBar != null) {
         progressBar.update(processedCount);
       }
-      
+
       // Find which completer completed and remove it
       final completedIndex = completers.indexWhere((c) => c.isCompleted);
       completers.removeAt(completedIndex);
       final isolateIndex = taskIndex.removeAt(completedIndex);
-      
+
       // If there are more tasks, assign next task to this isolate
       if (currentTask < tasks.length) {
         final completer = Completer<CodeCollectionResult>();
         completers.add(completer);
         taskIndex.add(isolateIndex);
-        
+
         // Update listener for this isolate
         receivePorts[isolateIndex].listen((message) {
           if (message is CodeCollectionResult) {
             completer.complete(message);
           }
         });
-        
+
         sendPorts[isolateIndex].send(tasks[currentTask]);
         currentTask++;
       }
@@ -392,11 +400,11 @@ Future<List<CodeCollectionResult>> _collectWithFutures(
   for (final batch in batches) {
     // Process batch in parallel
     final futures = batch.map((file) => _processFileAsync(
-      filePath: path.absolute(file.path),
-      classes: classes,
-      functions: functions,
-      analyzeFunctions: analyzeFunctions,
-    ));
+          filePath: path.absolute(file.path),
+          classes: classes,
+          functions: functions,
+          analyzeFunctions: analyzeFunctions,
+        ));
 
     final batchResults = await Future.wait(futures);
     results.addAll(batchResults);
@@ -424,7 +432,7 @@ Future<CodeCollectionResult> _processFileAsync({
       classes: classes,
       functions: functions,
     );
-    
+
     return _processFileForCollection(task);
   });
 }
@@ -442,7 +450,7 @@ void _mergeCollectionResults(
           originalClasses[entry.key] = entry.value;
         }
       }
-      
+
       // Merge collected functions
       if (result.collectedFunctions != null) {
         for (final entry in result.collectedFunctions!.entries) {
@@ -465,7 +473,8 @@ void collectCodeEntitiesSync({
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length, description: 'Scanning files for code entities');
+    progressBar = ProgressBar(dartFiles.length,
+        description: 'Scanning files for code entities');
   }
 
   var count = 0;
@@ -480,11 +489,12 @@ void collectCodeEntitiesSync({
     );
 
     final result = _processFileForCollection(task);
-    
+
     if (result.success) {
       _mergeCollectionResults([result], classes, functions);
     } else {
-      print('\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
+      print(
+          '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
     }
 
     count++;
