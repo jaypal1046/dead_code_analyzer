@@ -12,7 +12,7 @@ class CodeInfo {
   final int startPosition; // New field
   final bool isAbstract;
   final bool
-      isPrebuiltFlutterCommentedOut; // New field to track commented out prebuilt Flutter methods
+  isPrebuiltFlutterCommentedOut; // New field to track commented out prebuilt Flutter methods
   final String className; // New field to track class name
   final bool isStaticFunction; // New field to track static functions
   CodeInfo(

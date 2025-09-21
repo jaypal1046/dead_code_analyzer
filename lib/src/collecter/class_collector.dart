@@ -19,34 +19,45 @@ void classCollector(
   List<RegExp> classPatterns = [
     // 0. Regular class declarations (including all modifiers and commented ones)
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
 
     // 1. Enum declarations
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
 
     // 2. Mixin declarations
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
 
     // 3. Extension with name
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
+      multiLine: false,
+    ),
 
     // 4. Anonymous extension
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>,\s]*)',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>,\s]*)',
+      multiLine: false,
+    ),
 
     // 5. Typedef declarations
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
 
     // 6. Mixin class declarations (Dart 3.0+)
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
   ];
 
   String? className;
@@ -127,8 +138,12 @@ void classCollector(
     bool isEntryPoint = _checkEntryPoint(lines, lineIndex, pragmaRegex);
 
     // Calculate startPosition
-    int startPosition =
-        _calculateStartPosition(lines, lineIndex, trimmedLine, line);
+    int startPosition = _calculateStartPosition(
+      lines,
+      lineIndex,
+      trimmedLine,
+      line,
+    );
 
     // Store class information
     classes[className] = ClassInfo(
@@ -143,8 +158,12 @@ void classCollector(
 }
 
 // Helper function to calculate startPosition
-int _calculateStartPosition(List<String> lines, int lineIndex,
-    String trimmedLine, String originalLine) {
+int _calculateStartPosition(
+  List<String> lines,
+  int lineIndex,
+  String trimmedLine,
+  String originalLine,
+) {
   int startPosition = 0;
 
   // Sum the lengths of all previous lines, including newline characters
@@ -330,7 +349,7 @@ bool _isDartKeyword(String identifier) {
     'void',
     'while',
     'with',
-    'yield'
+    'yield',
   };
   return keywords.contains(identifier.toLowerCase());
 }
@@ -346,28 +365,38 @@ void debugPatternMatching(String line) {
     'Extension with name',
     'Anonymous extension',
     'Typedef',
-    'Mixin class'
+    'Mixin class',
   ];
 
   List<RegExp> patterns = [
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?(?:sealed\s+|abstract\s+|base\s+|final\s+|interface\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:on\s+[^{]+)?(?:\s*{|\s*$)',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?enum\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:on\s+[^{]+)?(?:\s*{|\s*$)',
+      multiLine: false,
+    ),
     RegExp(
-        r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>]*)',
-        multiLine: false),
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
-    RegExp(r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
-        multiLine: false),
+      r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)\s+on\s+',
+      multiLine: false,
+    ),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?extension\s+on\s+([A-Za-z_][A-Za-z0-9_<>]*)',
+      multiLine: false,
+    ),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?typedef\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
+    RegExp(
+      r'^\s*(?:\/\/+\s*|\*\s*)?mixin\s+class\s+([A-Za-z_][A-Za-z0-9_]*)',
+      multiLine: false,
+    ),
   ];
 
   bool foundMatch = false;

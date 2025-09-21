@@ -100,8 +100,10 @@ Future<void> findUsages({
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar =
-        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
+    progressBar = ProgressBar(
+      dartFiles.length,
+      description: 'Analyzing code usage',
+    );
   }
 
   List<FileProcessingResult> results;
@@ -135,7 +137,8 @@ Future<void> findUsages({
   for (final result in results) {
     if (!result.success) {
       print(
-          '\nWarning: Could not read file ${result.filePath}: ${result.error}');
+        '\nWarning: Could not read file ${result.filePath}: ${result.error}',
+      );
     }
   }
 
@@ -167,8 +170,10 @@ Future<List<FileProcessingResult>> _processWithIsolates(
       final receivePort = ReceivePort();
       receivePorts.add(receivePort);
 
-      final isolate =
-          await Isolate.spawn(_processFileIsolate, receivePort.sendPort);
+      final isolate = await Isolate.spawn(
+        _processFileIsolate,
+        receivePort.sendPort,
+      );
       isolates.add(isolate);
 
       // Get the SendPort from the isolate
@@ -178,12 +183,14 @@ Future<List<FileProcessingResult>> _processWithIsolates(
 
     // Create tasks queue
     final tasks = dartFiles
-        .map((file) => FileProcessingTask(
-              filePath: path.absolute(file.path),
-              classes: classes,
-              functions: functions,
-              analyzeFunctions: analyzeFunctions,
-            ))
+        .map(
+          (file) => FileProcessingTask(
+            filePath: path.absolute(file.path),
+            classes: classes,
+            functions: functions,
+            analyzeFunctions: analyzeFunctions,
+          ),
+        )
         .toList();
 
     // Process tasks using isolates
@@ -276,12 +283,14 @@ Future<List<FileProcessingResult>> _processWithFutures(
 
   for (final batch in batches) {
     // Process batch in parallel
-    final futures = batch.map((file) => _processFile(
-          filePath: path.absolute(file.path),
-          classes: classes,
-          functions: functions,
-          analyzeFunctions: analyzeFunctions,
-        ));
+    final futures = batch.map(
+      (file) => _processFile(
+        filePath: path.absolute(file.path),
+        classes: classes,
+        functions: functions,
+        analyzeFunctions: analyzeFunctions,
+      ),
+    );
 
     final batchResults = await Future.wait(futures);
     results.addAll(batchResults);
@@ -311,8 +320,10 @@ Future<void> findUsagesWithCompute({
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar =
-        ProgressBar(dartFiles.length, description: 'Analyzing code usage');
+    progressBar = ProgressBar(
+      dartFiles.length,
+      description: 'Analyzing code usage',
+    );
   }
 
   var processedCount = 0;
@@ -360,7 +371,8 @@ Future<void> findUsagesWithCompute({
   for (final result in results) {
     if (!result.success) {
       print(
-          '\nWarning: Could not read file ${result.filePath}: ${result.error}');
+        '\nWarning: Could not read file ${result.filePath}: ${result.error}',
+      );
     }
   }
 

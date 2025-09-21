@@ -245,56 +245,55 @@ void main() {
 
   group('isClassAccessibleInFile', () {
     test('should return true for accessible class', () {
-      final imports = [
-        ImportInfo(path: '/path/to/my_widget.dart'),
-      ];
+      final imports = [ImportInfo(path: '/path/to/my_widget.dart')];
       expect(
-          isClassAccessibleInFile(
-              'MyWidget', '/path/to/my_widget.dart', imports),
-          isTrue);
+        isClassAccessibleInFile('MyWidget', '/path/to/my_widget.dart', imports),
+        isTrue,
+      );
     });
 
     test('should return false for hidden class', () {
       final imports = [
         ImportInfo(
-            path: '/path/to/my_widget.dart', hiddenClasses: ['MyWidget']),
+          path: '/path/to/my_widget.dart',
+          hiddenClasses: ['MyWidget'],
+        ),
       ];
       expect(
-          isClassAccessibleInFile(
-              'MyWidget', '/path/to/my_widget.dart', imports),
-          isFalse);
+        isClassAccessibleInFile('MyWidget', '/path/to/my_widget.dart', imports),
+        isFalse,
+      );
     });
 
     test('should return false for non-imported class', () {
-      final imports = [
-        ImportInfo(path: '/path/to/other.dart'),
-      ];
+      final imports = [ImportInfo(path: '/path/to/other.dart')];
       expect(
-          isClassAccessibleInFile(
-              'MyWidget', '/path/to/my_widget.dart', imports),
-          isFalse);
+        isClassAccessibleInFile('MyWidget', '/path/to/my_widget.dart', imports),
+        isFalse,
+      );
     });
 
     test('should return false for show clause excluding class', () {
       final imports = [
         ImportInfo(
-            path: '/path/to/my_widget.dart', shownClasses: ['OtherClass']),
+          path: '/path/to/my_widget.dart',
+          shownClasses: ['OtherClass'],
+        ),
       ];
       expect(
-          isClassAccessibleInFile(
-              'MyWidget', '/path/to/my_widget.dart', imports),
-          isFalse);
+        isClassAccessibleInFile('MyWidget', '/path/to/my_widget.dart', imports),
+        isFalse,
+      );
     });
   });
 
   group('getEffectiveClassName', () {
     test('should return original class name without alias', () {
-      final imports = [
-        ImportInfo(path: '/path/to/my_widget.dart'),
-      ];
+      final imports = [ImportInfo(path: '/path/to/my_widget.dart')];
       expect(
-          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
-          'MyWidget');
+        getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
+        'MyWidget',
+      );
     });
 
     test('should return aliased class name', () {
@@ -302,8 +301,9 @@ void main() {
         ImportInfo(path: '/path/to/my_widget.dart', asAlias: 'widgetAlias'),
       ];
       expect(
-          getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
-          'widgetAlias.MyWidget');
+        getEffectiveClassName('MyWidget', '/path/to/my_widget.dart', imports),
+        'widgetAlias.MyWidget',
+      );
     });
   });
 }

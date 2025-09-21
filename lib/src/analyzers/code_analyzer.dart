@@ -75,16 +75,19 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
 
     // Enhanced regex patterns to match class, enum, extension, and mixin
     final pragmaRegex = RegExp(
-        r'''^\s*@pragma\s*\(\s*[\'"]((?:vm:entry-point)|(?:vm:external-name)|(?:vm:prefer-inline)|(?:vm:exact-result-type)|(?:vm:never-inline)|(?:vm:non-nullable-by-default)|(?:flutter:keep-to-string)|(?:flutter:keep-to-string-in-subtypes))[\'"]\s*(?:,\s*[^)]+)?\s*\)\s*$''',
-        multiLine: false);
+      r'''^\s*@pragma\s*\(\s*[\'"]((?:vm:entry-point)|(?:vm:external-name)|(?:vm:prefer-inline)|(?:vm:exact-result-type)|(?:vm:never-inline)|(?:vm:non-nullable-by-default)|(?:flutter:keep-to-string)|(?:flutter:keep-to-string-in-subtypes))[\'"]\s*(?:,\s*[^)]+)?\s*\)\s*$''',
+      multiLine: false,
+    );
 
     // Individual patterns for more specific handling if needed
     final specificPatterns = {
       'class': RegExp(
-          r'class\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+\w+(?:<[^>]*>)?)?(?:\s+with\s+[\w\s,<>]+)?(?:\s+implements\s+[\w\s,<>]+)?\s*\{'),
+        r'class\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+\w+(?:<[^>]*>)?)?(?:\s+with\s+[\w\s,<>]+)?(?:\s+implements\s+[\w\s,<>]+)?\s*\{',
+      ),
       'enum': RegExp(r'enum\s+(\w+)(?:\s+with\s+[\w\s,<>]+)?\s*\{'),
-      'extension':
-          RegExp(r'extension\s+(\w+)(?:<[^>]*>)?\s+on\s+[\w<>\s,]+\s*\{'),
+      'extension': RegExp(
+        r'extension\s+(\w+)(?:<[^>]*>)?\s+on\s+[\w<>\s,]+\s*\{',
+      ),
       'mixin': RegExp(r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{'),
     };
 
@@ -127,15 +130,24 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
         classDepth = 1; // Reset depth for new class
 
         // Track if inside a State class (only applies to classes, not enums/extensions/mixins)
-        insideStateClass = matchedType == 'class' &&
+        insideStateClass =
+            matchedType == 'class' &&
             className.endsWith('State') &&
             (classes.containsKey(
-                    className.substring(0, className.length - 5)) ||
+                  className.substring(0, className.length - 5),
+                ) ||
                 className.startsWith('_'));
 
         // Process class/enum/extension/mixin
-        classCollector(match, lineIndex, pragmaRegex, lines, classes,
-            task.filePath, insideStateClass);
+        classCollector(
+          match,
+          lineIndex,
+          pragmaRegex,
+          lines,
+          classes,
+          task.filePath,
+          insideStateClass,
+        );
       }
 
       // Update class depth based on braces
@@ -162,9 +174,14 @@ CodeCollectionResult _processFileForCollection(CodeCollectionTask task) {
 
           // Update insideStateClass based on new current class
           if (currentClassName.isNotEmpty && currentType == 'class') {
-            insideStateClass = currentClassName.endsWith('State') &&
-                (classes.containsKey(currentClassName.substring(
-                        0, currentClassName.length - 5)) ||
+            insideStateClass =
+                currentClassName.endsWith('State') &&
+                (classes.containsKey(
+                      currentClassName.substring(
+                        0,
+                        currentClassName.length - 5,
+                      ),
+                    ) ||
                     currentClassName.startsWith('_'));
           } else {
             insideStateClass = false;
@@ -223,8 +240,10 @@ Future<void> collectCodeEntities({
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length,
-        description: 'Scanning files for code entities');
+    progressBar = ProgressBar(
+      dartFiles.length,
+      description: 'Scanning files for code entities',
+    );
   }
 
   List<CodeCollectionResult> results;
@@ -258,7 +277,8 @@ Future<void> collectCodeEntities({
   for (final result in results) {
     if (!result.success) {
       print(
-          '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
+        '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.',
+      );
     }
   }
 
@@ -291,7 +311,9 @@ Future<List<CodeCollectionResult>> _collectWithIsolates(
       receivePorts.add(receivePort);
 
       final isolate = await Isolate.spawn(
-          _collectCodeEntitiesIsolate, receivePort.sendPort);
+        _collectCodeEntitiesIsolate,
+        receivePort.sendPort,
+      );
       isolates.add(isolate);
 
       // Get the SendPort from the isolate
@@ -301,12 +323,14 @@ Future<List<CodeCollectionResult>> _collectWithIsolates(
 
     // Create tasks queue
     final tasks = dartFiles
-        .map((file) => CodeCollectionTask(
-              filePath: path.absolute(file.path),
-              analyzeFunctions: analyzeFunctions,
-              classes: classes,
-              functions: functions,
-            ))
+        .map(
+          (file) => CodeCollectionTask(
+            filePath: path.absolute(file.path),
+            analyzeFunctions: analyzeFunctions,
+            classes: classes,
+            functions: functions,
+          ),
+        )
         .toList();
 
     // Process tasks using isolates
@@ -399,12 +423,14 @@ Future<List<CodeCollectionResult>> _collectWithFutures(
 
   for (final batch in batches) {
     // Process batch in parallel
-    final futures = batch.map((file) => _processFileAsync(
-          filePath: path.absolute(file.path),
-          classes: classes,
-          functions: functions,
-          analyzeFunctions: analyzeFunctions,
-        ));
+    final futures = batch.map(
+      (file) => _processFileAsync(
+        filePath: path.absolute(file.path),
+        classes: classes,
+        functions: functions,
+        analyzeFunctions: analyzeFunctions,
+      ),
+    );
 
     final batchResults = await Future.wait(futures);
     results.addAll(batchResults);
@@ -473,8 +499,10 @@ void collectCodeEntitiesSync({
 
   ProgressBar? progressBar;
   if (showProgress) {
-    progressBar = ProgressBar(dartFiles.length,
-        description: 'Scanning files for code entities');
+    progressBar = ProgressBar(
+      dartFiles.length,
+      description: 'Scanning files for code entities',
+    );
   }
 
   var count = 0;
@@ -494,7 +522,8 @@ void collectCodeEntitiesSync({
       _mergeCollectionResults([result], classes, functions);
     } else {
       print(
-          '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.');
+        '\nWarning: Could not read file ${result.filePath}: ${result.error}. Check file permissions or ensure the file exists.',
+      );
     }
 
     count++;

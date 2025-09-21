@@ -92,7 +92,8 @@ void functionCollecter({
 
       // FIXED: Better empty function detection - get the actual function body
       String functionBody = _extractFunctionBody(currentLine, match.start);
-      bool isEmpty = functionBody.isEmpty ||
+      bool isEmpty =
+          functionBody.isEmpty ||
           functionBody == ';' ||
           functionBody.replaceAll(RegExp(r'\s+'), '') == '{}';
 
@@ -143,7 +144,8 @@ void functionCollecter({
         lineIndex: lineIndex,
         startPosition: match.start,
         isStaticFunction: isStaticFunction,
-        isPrebuiltFlutterCommentedOut: isCommentedOut &&
+        isPrebuiltFlutterCommentedOut:
+            isCommentedOut &&
             (prebuiltFlutterMethods.contains(functionName) ||
                 functionName == 'toString'),
       );
@@ -176,7 +178,10 @@ bool isItStaticFunction(String line) {
 
 // FIXED: More accurate comment detection
 bool _isLineCommented(
-    List<String> lines, int targetLineIndex, String originalLine) {
+  List<String> lines,
+  int targetLineIndex,
+  String originalLine,
+) {
   if (targetLineIndex < 0 || targetLineIndex >= lines.length) {
     return false;
   }
@@ -290,7 +295,10 @@ bool _isFunctionCall(String line) {
 }
 
 bool _isValidFunctionDefinition(
-    String line, RegExpMatch match, String functionName) {
+  String line,
+  RegExpMatch match,
+  String functionName,
+) {
   String beforeMatch = line.substring(0, match.start).trim();
 
   // If there's a dot right before the function name, it's likely a method call

@@ -2,7 +2,10 @@ import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/import_info.dart';
 
 void analyzeClassUsages(
-    String content, String filePath, Map<String, ClassInfo> classes) {
+  String content,
+  String filePath,
+  Map<String, ClassInfo> classes,
+) {
   // Parse all imports in the current file
   final imports = parseImports(content);
 
@@ -12,22 +15,34 @@ void analyzeClassUsages(
 
     // If analyzing the same file where class is defined
     if (filePath == classInfo.definedInFile) {
-      final usageCount =
-          _countClassUsages(content, className, isInternalFile: true);
+      final usageCount = _countClassUsages(
+        content,
+        className,
+        isInternalFile: true,
+      );
       classInfo.internalUsageCount = usageCount;
     } else {
       // For external files, check if there's a matching import
       if (!isClassAccessibleInFile(
-          className, classInfo.definedInFile, imports)) {
+        className,
+        classInfo.definedInFile,
+        imports,
+      )) {
         continue; // Skip if class is not accessible via imports
       }
 
       // Get the effective class name (with alias if applicable)
-      final effectiveClassName =
-          getEffectiveClassName(className, classInfo.definedInFile, imports);
+      final effectiveClassName = getEffectiveClassName(
+        className,
+        classInfo.definedInFile,
+        imports,
+      );
 
-      final usageCount =
-          _countClassUsages(content, effectiveClassName, isInternalFile: false);
+      final usageCount = _countClassUsages(
+        content,
+        effectiveClassName,
+        isInternalFile: false,
+      );
 
       if (usageCount > 0) {
         classInfo.externalUsages[filePath] = usageCount;
@@ -36,8 +51,11 @@ void analyzeClassUsages(
   }
 }
 
-int _countClassUsages(String content, String className,
-    {required bool isInternalFile}) {
+int _countClassUsages(
+  String content,
+  String className, {
+  required bool isInternalFile,
+}) {
   final lines = content.split('\n');
   int totalUsages = 0;
 
@@ -87,8 +105,9 @@ int _countUsagesInLine(String line, String className) {
 
   // Pattern 2: Constructor calls (standalone)
   // Example: MyWidget(), new MyWidget()
-  final constructorPattern =
-      RegExp(r'(?:new\s+)?' + RegExp.escape(className) + r'\s*\(');
+  final constructorPattern = RegExp(
+    r'(?:new\s+)?' + RegExp.escape(className) + r'\s*\(',
+  );
   final constructorMatches = constructorPattern.allMatches(cleanLine);
   usageCount += constructorMatches.length;
 
@@ -106,31 +125,36 @@ int _countUsagesInLine(String line, String className) {
 
   // Pattern 4: Static method/property access
   // Example: MyWidget.staticMethod(), MyWidget.staticProperty
-  final staticAccessPattern =
-      RegExp(r'\b' + RegExp.escape(className) + r'\.\w+');
+  final staticAccessPattern = RegExp(
+    r'\b' + RegExp.escape(className) + r'\.\w+',
+  );
   final staticMatches = staticAccessPattern.allMatches(cleanLine);
   usageCount += staticMatches.length;
 
   // Pattern 5: Type casting and is/as checks
   // Example: widget as MyWidget, widget is MyWidget
-  final castingPattern =
-      RegExp(r'\b(?:as|is)\s+' + RegExp.escape(className) + r'\b');
+  final castingPattern = RegExp(
+    r'\b(?:as|is)\s+' + RegExp.escape(className) + r'\b',
+  );
   final castingMatches = castingPattern.allMatches(cleanLine);
   usageCount += castingMatches.length;
 
   // Pattern 6: Generic type parameters
   // Example: List<MyWidget>, Map<String, MyWidget>
-  final genericPattern =
-      RegExp(r'<[^>]*\b' + RegExp.escape(className) + r'\b[^>]*>');
+  final genericPattern = RegExp(
+    r'<[^>]*\b' + RegExp.escape(className) + r'\b[^>]*>',
+  );
   final genericMatches = genericPattern.allMatches(cleanLine);
   usageCount += genericMatches.length;
 
   // Pattern 7: Function parameters and return types
   // Example: void method(MyWidget widget), MyWidget getWidget()
-  final functionParamPattern =
-      RegExp(r'\(\s*[^)]*\b' + RegExp.escape(className) + r'\s+\w+[^)]*\)');
-  final returnTypePattern =
-      RegExp(r'\b' + RegExp.escape(className) + r'\s+\w+\s*\(');
+  final functionParamPattern = RegExp(
+    r'\(\s*[^)]*\b' + RegExp.escape(className) + r'\s+\w+[^)]*\)',
+  );
+  final returnTypePattern = RegExp(
+    r'\b' + RegExp.escape(className) + r'\s+\w+\s*\(',
+  );
 
   final paramMatches = functionParamPattern.allMatches(cleanLine);
   final returnMatches = returnTypePattern.allMatches(cleanLine);
@@ -197,8 +221,9 @@ List<ImportInfo> parseImports(String content) {
 
   // Regex to match import statements with optional as, show, hide
   final importRegex = RegExp(
-      r'''import\s+['\"]([^'\"]+)['\"]\s*(?:as\s+(\w+))?\s*(?:(show|hide)\s+([^;]+))?\s*;''',
-      multiLine: true);
+    r'''import\s+['\"]([^'\"]+)['\"]\s*(?:as\s+(\w+))?\s*(?:(show|hide)\s+([^;]+))?\s*;''',
+    multiLine: true,
+  );
 
   final matches = importRegex.allMatches(content);
 
@@ -225,19 +250,24 @@ List<ImportInfo> parseImports(String content) {
       }
     }
 
-    imports.add(ImportInfo(
-      path: path,
-      asAlias: asAlias,
-      hiddenClasses: hiddenClasses,
-      shownClasses: shownClasses,
-    ));
+    imports.add(
+      ImportInfo(
+        path: path,
+        asAlias: asAlias,
+        hiddenClasses: hiddenClasses,
+        shownClasses: shownClasses,
+      ),
+    );
   }
 
   return imports;
 }
 
 bool isClassAccessibleInFile(
-    String className, String classDefinedInFile, List<ImportInfo> imports) {
+  String className,
+  String classDefinedInFile,
+  List<ImportInfo> imports,
+) {
   // Check if there's an import that makes this class accessible
   for (final import in imports) {
     if (import.path == classDefinedInFile) {
@@ -259,8 +289,11 @@ bool isClassAccessibleInFile(
   return false;
 }
 
-String getEffectiveClassName(String originalClassName,
-    String classDefinedInFile, List<ImportInfo> imports) {
+String getEffectiveClassName(
+  String originalClassName,
+  String classDefinedInFile,
+  List<ImportInfo> imports,
+) {
   // Find the import that brings this class
   for (final import in imports) {
     if (import.path == classDefinedInFile) {

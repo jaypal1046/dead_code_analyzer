@@ -5,8 +5,9 @@ import 'text_function_sigle_file.dart';
 
 void functionAnalyzerTest() {
   final lines = functionTestFile.split('\n');
-  final pragmaRegex =
-      RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
+  final pragmaRegex = RegExp(
+    r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''',
+  );
   Map<String, CodeInfo> functions = {};
   bool insideStateClass = false;
   Set<String> prebuiltFlutterMethods = {'build'}; // Example Flutter method
@@ -24,8 +25,9 @@ void functionAnalyzerTest() {
       lines: lines,
       functions: functions,
       filePath: 'text_function_file.dart',
-      currentClassName:
-          line.contains('class ') ? line.split('class ')[1].split(' ')[0] : '',
+      currentClassName: line.contains('class ')
+          ? line.split('class ')[1].split(' ')[0]
+          : '',
     );
 
     // Update insideStateClass
@@ -49,7 +51,8 @@ void functionAnalyzerTest() {
   functions.forEach((name, info) {
     if (info.commentedOut) {
       print(
-          ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})');
+        ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})',
+      );
     }
   });
 
@@ -58,7 +61,8 @@ void functionAnalyzerTest() {
   functions.forEach((name, info) {
     if (!info.commentedOut) {
       print(
-          ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})');
+        ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})',
+      );
     }
   });
 
@@ -67,47 +71,82 @@ void functionAnalyzerTest() {
   functions.forEach((name, info) {
     if (insideStateClass || info.isPrebuiltFlutter) {
       print(
-          ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})');
+        ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint}, prebuiltFlutter: ${info.isPrebuiltFlutter}, empty: ${info.isEmpty}, constructor: ${info.isConstructor})',
+      );
     }
   });
 
   // Assertions to verify correctness
   assert(
-      functions.length == 5, 'Expected 5 functions, got ${functions.length}');
+    functions.length == 5,
+    'Expected 5 functions, got ${functions.length}',
+  );
 
   // Commented functions
-  assert(functions.containsKey('commentedFunction_commented_2_8'),
-      'Expected commentedFunction to be detected');
-  assert(functions['commentedFunction_commented_2_8']!.commentedOut,
-      'Expected commentedFunction to be marked as commented');
-  assert(functions.containsKey('commentedFunction1_commented_3_0'),
-      'Expected commentedFunction1 to be detected');
-  assert(functions['commentedFunction1_commented_3_0']!.commentedOut,
-      'Expected commentedFunction1 to be marked as commented');
-  assert(functions.containsKey('commentedFunction2_commented_4_0'),
-      'Expected commentedFunction2 to be detected');
-  assert(functions['commentedFunction2_commented_4_0']!.commentedOut,
-      'Expected commentedFunction2 to be marked as commented');
+  assert(
+    functions.containsKey('commentedFunction_commented_2_8'),
+    'Expected commentedFunction to be detected',
+  );
+  assert(
+    functions['commentedFunction_commented_2_8']!.commentedOut,
+    'Expected commentedFunction to be marked as commented',
+  );
+  assert(
+    functions.containsKey('commentedFunction1_commented_3_0'),
+    'Expected commentedFunction1 to be detected',
+  );
+  assert(
+    functions['commentedFunction1_commented_3_0']!.commentedOut,
+    'Expected commentedFunction1 to be marked as commented',
+  );
+  assert(
+    functions.containsKey('commentedFunction2_commented_4_0'),
+    'Expected commentedFunction2 to be detected',
+  );
+  assert(
+    functions['commentedFunction2_commented_4_0']!.commentedOut,
+    'Expected commentedFunction2 to be marked as commented',
+  );
 
   // Non-commented functions
-  assert(functions.containsKey('activeFunction'),
-      'Expected activeFunction to be detected');
-  assert(!functions['activeFunction']!.commentedOut,
-      'Expected activeFunction to be marked as not commented');
-  assert(functions.containsKey('entryPointFunction'),
-      'Expected entryPointFunction to be detected');
-  assert(!functions['entryPointFunction']!.commentedOut,
-      'Expected entryPointFunction to be marked as not commented');
-  assert(functions['entryPointFunction']!.isEntryPoint,
-      'Expected entryPointFunction to be marked as entry point');
-  assert(functions.containsKey('emptyFunction'),
-      'Expected emptyFunction to be detected');
-  assert(!functions['emptyFunction']!.commentedOut,
-      'Expected emptyFunction to be marked as not commented');
-  assert(functions['emptyFunction']!.isEmpty,
-      'Expected emptyFunction to be marked as empty');
-  assert(functions.containsKey('TestClass_commented_7_4'),
-      'Expected TestClass._privateConstructor to be detected');
-  assert(functions['TestClass_commented_7_4']!.isConstructor,
-      'Expected TestClass._privateConstructor to be marked as constructor');
+  assert(
+    functions.containsKey('activeFunction'),
+    'Expected activeFunction to be detected',
+  );
+  assert(
+    !functions['activeFunction']!.commentedOut,
+    'Expected activeFunction to be marked as not commented',
+  );
+  assert(
+    functions.containsKey('entryPointFunction'),
+    'Expected entryPointFunction to be detected',
+  );
+  assert(
+    !functions['entryPointFunction']!.commentedOut,
+    'Expected entryPointFunction to be marked as not commented',
+  );
+  assert(
+    functions['entryPointFunction']!.isEntryPoint,
+    'Expected entryPointFunction to be marked as entry point',
+  );
+  assert(
+    functions.containsKey('emptyFunction'),
+    'Expected emptyFunction to be detected',
+  );
+  assert(
+    !functions['emptyFunction']!.commentedOut,
+    'Expected emptyFunction to be marked as not commented',
+  );
+  assert(
+    functions['emptyFunction']!.isEmpty,
+    'Expected emptyFunction to be marked as empty',
+  );
+  assert(
+    functions.containsKey('TestClass_commented_7_4'),
+    'Expected TestClass._privateConstructor to be detected',
+  );
+  assert(
+    functions['TestClass_commented_7_4']!.isConstructor,
+    'Expected TestClass._privateConstructor to be marked as constructor',
+  );
 }

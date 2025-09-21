@@ -76,13 +76,15 @@ void deadCodeCleaner({
   // Prompt for confirmation if there are files to delete
   if (filesToDelete.isNotEmpty) {
     print(
-        '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:');
+      '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:',
+    );
     for (final filePath in filesToDelete) {
       final relativePath = toLibRelativePath(filePath, projectPath);
       print(' - $relativePath');
     }
     print(
-        '\nWARNING: Deleting files may affect useful code due to edge cases (e.g., dynamic calls, reflection, or external references not detected by the analyzer).');
+      '\nWARNING: Deleting files may affect useful code due to edge cases (e.g., dynamic calls, reflection, or external references not detected by the analyzer).',
+    );
     print('We strongly recommend reviewing and deleting files manually.');
     print('Are you sure you want to delete these files? (y/N): ');
 
@@ -104,13 +106,18 @@ void deadCodeCleaner({
     print('Cleanup completed.');
   } else {
     print(
-        '\nNo files eligible for deletion (all files with dead or commented classes/functions contain other used entities).');
+      '\nNo files eligible for deletion (all files with dead or commented classes/functions contain other used entities).',
+    );
   }
 }
 
 // Helper function to check for used entities (classes, functions, variables)
-bool _hasUsedEntities(String filePath, Map<String, ClassInfo> classes,
-    Map<String, CodeInfo> functions, bool analyzeFunctions) {
+bool _hasUsedEntities(
+  String filePath,
+  Map<String, ClassInfo> classes,
+  Map<String, CodeInfo> functions,
+  bool analyzeFunctions,
+) {
   // Check for used classes in the file
   for (final classInfo in classes.values) {
     if (classInfo.definedInFile == filePath &&
@@ -137,8 +144,9 @@ bool _hasUsedEntities(String filePath, Map<String, ClassInfo> classes,
     final content = File(filePath).readAsStringSync();
     final lines = content.split('\n');
     final variableRegex = RegExp(
-        r'^(?:\s*(?:\/\/.*|\/\*.*\*\/)?\s*)*(?:var|final|const)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*[=;]',
-        multiLine: true);
+      r'^(?:\s*(?:\/\/.*|\/\*.*\*\/)?\s*)*(?:var|final|const)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*[=;]',
+      multiLine: true,
+    );
     for (final line in lines) {
       if (variableRegex.hasMatch(line.trim()) &&
           !line.trim().startsWith('//') &&

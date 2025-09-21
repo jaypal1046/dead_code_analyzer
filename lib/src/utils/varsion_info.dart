@@ -29,10 +29,12 @@ void versionfind(ArgParser parser, List<String> arguments) {
     }
   }
 
-  parser.addFlag('version',
-      abbr: 'V',
-      help: 'Show the version of dead_code_analyzer',
-      negatable: false);
+  parser.addFlag(
+    'version',
+    abbr: 'V',
+    help: 'Show the version of dead_code_analyzer',
+    negatable: false,
+  );
 
   if (arguments.contains('--version') || arguments.contains('-V')) {
     print('dead_code_analyzer version $version (from $versionSource)');

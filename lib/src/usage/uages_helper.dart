@@ -1,7 +1,10 @@
 import 'dart:math';
 
 bool shouldExcludeClassMatch(
-    String content, RegExpMatch match, String className) {
+  String content,
+  RegExpMatch match,
+  String className,
+) {
   final matchStart = match.start;
   final matchEnd = match.end;
 
@@ -17,28 +20,34 @@ bool shouldExcludeClassMatch(
   final line = lineInfo.line;
 
   // 1. Class declaration: class ClassName
-  if (RegExp(r'^\s*class\s+' + RegExp.escape(className) + r'\b')
-      .hasMatch(line)) {
+  if (RegExp(
+    r'^\s*class\s+' + RegExp.escape(className) + r'\b',
+  ).hasMatch(line)) {
     return true;
   }
   // 2. Constructor definition within the class
-  bool isitConstructorDefinition =
-      isConstructorDefinition(content, match, className);
+  bool isitConstructorDefinition = isConstructorDefinition(
+    content,
+    match,
+    className,
+  );
   if (isitConstructorDefinition == true) {
     return true;
   }
 
   // 3. State class declaration: class ClassNameState
-  if (RegExp(r'^\s*class\s+_' + RegExp.escape(className) + r'State\b')
-      .hasMatch(line)) {
+  if (RegExp(
+    r'^\s*class\s+_' + RegExp.escape(className) + r'State\b',
+  ).hasMatch(line)) {
     return true;
   }
 
   // 4. State generic type usage in class extends only
-  if (RegExp(r'^\s*class\s+.*extends\s+State\s*<\s*' +
-          RegExp.escape(className) +
-          r'\s*>')
-      .hasMatch(line)) {
+  if (RegExp(
+    r'^\s*class\s+.*extends\s+State\s*<\s*' +
+        RegExp.escape(className) +
+        r'\s*>',
+  ).hasMatch(line)) {
     return true;
   }
 
@@ -46,7 +55,10 @@ bool shouldExcludeClassMatch(
 }
 
 bool isConstructorDefinition(
-    String content, RegExpMatch match, String className) {
+  String content,
+  RegExpMatch match,
+  String className,
+) {
   final matchStart = match.start;
   final lineInfo = getLineInfo(content, matchStart);
   final line = lineInfo.line.trim();
@@ -61,8 +73,11 @@ bool isConstructorDefinition(
 
   // Get more context around the match
   final contextBefore = getContextBefore(content, matchStart, 100);
-  final contextAfter =
-      getContextAfter(content, matchStart + className.length, 50);
+  final contextAfter = getContextAfter(
+    content,
+    matchStart + className.length,
+    50,
+  );
 
   // Check if this is clearly a constructor call (instantiation)
   if (isConstructorCall(contextBefore, contextAfter, className)) {
@@ -73,9 +88,11 @@ bool isConstructorDefinition(
 
   // 1. Constructor definition at start of line with various parameter patterns
   // Handles: ClassName(), const ClassName(), ClassName({...}), ClassName(params)
-  final constructorDefPattern = RegExp(r'^\s*(?:const\s+|factory\s+)?' +
-      RegExp.escape(className) +
-      r'(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*(?::\s*[^{;]*)?[{;]');
+  final constructorDefPattern = RegExp(
+    r'^\s*(?:const\s+|factory\s+)?' +
+        RegExp.escape(className) +
+        r'(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*(?::\s*[^{;]*)?[{;]',
+  );
   if (constructorDefPattern.hasMatch(line)) {
     return true;
   }
@@ -90,8 +107,9 @@ bool isConstructorDefinition(
       final afterMatch = line.substring(afterMatchStart).trim();
 
       // Constructor definition patterns after class name
-      if (RegExp(r'^(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*(?::\s*[^{;]*)?[{;]')
-          .hasMatch(afterMatch)) {
+      if (RegExp(
+        r'^(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*(?::\s*[^{;]*)?[{;]',
+      ).hasMatch(afterMatch)) {
         return true;
       }
     }
@@ -100,11 +118,12 @@ bool isConstructorDefinition(
   // 3. Multi-line constructor with initializer lists
   final multiLineContext = getMultiLineContext(content, matchStart, 3);
   final multiLinePattern = RegExp(
-      r'^\s*(?:const\s+|factory\s+)?' +
-          RegExp.escape(className) +
-          r'(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*:\s*(?:super\s*\(|this\s*\(|assert\s*\(|[a-zA-Z_]\w*\s*=)',
-      multiLine: true,
-      dotAll: true);
+    r'^\s*(?:const\s+|factory\s+)?' +
+        RegExp.escape(className) +
+        r'(?:\.[a-zA-Z_]\w*)?\s*\([^)]*\)\s*:\s*(?:super\s*\(|this\s*\(|assert\s*\(|[a-zA-Z_]\w*\s*=)',
+    multiLine: true,
+    dotAll: true,
+  );
 
   if (multiLinePattern.hasMatch(multiLineContext)) {
     return true;
@@ -115,7 +134,10 @@ bool isConstructorDefinition(
 
 // New helper function to detect constructor calls
 bool isConstructorCall(
-    String contextBefore, String contextAfter, String className) {
+  String contextBefore,
+  String contextAfter,
+  String className,
+) {
   // Clean up context by removing extra whitespace
   final cleanBefore = contextBefore.replaceAll(RegExp(r'\s+'), ' ').trim();
   final cleanAfter = contextAfter.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -124,8 +146,8 @@ bool isConstructorCall(
 
   // 1. Assignment patterns: var x = ClassName(), final y = const ClassName()
   if (RegExp(
-          r'(?:^|[;\{\}])\s*(?:var|final|const|late|\w+)\s+\w*\s*=\s*(?:const\s+)?$')
-      .hasMatch(cleanBefore)) {
+    r'(?:^|[;\{\}])\s*(?:var|final|const|late|\w+)\s+\w*\s*=\s*(?:const\s+)?$',
+  ).hasMatch(cleanBefore)) {
     return true;
   }
 
@@ -166,29 +188,29 @@ bool isConstructorCall(
 
   // 9. Builder pattern: builder: (context) => ClassName()
   if (RegExp(
-          r'builder:\s*\([^)]*\)\s*(?:=>|\{.*return)\s*(?:[\w.]*\s*\(\s*[\w\s,:.]*\s*\)\s*\.\s*)*(?:const\s+)?$')
-      .hasMatch(cleanBefore)) {
+    r'builder:\s*\([^)]*\)\s*(?:=>|\{.*return)\s*(?:[\w.]*\s*\(\s*[\w\s,:.]*\s*\)\s*\.\s*)*(?:const\s+)?$',
+  ).hasMatch(cleanBefore)) {
     return true;
   }
 
   // 10. MaterialPageRoute and similar patterns
   if (RegExp(
-          r'MaterialPageRoute\s*\([^)]*builder:\s*\([^)]*\)\s*\{[^}]*return\s+[^;]*child:\s*(?:const\s+)?$')
-      .hasMatch(cleanBefore)) {
+    r'MaterialPageRoute\s*\([^)]*builder:\s*\([^)]*\)\s*\{[^}]*return\s+[^;]*child:\s*(?:const\s+)?$',
+  ).hasMatch(cleanBefore)) {
     return true;
   }
 
   // 11. ChangeNotifierProvider and similar provider patterns
   if (RegExp(
-          r'(?:Provider|ChangeNotifierProvider|Consumer)(?:\.\w+)?\s*\([^)]*child:\s*(?:const\s+)?$')
-      .hasMatch(cleanBefore)) {
+    r'(?:Provider|ChangeNotifierProvider|Consumer)(?:\.\w+)?\s*\([^)]*child:\s*(?:const\s+)?$',
+  ).hasMatch(cleanBefore)) {
     return true;
   }
 
   // 12. Generic instantiation: List<ClassName>(), Map<String, ClassName>()
   if (RegExp(
-          r'(?:List|Set|Map|Iterable|Future|Stream)<[^>]*>\s*\(\s*(?:const\s+)?$')
-      .hasMatch(cleanBefore)) {
+    r'(?:List|Set|Map|Iterable|Future|Stream)<[^>]*>\s*\(\s*(?:const\s+)?$',
+  ).hasMatch(cleanBefore)) {
     return true;
   }
 
@@ -206,8 +228,9 @@ bool isConstructorCall(
   if (RegExp(r'^\s*\(').hasMatch(cleanAfter)) {
     // Additional checks to ensure it's a call, not a definition
     // If we're in a context that suggests instantiation
-    if (RegExp(r'(?:=|return|:|,|\(|\[|\{|\?|\?\?|=>)\s*(?:const\s+)?$')
-        .hasMatch(cleanBefore)) {
+    if (RegExp(
+      r'(?:=|return|:|,|\(|\[|\{|\?|\?\?|=>)\s*(?:const\s+)?$',
+    ).hasMatch(cleanBefore)) {
       return true;
     }
   }
@@ -229,8 +252,9 @@ String getContextAfter(String content, int position, int maxLength) {
 
 bool isInsideClassDefinition(String beforeContent, String className) {
   // Look for the class definition backwards from current position
-  final classPattern =
-      RegExp(r'\bclass\s+' + RegExp.escape(className) + r'\b[^{]*\{');
+  final classPattern = RegExp(
+    r'\bclass\s+' + RegExp.escape(className) + r'\b[^{]*\{',
+  );
   final matches = classPattern.allMatches(beforeContent).toList();
 
   if (matches.isEmpty) return false;
@@ -239,8 +263,9 @@ bool isInsideClassDefinition(String beforeContent, String className) {
   final lastMatch = matches.last;
 
   // Count braces after the class definition to see if we're still inside
-  final afterClassDef =
-      beforeContent.substring(lastMatch.end - 1); // Include opening brace
+  final afterClassDef = beforeContent.substring(
+    lastMatch.end - 1,
+  ); // Include opening brace
   int braceCount = 0;
 
   for (int i = 0; i < afterClassDef.length; i++) {
@@ -273,7 +298,10 @@ String getMultiLineContext(String content, int position, int linesBefore) {
 }
 
 bool shouldExcludeFunctionMatch(
-    String content, RegExpMatch match, String functionName) {
+  String content,
+  RegExpMatch match,
+  String functionName,
+) {
   final matchStart = match.start;
 
   // Get the line containing this match
@@ -292,10 +320,11 @@ bool shouldExcludeFunctionMatch(
   }
 
   // 2. Getter/Setter definition
-  if (RegExp(r'(?:get|set)\s+' +
-          RegExp.escape(functionName) +
-          r'\s*(?:\([^)]*\))?\s*(?:=>|{)')
-      .hasMatch(line)) {
+  if (RegExp(
+    r'(?:get|set)\s+' +
+        RegExp.escape(functionName) +
+        r'\s*(?:\([^)]*\))?\s*(?:=>|{)',
+  ).hasMatch(line)) {
     return true;
   }
 

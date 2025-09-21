@@ -6,14 +6,16 @@ import 'package:dead_code_analyzer/src/model/code_info.dart';
 List<File> getDartFiles(Directory dir) {
   return dir
       .listSync(recursive: true)
-      .where((entity) =>
-          entity is File &&
-          entity.path.endsWith('.dart') &&
-          !entity.path.contains('/.dart_tool/') &&
-          !entity.path.contains('/build/') &&
-          !entity.path.contains('/.idea/') &&
-          !entity.path.contains('/.vscode/') &&
-          !entity.path.contains('/.fvm/'))
+      .where(
+        (entity) =>
+            entity is File &&
+            entity.path.endsWith('.dart') &&
+            !entity.path.contains('/.dart_tool/') &&
+            !entity.path.contains('/build/') &&
+            !entity.path.contains('/.idea/') &&
+            !entity.path.contains('/.vscode/') &&
+            !entity.path.contains('/.fvm/'),
+      )
       .cast<File>()
       .toList();
 }
@@ -23,7 +25,8 @@ void printUsage(ArgParser parser) {
   print(parser.usage);
   print('\nExample:');
   print(
-      '  dart bin/dead_code_analyzer.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20');
+    '  dart bin/dead_code_analyzer.dart -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --max-unused 20',
+  );
 }
 
 // Helper function to check if a line is commented out
@@ -42,7 +45,11 @@ bool isInsideBlockComment(String line) {
 
 // Helper function to determine if a specific function match is commented
 bool isFunctionInCommented(
-    String line, RegExpMatch match, List<String> lines, int lineIndex) {
+  String line,
+  RegExpMatch match,
+  List<String> lines,
+  int lineIndex,
+) {
   // Check if the function declaration itself starts with //
   String beforeFunction = line.substring(0, match.start);
   String functionPart = line.substring(match.start);
@@ -122,13 +129,15 @@ String getCleanFunctionName(String functionKey) {
 // Helper function to get all commented functions
 Map<String, CodeInfo> getCommentedFunctions(Map<String, CodeInfo> functions) {
   return Map.fromEntries(
-      functions.entries.where((entry) => entry.value.commentedOut));
+    functions.entries.where((entry) => entry.value.commentedOut),
+  );
 }
 
 // Helper function to get all active (non-commented) functions
 Map<String, CodeInfo> getActiveFunctions(Map<String, CodeInfo> functions) {
   return Map.fromEntries(
-      functions.entries.where((entry) => !entry.value.commentedOut));
+    functions.entries.where((entry) => !entry.value.commentedOut),
+  );
 }
 
 String sanitizeFilePath(String filePath) {

@@ -13,28 +13,50 @@ import 'package:path/path.dart' as path;
 
 void main(List<String> arguments) {
   final parser = ArgParser()
-    ..addOption('project-path',
-        abbr: 'p',
-        help: 'Path to the Flutter project to analyze',
-        defaultsTo: '.')
-    ..addOption('output-dir',
-        abbr: 'o',
-        help: 'Directory to save the report file (default: Desktop)',
-        defaultsTo: '')
-    ..addOption('max-unused',
-        help: 'Maximum number of unused entities to display in console',
-        defaultsTo: '10')
-    ..addFlag('analyze-functions',
-        help: 'Include function usage analysis', defaultsTo: false)
-    ..addFlag('clean',
-        help: 'Clean up files containing only dead or commented-out classes',
-        negatable: false)
-    ..addFlag('help',
-        abbr: 'h', help: 'Show usage information', negatable: false)
-    ..addFlag('verbose',
-        abbr: 'v', help: 'Show detailed output', negatable: false)
-    ..addFlag('no-progress',
-        help: 'Disable progress indicators', negatable: false);
+    ..addOption(
+      'project-path',
+      abbr: 'p',
+      help: 'Path to the Flutter project to analyze',
+      defaultsTo: '.',
+    )
+    ..addOption(
+      'output-dir',
+      abbr: 'o',
+      help: 'Directory to save the report file (default: Desktop)',
+      defaultsTo: '',
+    )
+    ..addOption(
+      'max-unused',
+      help: 'Maximum number of unused entities to display in console',
+      defaultsTo: '10',
+    )
+    ..addFlag(
+      'analyze-functions',
+      help: 'Include function usage analysis',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'clean',
+      help: 'Clean up files containing only dead or commented-out classes',
+      negatable: false,
+    )
+    ..addFlag(
+      'help',
+      abbr: 'h',
+      help: 'Show usage information',
+      negatable: false,
+    )
+    ..addFlag(
+      'verbose',
+      abbr: 'v',
+      help: 'Show detailed output',
+      negatable: false,
+    )
+    ..addFlag(
+      'no-progress',
+      help: 'Disable progress indicators',
+      negatable: false,
+    );
 
   // Try to get version from version file or pubspec.yaml
   versionfind(parser, arguments);
@@ -59,7 +81,8 @@ void main(List<String> arguments) {
 
   String outputDir = args['output-dir'];
   if (outputDir.isEmpty) {
-    final home = Platform.environment['HOME'] ??
+    final home =
+        Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
         '.';
     outputDir = path.join(home, 'Desktop');
@@ -86,42 +109,47 @@ void main(List<String> arguments) {
   final functions = <String, CodeInfo>{};
   // Collect all code entities (classes and functions) from the project directory
   collectCodeEntities(
-      dir: projectDir,
-      classes: classes,
-      functions: functions,
-      showProgress: showProgress,
-      analyzeFunctions: analyzeFunctions);
+    dir: projectDir,
+    classes: classes,
+    functions: functions,
+    showProgress: showProgress,
+    analyzeFunctions: analyzeFunctions,
+  );
 
   if (verbose) {
     print(
-        '\nFound ${classes.length} classes${analyzeFunctions ? ' and ${functions.length} functions' : ''}.');
+      '\nFound ${classes.length} classes${analyzeFunctions ? ' and ${functions.length} functions' : ''}.',
+    );
     print('Analyzing code references...');
   }
 
   // Find all usages/references of the collected code entities
   findUsages(
-      dir: projectDir,
-      classes: classes,
-      functions: functions,
-      showProgress: showProgress,
-      analyzeFunctions: analyzeFunctions);
+    dir: projectDir,
+    classes: classes,
+    functions: functions,
+    showProgress: showProgress,
+    analyzeFunctions: analyzeFunctions,
+  );
 
   // Print analysis results to console
   printResults(
-      classes: classes,
-      functions: functions,
-      verbose: verbose,
-      projectPath: projectPath,
-      analyzeFunctions: analyzeFunctions,
-      maxUnused: maxUnused);
+    classes: classes,
+    functions: functions,
+    verbose: verbose,
+    projectPath: projectPath,
+    analyzeFunctions: analyzeFunctions,
+    maxUnused: maxUnused,
+  );
 
   // Save analysis results to output file
   saveResultsToFile(
-      classes: classes,
-      functions: functions,
-      outputDir: outputDir,
-      projectPath: projectPath,
-      analyzeFunctions: analyzeFunctions);
+    classes: classes,
+    functions: functions,
+    outputDir: outputDir,
+    projectPath: projectPath,
+    analyzeFunctions: analyzeFunctions,
+  );
 
   // Perform cleanup if --clean flag is provided
   if (clean) {

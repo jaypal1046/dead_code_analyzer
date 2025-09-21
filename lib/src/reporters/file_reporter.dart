@@ -4,12 +4,13 @@ import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
-void saveResultsToFile(
-    {required Map<String, ClassInfo> classes,
-    required Map<String, CodeInfo> functions,
-    required String outputDir,
-    required String projectPath,
-    required bool analyzeFunctions}) {
+void saveResultsToFile({
+  required Map<String, ClassInfo> classes,
+  required Map<String, CodeInfo> functions,
+  required String outputDir,
+  required String projectPath,
+  required bool analyzeFunctions,
+}) {
   try {
     final now = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
@@ -21,7 +22,8 @@ void saveResultsToFile(
     buffer.writeln('Flutter Code Usage Analysis - ${formatter.format(now)}');
     buffer.writeln('=' * 50);
     buffer.writeln(
-        'This report lists classes and functions (if analyzed) by usage type. Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately. Empty prebuilt Flutter functions (e.g., build, initState) are listed separately. File paths are relative to the lib/ directory or project root.');
+      'This report lists classes and functions (if analyzed) by usage type. Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately. Empty prebuilt Flutter functions (e.g., build, initState) are listed separately. File paths are relative to the lib/ directory or project root.',
+    );
     buffer.writeln('');
 
     // Helper function to convert absolute path to lib-relative path
@@ -34,8 +36,11 @@ void saveResultsToFile(
     }
 
     // Helper function to write category section
-    void writeCategoryClassSection(String title,
-        List<MapEntry<String, ClassInfo>> entries, String entityType) {
+    void writeCategoryClassSection(
+      String title,
+      List<MapEntry<String, ClassInfo>> entries,
+      String entityType,
+    ) {
       buffer.writeln(title);
       buffer.writeln('-' * 30);
       int count = 0;
@@ -55,10 +60,12 @@ void saveResultsToFile(
         final usageFilesStr = usageFiles.toString();
         if (entityType == "commented_classes") {
           buffer.writeln(
-              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}',
+          );
         } else {
           buffer.writeln(
-              ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}');
+            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma("vm:entry-point")]' : ''}',
+          );
         }
       }
       if (count == 0) {
@@ -68,8 +75,11 @@ void saveResultsToFile(
     }
 
     // Helper function to write category section
-    void writeCategoryFunctionSection(String title,
-        List<MapEntry<String, CodeInfo>> entries, String entityType) {
+    void writeCategoryFunctionSection(
+      String title,
+      List<MapEntry<String, CodeInfo>> entries,
+      String entityType,
+    ) {
       buffer.writeln(title);
       buffer.writeln('-' * 30);
       int count = 0;
@@ -88,7 +98,8 @@ void saveResultsToFile(
         }).toList();
         final usageFilesStr = usageFiles.toString();
         buffer.writeln(
-            ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma]' : ''}');
+          ' - $name (in $definedIn, internal references: $internalUses, external references: $externalUses, total: $totalUses)${externalUses > 0 ? ' $usageFilesStr' : ''}${info.isEntryPoint && totalUses == 0 ? ' [Used by native code via @pragma]' : ''}',
+        );
       }
       if (count == 0) {
         buffer.writeln('No $entityType found.');
@@ -99,8 +110,9 @@ void saveResultsToFile(
     // Process classes
     final sortedClasses = classes.entries.toList()
       ..sort((a, b) {
-        final externalComparison =
-            a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
+        final externalComparison = a.value.totalExternalUsages.compareTo(
+          b.value.totalExternalUsages,
+        );
         if (externalComparison != 0) return externalComparison;
         return a.value.totalUsages.compareTo(b.value.totalUsages);
       });
@@ -150,28 +162,56 @@ void saveResultsToFile(
     buffer.writeln('Class Analysis');
     buffer.writeln('=' * 30);
     writeCategoryClassSection(
-        'Unused Classes', unusedClasses, 'unused_classes');
+      'Unused Classes',
+      unusedClasses,
+      'unused_classes',
+    );
     writeCategoryClassSection(
-        'Commented Classes', commentedClasses, 'commented_classes');
-    writeCategoryClassSection('Classes Used Only Internally',
-        internalOnlyClasses, 'classes_used_only_internally');
-    writeCategoryClassSection('Classes Used Only Externally',
-        externalOnlyClasses, 'classes_used_only_externally');
-    writeCategoryClassSection('Classes Used Both Internally and Externally',
-        bothInternalExternalClasses, 'classes_used_both');
+      'Commented Classes',
+      commentedClasses,
+      'commented_classes',
+    );
     writeCategoryClassSection(
-        'Mixing Classes', mixingClasses, 'mixing_classes');
+      'Classes Used Only Internally',
+      internalOnlyClasses,
+      'classes_used_only_internally',
+    );
+    writeCategoryClassSection(
+      'Classes Used Only Externally',
+      externalOnlyClasses,
+      'classes_used_only_externally',
+    );
+    writeCategoryClassSection(
+      'Classes Used Both Internally and Externally',
+      bothInternalExternalClasses,
+      'classes_used_both',
+    );
+    writeCategoryClassSection(
+      'Mixing Classes',
+      mixingClasses,
+      'mixing_classes',
+    );
     writeCategoryClassSection('Enum Classes', enumClasses, 'enum_classes');
     writeCategoryClassSection(
-        'Extension Classes', extensionClasses, 'extension_classes');
+      'Extension Classes',
+      extensionClasses,
+      'extension_classes',
+    );
     writeCategoryClassSection(
-        'Typedef Classes', typedefClasses, 'typedef_classes');
+      'Typedef Classes',
+      typedefClasses,
+      'typedef_classes',
+    );
     writeCategoryClassSection(
-        'State Classes', stateClassEntries, 'state_classes');
+      'State Classes',
+      stateClassEntries,
+      'state_classes',
+    );
     writeCategoryClassSection(
-        '@pragma Classes: Hints for Dart compiler/runtime optimizations.',
-        entryPointClassEntries,
-        'entry_point_classes');
+      '@pragma Classes: Hints for Dart compiler/runtime optimizations.',
+      entryPointClassEntries,
+      'entry_point_classes',
+    );
 
     // Declare function lists outside the if block
     final unusedFunctions = <MapEntry<String, CodeInfo>>[];
@@ -187,8 +227,9 @@ void saveResultsToFile(
     if (analyzeFunctions) {
       final sortedFunctions = functions.entries.toList()
         ..sort((a, b) {
-          final externalComparison = a.value.totalExternalUsages
-              .compareTo(b.value.totalExternalUsages);
+          final externalComparison = a.value.totalExternalUsages.compareTo(
+            b.value.totalExternalUsages,
+          );
           if (externalComparison != 0) return externalComparison;
           return a.value.totalUsages.compareTo(b.value.totalUsages);
         });
@@ -226,23 +267,45 @@ void saveResultsToFile(
       buffer.writeln('Function Analysis');
       buffer.writeln('=' * 30);
       writeCategoryFunctionSection(
-          'Unused Functions', unusedFunctions, 'unused functions');
+        'Unused Functions',
+        unusedFunctions,
+        'unused functions',
+      );
       writeCategoryFunctionSection(
-          'Commented Functions', commentedFunctions, 'commented functions');
-      writeCategoryFunctionSection('Functions Used Only Internally',
-          internalOnlyFunctions, 'functions used only internally');
-      writeCategoryFunctionSection('Functions Used Only Externally',
-          externalOnlyFunctions, 'functions used only externally');
+        'Commented Functions',
+        commentedFunctions,
+        'commented functions',
+      );
       writeCategoryFunctionSection(
-          'Functions Used Both Internally and Externally',
-          bothInternalExternalFunctions,
-          'functions used both internally and externally');
-      writeCategoryFunctionSection('Empty Prebuilt Flutter Functions',
-          emptyPrebuiltFunctionEntries, 'empty prebuilt Flutter functions');
-      writeCategoryFunctionSection('Pre build element Commented',
-          commentedPrebuildFunctions, "Pre build element Commented");
-      writeCategoryFunctionSection('Entry-Point Functions (@pragma)',
-          entryPointFunctionEntries, 'entry-point functions');
+        'Functions Used Only Internally',
+        internalOnlyFunctions,
+        'functions used only internally',
+      );
+      writeCategoryFunctionSection(
+        'Functions Used Only Externally',
+        externalOnlyFunctions,
+        'functions used only externally',
+      );
+      writeCategoryFunctionSection(
+        'Functions Used Both Internally and Externally',
+        bothInternalExternalFunctions,
+        'functions used both internally and externally',
+      );
+      writeCategoryFunctionSection(
+        'Empty Prebuilt Flutter Functions',
+        emptyPrebuiltFunctionEntries,
+        'empty prebuilt Flutter functions',
+      );
+      writeCategoryFunctionSection(
+        'Pre build element Commented',
+        commentedPrebuildFunctions,
+        "Pre build element Commented",
+      );
+      writeCategoryFunctionSection(
+        'Entry-Point Functions (@pragma)',
+        entryPointFunctionEntries,
+        'entry-point functions',
+      );
     }
 
     // Summary
@@ -250,39 +313,55 @@ void saveResultsToFile(
     buffer.writeln('-' * 30);
     buffer.writeln('Total classes: ${classes.length}');
     buffer.writeln(
-        'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Classes used only internally: ${internalOnlyClasses.length} (${(internalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Classes used only internally: ${internalOnlyClasses.length} (${(internalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Classes used only externally: ${externalOnlyClasses.length} (${(externalOnlyClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Classes used both internally and externally: ${bothInternalExternalClasses.length} (${(bothInternalExternalClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Mixin classed: ${mixingClasses.length} (${(mixingClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Mixin classed: ${mixingClasses.length} (${(mixingClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Enum classes: ${enumClasses.length} (${(enumClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Enum classes: ${enumClasses.length} (${(enumClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Extension classes: ${extensionClasses.length} (${(extensionClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Extension classes: ${extensionClasses.length} (${(extensionClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'State classes: ${stateClassEntries.length} (${(stateClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     buffer.writeln(
-        'Entry-point classes: ${entryPointClassEntries.length} (${(entryPointClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
+      'Entry-point classes: ${entryPointClassEntries.length} (${(entryPointClassEntries.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)',
+    );
     if (analyzeFunctions) {
       buffer.writeln('Total functions: ${functions.length}');
       buffer.writeln(
-          'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Functions used only internally: ${internalOnlyFunctions.length} (${(internalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Functions used only internally: ${internalOnlyFunctions.length} (${(internalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Functions used only externally: ${externalOnlyFunctions.length} (${(externalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Functions used only externally: ${externalOnlyFunctions.length} (${(externalOnlyFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Functions used both internally and externally: ${bothInternalExternalFunctions.length} (${(bothInternalExternalFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Empty prebuilt Flutter functions: ${emptyPrebuiltFunctionEntries.length} (${(emptyPrebuiltFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Commented prebuilt Flutter functions: ${commentedPrebuildFunctions.length} (${(commentedPrebuildFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Commented prebuilt Flutter functions: ${commentedPrebuildFunctions.length} (${(commentedPrebuildFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
       buffer.writeln(
-          'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
+        'Entry-point functions: ${entryPointFunctionEntries.length} (${(entryPointFunctionEntries.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)',
+      );
     }
 
     final file = File(filePath);
@@ -290,6 +369,7 @@ void saveResultsToFile(
     print('\nAnalysis report saved to: $filePath');
   } catch (e) {
     print(
-        '\nError saving analysis report: $e. Ensure you have write permissions for $outputDir.');
+      '\nError saving analysis report: $e. Ensure you have write permissions for $outputDir.',
+    );
   }
 }

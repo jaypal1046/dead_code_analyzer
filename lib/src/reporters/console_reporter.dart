@@ -4,13 +4,14 @@ import 'package:dead_code_analyzer/src/model/code_info.dart';
 import 'package:dead_code_analyzer/src/utils/healper.dart';
 import 'package:path/path.dart' as path;
 
-void printResults(
-    {required Map<String, ClassInfo> classes,
-    required Map<String, CodeInfo> functions,
-    required bool verbose,
-    required String projectPath,
-    required bool analyzeFunctions,
-    int maxUnused = 10}) {
+void printResults({
+  required Map<String, ClassInfo> classes,
+  required Map<String, CodeInfo> functions,
+  required bool verbose,
+  required String projectPath,
+  required bool analyzeFunctions,
+  int maxUnused = 10,
+}) {
   // Helper function to convert absolute path to lib-relative path
   String toLibRelativePath(String absolutePath, String projectPath) {
     final libPath = path.join(projectPath, 'lib');
@@ -102,37 +103,45 @@ void printResults(
 
   // Print summary (add commented functions to existing summary)
   print('\nAnalysis Summary:');
-  final activeClasses =
-      classes.entries.where((entry) => !entry.value.commentedOut).length;
+  final activeClasses = classes.entries
+      .where((entry) => !entry.value.commentedOut)
+      .length;
   print('Total classes analyzed: ${classes.length}');
   // print(
   //     'Unused classes: ${unusedClasses.length} (${(unusedClasses.length / (classes.isNotEmpty ? classes.length : 1) * 100).toStringAsFixed(1)}%)');
   print('Commented Classes: ${commentedFunctions.length}');
   print(
-      'Unused Classes: ${unusedFunctions.length} (${(unusedFunctions.length / (activeClasses > 0 ? activeClasses : 1) * 100).toStringAsFixed(1)}%)');
+    'Unused Classes: ${unusedFunctions.length} (${(unusedFunctions.length / (activeClasses > 0 ? activeClasses : 1) * 100).toStringAsFixed(1)}%)',
+  );
   print('Classes used only internally: ${internalOnlyClasses.length}');
   print('Classes used only externally: ${externalOnlyClasses.length}');
   print(
-      'Classes used both internally and externally: ${bothInternalExternalClasses.length}');
+    'Classes used both internally and externally: ${bothInternalExternalClasses.length}',
+  );
   print('State classes: ${stateClasses.length}');
   print(
-      'Entry-point classes (@pragma("vm:entry-point")): ${entryPointClasses.length}');
+    'Entry-point classes (@pragma("vm:entry-point")): ${entryPointClasses.length}',
+  );
   if (analyzeFunctions) {
-    final activeFunctions =
-        functions.entries.where((entry) => !entry.value.commentedOut).length;
+    final activeFunctions = functions.entries
+        .where((entry) => !entry.value.commentedOut)
+        .length;
     print('Total functions analyzed: ${functions.length}');
     // print(
     //     'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (functions.isNotEmpty ? functions.length : 1) * 100).toStringAsFixed(1)}%)');
     print('Commented functions: ${commentedFunctions.length}');
     print(
-        'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (activeFunctions > 0 ? activeFunctions : 1) * 100).toStringAsFixed(1)}%)');
+      'Unused functions: ${unusedFunctions.length} (${(unusedFunctions.length / (activeFunctions > 0 ? activeFunctions : 1) * 100).toStringAsFixed(1)}%)',
+    );
     print('Functions used only internally: ${internalOnlyFunctions.length}');
     print('Functions used only externally: ${externalOnlyFunctions.length}');
     print(
-        'Functions used both internally and externally: ${bothInternalExternalFunctions.length}');
+      'Functions used both internally and externally: ${bothInternalExternalFunctions.length}',
+    );
     print('Empty prebuilt Flutter functions: ${emptyPrebuiltFunctions.length}');
     print(
-        'Entry-point functions (@pragma("vm:entry-point")): ${entryPointFunctions.length}');
+      'Entry-point functions (@pragma("vm:entry-point")): ${entryPointFunctions.length}',
+    );
   }
 
   // Print unused classes
@@ -140,8 +149,10 @@ void printResults(
     print('\nUnused Classes:');
     for (int i = 0; i < min(unusedClasses.length, maxUnused); i++) {
       final className = unusedClasses[i];
-      final definedIn =
-          toLibRelativePath(classes[className]!.definedInFile, projectPath);
+      final definedIn = toLibRelativePath(
+        classes[className]!.definedInFile,
+        projectPath,
+      );
       print(' - $className (in $definedIn)');
     }
     if (unusedClasses.length > maxUnused) {
@@ -156,7 +167,9 @@ void printResults(
       final functionName = commentedFunctions[i];
       final cleanName = getCleanFunctionName(functionName);
       final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
+        functions[functionName]!.definedInFile,
+        projectPath,
+      );
       print(' - $cleanName (in $definedIn) [COMMENTED OUT]');
     }
     if (commentedFunctions.length > maxUnused) {
@@ -172,7 +185,8 @@ void printResults(
       final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
       final totalUses = classInfo.totalUsages;
       print(
-          ' - $className (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}');
+        ' - $className (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}',
+      );
     }
   }
 
@@ -182,7 +196,9 @@ void printResults(
     for (int i = 0; i < min(unusedFunctions.length, maxUnused); i++) {
       final functionName = unusedFunctions[i];
       final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
+        functions[functionName]!.definedInFile,
+        projectPath,
+      );
       print(' - $functionName (in $definedIn)');
     }
     if (unusedFunctions.length > maxUnused) {
@@ -196,7 +212,9 @@ void printResults(
     for (int i = 0; i < min(emptyPrebuiltFunctions.length, maxUnused); i++) {
       final functionName = emptyPrebuiltFunctions[i];
       final definedIn = toLibRelativePath(
-          functions[functionName]!.definedInFile, projectPath);
+        functions[functionName]!.definedInFile,
+        projectPath,
+      );
       final totalUses = functions[functionName]!.totalUsages;
       print(' - $functionName (in $definedIn, total references: $totalUses)');
     }
@@ -210,11 +228,14 @@ void printResults(
     print('\nEntry-Point Functions (@pragma("vm:entry-point")):');
     for (final functionName in entryPointFunctions) {
       final functionInfo = functions[functionName]!;
-      final definedIn =
-          toLibRelativePath(functionInfo.definedInFile, projectPath);
+      final definedIn = toLibRelativePath(
+        functionInfo.definedInFile,
+        projectPath,
+      );
       final totalUses = functionInfo.totalUsages;
       print(
-          ' - $functionName (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}');
+        ' - $functionName (in $definedIn, total references: $totalUses)${totalUses == 0 ? ' [Used by native code]' : ''}',
+      );
     }
   }
 
@@ -263,8 +284,10 @@ void printResults(
       for (final entry in functions.entries) {
         final functionName = entry.key;
         final functionInfo = entry.value;
-        final definedIn =
-            toLibRelativePath(functionInfo.definedInFile, projectPath);
+        final definedIn = toLibRelativePath(
+          functionInfo.definedInFile,
+          projectPath,
+        );
         final internalUses = functionInfo.internalUsageCount;
         final externalUses = functionInfo.totalExternalUsages;
         final totalUses = internalUses + externalUses;
@@ -283,7 +306,8 @@ void printResults(
         }
         if (functionInfo.isPrebuiltFlutter) {
           print(
-              '  Prebuilt Flutter: Yes${functionInfo.isEmpty ? ' (Empty)' : ''}');
+            '  Prebuilt Flutter: Yes${functionInfo.isEmpty ? ' (Empty)' : ''}',
+          );
         }
         if (usageFiles.isNotEmpty) {
           print('  External usage files: $usageFiles');
@@ -308,35 +332,42 @@ void printResults(
   print('\nRecommendations:');
   if (unusedClasses.isNotEmpty) {
     print(
-        '- Review unused classes (e.g., in ${toLibRelativePath(classes[unusedClasses.first]!.definedInFile, projectPath)}) for potential removal.');
+      '- Review unused classes (e.g., in ${toLibRelativePath(classes[unusedClasses.first]!.definedInFile, projectPath)}) for potential removal.',
+    );
   }
   if (internalOnlyClasses.isNotEmpty) {
     print(
-        '- Consider reducing the scope of classes used only internally (e.g., make them private).');
+      '- Consider reducing the scope of classes used only internally (e.g., make them private).',
+    );
   }
   if (externalOnlyClasses.isNotEmpty) {
     print(
-        '- Verify classes used only externally are necessary as public APIs.');
+      '- Verify classes used only externally are necessary as public APIs.',
+    );
   }
   if (bothInternalExternalClasses.isNotEmpty) {
     print(
-        '- Evaluate classes used both internally and externally for optimization.');
+      '- Evaluate classes used both internally and externally for optimization.',
+    );
   }
   if (stateClasses.isNotEmpty) {
     print('- Check state classes for proper widget integration.');
   }
   if (entryPointClasses.isNotEmpty) {
     print(
-        '- Verify entry-point classes are correctly referenced by native code, especially those with no Dart references.');
+      '- Verify entry-point classes are correctly referenced by native code, especially those with no Dart references.',
+    );
   }
   if (analyzeFunctions) {
     if (analyzeFunctions && commentedFunctions.isNotEmpty) {
       print(
-          '- Review commented functions (${commentedFunctions.length} found) - consider removing if no longer needed.');
+        '- Review commented functions (${commentedFunctions.length} found) - consider removing if no longer needed.',
+      );
     }
     if (unusedFunctions.isNotEmpty) {
       print(
-          '- Review unused functions (e.g., in ${toLibRelativePath(functions[unusedFunctions.first]!.definedInFile, projectPath)}) for potential removal.');
+        '- Review unused functions (e.g., in ${toLibRelativePath(functions[unusedFunctions.first]!.definedInFile, projectPath)}) for potential removal.',
+      );
     }
     if (internalOnlyFunctions.isNotEmpty) {
       print('- Consider reducing the scope of functions used only internally.');
@@ -346,15 +377,18 @@ void printResults(
     }
     if (bothInternalExternalFunctions.isNotEmpty) {
       print(
-          '- Evaluate functions used both internally and externally for optimization.');
+        '- Evaluate functions used both internally and externally for optimization.',
+      );
     }
     if (emptyPrebuiltFunctions.isNotEmpty) {
       print(
-          '- Implement empty prebuilt Flutter functions (e.g., ${emptyPrebuiltFunctions.first} in ${toLibRelativePath(functions[emptyPrebuiltFunctions.first]!.definedInFile, projectPath)}) to ensure proper functionality.');
+        '- Implement empty prebuilt Flutter functions (e.g., ${emptyPrebuiltFunctions.first} in ${toLibRelativePath(functions[emptyPrebuiltFunctions.first]!.definedInFile, projectPath)}) to ensure proper functionality.',
+      );
     }
     if (entryPointFunctions.isNotEmpty) {
       print(
-          '- Verify entry-point functions are correctly referenced by native code.');
+        '- Verify entry-point functions are correctly referenced by native code.',
+      );
     }
   }
 
