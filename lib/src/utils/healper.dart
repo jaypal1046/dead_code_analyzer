@@ -13,7 +13,6 @@ List<File> getDartFiles(Directory dir) {
           !entity.path.contains('/build/') &&
           !entity.path.contains('/.idea/') &&
           !entity.path.contains('/.vscode/') &&
-          !entity.path.contains('/test/') &&
           !entity.path.contains('/.fvm/'))
       .cast<File>()
       .toList();
