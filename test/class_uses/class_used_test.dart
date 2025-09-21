@@ -1,6 +1,6 @@
 import 'package:dead_code_analyzer/src/model/class_info.dart';
 import 'package:dead_code_analyzer/src/model/import_info.dart';
-import 'package:dead_code_analyzer/src/usage/class_uages.dart';
+import 'package:dead_code_analyzer/src/usage/class_usages.dart';
 import 'package:test/test.dart';
 
 void main() {
