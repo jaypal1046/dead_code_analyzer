@@ -334,7 +334,7 @@ Future<void> findUsagesWithCompute({
         );
 
         // Use Future.sync for CPU-bound work or consider using compute
-        return await _processFileSync(task);
+        return _processFileSync(task);
       } catch (e) {
         return FileProcessingResult(
           filePath: path.absolute(file.path),

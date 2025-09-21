@@ -425,7 +425,7 @@ Future<CodeCollectionResult> _processFileAsync({
   required Map<String, CodeInfo> functions,
   required bool analyzeFunctions,
 }) async {
-  return await Future(() {
+  return Future(() {
     final task = CodeCollectionTask(
       filePath: filePath,
       analyzeFunctions: analyzeFunctions,
