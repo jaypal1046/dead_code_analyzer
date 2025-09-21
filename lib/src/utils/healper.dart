@@ -10,7 +10,11 @@ List<File> getDartFiles(Directory dir) {
           entity is File &&
           entity.path.endsWith('.dart') &&
           !entity.path.contains('/.dart_tool/') &&
-          !entity.path.contains('/build/'))
+          !entity.path.contains('/build/') &&
+          !entity.path.contains('/.idea/') &&
+          !entity.path.contains('/.vscode/') &&
+          !entity.path.contains('/test/') &&
+          !entity.path.contains('/.fvm/'))
       .cast<File>()
       .toList();
 }
