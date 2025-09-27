@@ -11,12 +11,10 @@
 /// final isCommented = Helper.isLineCommented('// void main() {}');
 /// ```
 
-
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:dead_code_analyzer/dead_code_analyzer.dart';
-
 
 /// Utility class for code analysis tasks in Flutter projects.
 class Helper {
@@ -30,10 +28,16 @@ class Helper {
       return directory
           .listSync(recursive: true)
           .whereType<File>()
-          .where((file) =>
-              file.path.endsWith('.dart') &&
-              !file.path.contains(RegExp(r'[\\/]\.dart_tool[\\/]')) &&
-              !file.path.contains(RegExp(r'[\\/]build[\\/]')))
+          .where(
+            (file) =>
+                file.path.endsWith('.dart') &&
+                !file.path.contains(RegExp(r'[\\/]\.dart_tool[\\/]')) &&
+                !file.path.contains(RegExp(r'[\\/]build[\\/]')) &&
+                !file.path.contains(RegExp(r'[\\/]\.idea[\\/]')) &&
+                !file.path.contains(RegExp(r'[\\/]\.vscode[\\/]')) &&
+                !file.path.contains(RegExp(r'[\\/]test[\\/]')) &&
+                !file.path.contains(RegExp(r'[\\/]\.fvm[\\/]')),
+          )
           .toList();
     } catch (e, stackTrace) {
       throw FileSystemException(
@@ -148,7 +152,8 @@ Example:
   /// [line] is the line containing the function declaration.
   /// Returns `true` if the function is a constructor.
   static bool isConstructor(String functionName, String line) {
-    if (functionName.isEmpty || functionName[0] != functionName[0].toUpperCase()) {
+    if (functionName.isEmpty ||
+        functionName[0] != functionName[0].toUpperCase()) {
       return false;
     }
 
@@ -169,8 +174,9 @@ Example:
   /// Returns a map containing only the commented functions.
   static Map<String, CodeInfo> getCommentedFunctions(
     Map<String, CodeInfo> functions,
-  ) =>
-      Map.fromEntries(functions.entries.where((entry) => entry.value.commentedOut));
+  ) => Map.fromEntries(
+    functions.entries.where((entry) => entry.value.commentedOut),
+  );
 
   /// Filters functions that are not commented out.
   ///
@@ -178,8 +184,9 @@ Example:
   /// Returns a map containing only the active (non-commented) functions.
   static Map<String, CodeInfo> getActiveFunctions(
     Map<String, CodeInfo> functions,
-  ) =>
-      Map.fromEntries(functions.entries.where((entry) => !entry.value.commentedOut));
+  ) => Map.fromEntries(
+    functions.entries.where((entry) => !entry.value.commentedOut),
+  );
 
   /// Sanitizes a file path for use in reports or keys.
   ///
