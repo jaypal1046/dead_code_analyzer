@@ -118,7 +118,6 @@ String _getDefaultOutputDirectory() {
 /// Validates that the project directory exists
 Future<bool> _validateProjectDirectory(String projectPath) async {
   final projectDir = Directory(projectPath);
-  print('Error: Project directory not found at $projectPath ${await projectDir.exists()}');
   if (!await projectDir.exists()) {
     print('Error: Project directory not found at $projectPath');
     return false;
@@ -154,14 +153,14 @@ Future<AnalysisResult> _performCodeAnalysis(
   final functions = <String, CodeInfo>{};
   final exportList = <ImportInfo>[];
 
-  // Collect all code entities
-  CodeAnalyzer.collectCodeEntities(
+  // FIXED: Added await keyword here
+  await CodeAnalyzer.collectCodeEntities(
     directory: projectDir,
     classes: classes,
     functions: functions,
     showProgress: config.showProgress,
     analyzeFunctions: config.includeFunctions,
-    exportList: exportList
+    exportList: exportList,
   );
 
   if (config.showTrace) {
@@ -172,14 +171,14 @@ Future<AnalysisResult> _performCodeAnalysis(
     print('Analyzing code references...');
   }
 
-  // Find all usages/references
-  UsageAnalyzer.findUsages(
+  // FIXED: Added await keyword here and handled the result
+  await UsageAnalyzer.findUsages(
     directory: projectDir,
     classes: classes,
     functions: functions,
     showProgress: config.showProgress,
     analyzeFunctions: config.includeFunctions,
-    exportList: exportList
+    exportList: exportList,
   );
 
   return AnalysisResult(
@@ -187,6 +186,7 @@ Future<AnalysisResult> _performCodeAnalysis(
     functions: functions,
   );
 }
+
 /// Generates console and file reports
 Future<void> _generateReports(
   AnalysisResult result,
