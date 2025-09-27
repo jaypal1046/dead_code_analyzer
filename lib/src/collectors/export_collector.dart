@@ -12,7 +12,7 @@ class ExportCollector {
     required Map<String, CodeInfo> functions,
     required List<ImportInfo> exportList,
     required bool analyzeFunctions,
-  }) {
+  }) async {
     // Handle valid Dart export patterns only
     final simpleExportRegex = RegExp(r'''export\s+['"](.+?)['"];''');
     final namedExportRegex = RegExp(

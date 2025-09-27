@@ -21,6 +21,34 @@ class ImportInfo {
     this.isWildcardExport = false,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'path': path,
+      'asAlias': asAlias,
+      'hiddenClasses': hiddenClasses,
+      'shownClasses': shownClasses,
+      'hiddenFunctions': hiddenFunctions,
+      'shownFunctions': shownFunctions,
+      'sourceFile': sourceFile,
+      'isExport': isExport,
+      'isWildcardExport': isWildcardExport,
+    };
+  }
+
+  factory ImportInfo.fromJson(Map<String, dynamic> json) {
+    return ImportInfo(
+      path: json['path'] as String,
+      asAlias: json['asAlias'] as String?,
+      hiddenClasses: List<String>.from(json['hiddenClasses'] ?? []),
+      shownClasses: List<String>.from(json['shownClasses'] ?? []),
+      hiddenFunctions: List<String>.from(json['hiddenFunctions'] ?? []),
+      shownFunctions: List<String>.from(json['shownFunctions'] ?? []),
+      sourceFile: json['sourceFile'] as String?,
+      isExport: json['isExport'] as bool? ?? false,
+      isWildcardExport: json['isWildcardExport'] as bool? ?? false,
+    );
+  }
+
   // Helper method to check if this is a selective export
   bool get isSelectiveExport => isExport && (shownClasses.isNotEmpty || shownFunctions.isNotEmpty);
   

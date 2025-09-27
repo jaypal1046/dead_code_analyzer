@@ -31,6 +31,51 @@ class CodeInfo {
     this.isStaticFunction = false,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'definedInFile': definedInFile,
+      'internalUsageCount': internalUsageCount,
+      'externalUsages': externalUsages,
+      'isEntryPoint': isEntryPoint,
+      'type': type,
+      'isPrebuiltFlutter': isPrebuiltFlutter,
+      'isEmpty': isEmpty,
+      'isConstructor': isConstructor,
+      'commentedOut': commentedOut,
+      'lineIndex': lineIndex,
+      'startPosition': startPosition,
+      'isAbstract': isAbstract,
+      'isPrebuiltFlutterCommentedOut': isPrebuiltFlutterCommentedOut,
+      'className': className,
+      'isStaticFunction': isStaticFunction,
+    };
+  }
+
+  factory CodeInfo.fromJson(Map<String, dynamic> json) {
+    return CodeInfo(
+      json['definedInFile'] as String,
+      isEntryPoint: json['isEntryPoint'] ?? false,
+      type: json['type'] as String,
+      isPrebuiltFlutter: json['isPrebuiltFlutter'] ?? false,
+      isEmpty: json['isEmpty'] ?? false,
+      isConstructor: json['isConstructor'] ?? false,
+      commentedOut: json['commentedOut'] ?? false,
+      lineIndex: json['lineIndex'] as int,
+      startPosition: json['startPosition'] as int,
+      isAbstract: json['isAbstract'] ?? false,
+      isPrebuiltFlutterCommentedOut: json['isPrebuiltFlutterCommentedOut'] ?? false,
+      className: json['className'] ?? '',
+      isStaticFunction: json['isStaticFunction'] ?? false,
+    )
+      ..internalUsageCount = json['internalUsageCount'] ?? 0
+      ..externalUsages.addAll(
+        (json['externalUsages'] as Map?)?.map(
+              (k, v) => MapEntry(k as String, v as int),
+            ) ??
+            {},
+      );
+  }
+
   int get totalExternalUsages =>
       externalUsages.values.fold(0, (sum, count) => sum + count);
 
