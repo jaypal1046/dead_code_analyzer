@@ -58,7 +58,6 @@ class ClassContext {
   }
 }
 
-
 /// Information about a class in the context stack.
 class _ClassInfo {
   /// The name of the class.
@@ -67,8 +66,5 @@ class _ClassInfo {
   /// The type of the entity (class, enum, extension, mixin).
   final String type;
 
-  const _ClassInfo({
-    required this.name,
-    required this.type,
-  });
+  const _ClassInfo({required this.name, required this.type});
 }

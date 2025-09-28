@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+
 /// A utility class for displaying a progress bar in a command-line interface.
 ///
 /// The [ProgressBar] class provides a customizable progress bar that updates
@@ -41,11 +42,7 @@ class ProgressBar {
   /// [description] is a label for the task (default: 'Processing').
   ///
   /// Throws an [ArgumentError] if [total] is not positive or [width] is not positive.
-  ProgressBar(
-    this.total, {
-    this.width = 40,
-    this.description = 'Processing',
-  }) {
+  ProgressBar(this.total, {this.width = 40, this.description = 'Processing'}) {
     if (total <= 0) {
       throw ArgumentError.value(total, 'total', 'Must be positive');
     }

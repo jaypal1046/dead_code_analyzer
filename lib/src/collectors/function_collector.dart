@@ -121,11 +121,15 @@ class FunctionCollector {
           isOverrideFunction && prebuiltFlutterMethods.contains(functionName);
 
       // Extract function body for emptiness check
-      final String functionBody =
-          _extractFunctionBody(currentLine, match.start);
+      final String functionBody = _extractFunctionBody(
+        currentLine,
+        match.start,
+      );
       final bool isEmpty = _isFunctionEmpty(functionBody);
-      final bool isThisConstructor =
-          Helper.isConstructor(functionName, currentLine);
+      final bool isThisConstructor = Helper.isConstructor(
+        functionName,
+        currentLine,
+      );
 
       // Check for @pragma('vm:entry-point') annotation
       if (lineIndex > 0 && !isCommentedOut) {
@@ -163,7 +167,8 @@ class FunctionCollector {
         lineIndex: lineIndex,
         startPosition: match.start,
         isStaticFunction: isStaticFunction,
-        isPrebuiltFlutterCommentedOut: isCommentedOut &&
+        isPrebuiltFlutterCommentedOut:
+            isCommentedOut &&
             (prebuiltFlutterMethods.contains(functionName) ||
                 functionName == 'toString'),
       );
@@ -175,8 +180,9 @@ class FunctionCollector {
     final String trimmed = line.trim();
 
     // Check for widget constructor calls like CounterWidget(...)
-    if (RegExp(r'[A-Z]\w*\s*\([^)]*(?:\([^)]*\)[^)]*)*\)\s*[,;]?$')
-        .hasMatch(trimmed)) {
+    if (RegExp(
+      r'[A-Z]\w*\s*\([^)]*(?:\([^)]*\)[^)]*)*\)\s*[,;]?$',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
@@ -297,8 +303,9 @@ class FunctionCollector {
     final String trimmed = line.trim();
 
     // Check for class, enum, mixin, extension declarations
-    if (RegExp(r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+\w+')
-        .hasMatch(trimmed)) {
+    if (RegExp(
+      r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+\w+',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
@@ -309,8 +316,8 @@ class FunctionCollector {
 
     // Check for class with extends/implements/with
     if (RegExp(
-            r'^(?:abstract\s+)?class\s+\w+(?:<[^>]*>)?\s+(?:extends|implements|with)')
-        .hasMatch(trimmed)) {
+      r'^(?:abstract\s+)?class\s+\w+(?:<[^>]*>)?\s+(?:extends|implements|with)',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
@@ -327,10 +334,11 @@ class FunctionCollector {
     final String trimmedLine = currentLine.trim();
 
     // Direct class declaration check
-    if (RegExp(r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+' +
-            RegExp.escape(functionName) +
-            r'\b')
-        .hasMatch(trimmedLine)) {
+    if (RegExp(
+      r'^(?:abstract\s+)?(?:class|enum|mixin|extension)\s+' +
+          RegExp.escape(functionName) +
+          r'\b',
+    ).hasMatch(trimmedLine)) {
       return true;
     }
 
@@ -362,18 +370,22 @@ class FunctionCollector {
       }
 
       // Additional check: look for inheritance patterns
-      if (RegExp(r'\bextends\s+' + RegExp.escape(functionName) + r'\b')
-              .hasMatch(context) ||
-          RegExp(r'\bimplements\s+' + RegExp.escape(functionName) + r'\b')
-              .hasMatch(context) ||
-          RegExp(r'\bwith\s+' + RegExp.escape(functionName) + r'\b')
-              .hasMatch(context)) {
+      if (RegExp(
+            r'\bextends\s+' + RegExp.escape(functionName) + r'\b',
+          ).hasMatch(context) ||
+          RegExp(
+            r'\bimplements\s+' + RegExp.escape(functionName) + r'\b',
+          ).hasMatch(context) ||
+          RegExp(
+            r'\bwith\s+' + RegExp.escape(functionName) + r'\b',
+          ).hasMatch(context)) {
         return true;
       }
 
       // Check if it's being used as a type declaration
-      if (RegExp(r'\b' + RegExp.escape(functionName) + r'\s+\w+\s*[=;]')
-          .hasMatch(context)) {
+      if (RegExp(
+        r'\b' + RegExp.escape(functionName) + r'\s+\w+\s*[=;]',
+      ).hasMatch(context)) {
         return true;
       }
     }
@@ -487,7 +499,9 @@ class FunctionCollector {
 
   /// Detects @override annotation.
   static bool _hasOverrideAnnotation(
-      List<String> lines, int functionLineIndex) {
+    List<String> lines,
+    int functionLineIndex,
+  ) {
     // Check up to 3 lines before the function for @override annotation
     for (int i = 1; i <= 3 && (functionLineIndex - i) >= 0; i++) {
       final String line = lines[functionLineIndex - i].trim();
@@ -514,9 +528,11 @@ class FunctionCollector {
     final int arrowIndex = line.indexOf('=>', matchStart);
     final int semicolonIndex = line.indexOf(';', matchStart);
 
-    final List<int> indices = [braceIndex, arrowIndex, semicolonIndex]
-        .where((index) => index != -1)
-        .toList();
+    final List<int> indices = [
+      braceIndex,
+      arrowIndex,
+      semicolonIndex,
+    ].where((index) => index != -1).toList();
 
     if (indices.isEmpty) return '';
 
@@ -554,7 +570,9 @@ class FunctionCollector {
 
   /// Multi-line comment detection.
   static bool _isInsideMultiLineComment(
-      List<String> lines, int targetLineIndex) {
+    List<String> lines,
+    int targetLineIndex,
+  ) {
     bool inComment = false;
 
     for (int lineIdx = 0; lineIdx <= targetLineIndex; lineIdx++) {
@@ -667,8 +685,9 @@ class FunctionCollector {
     }
 
     // Variable assignments with constructor calls
-    if (RegExp(r'^\s*(?:final|var|const|\w+)\s+\w+\s*=\s*[A-Z]\w*\s*\(')
-        .hasMatch(trimmed)) {
+    if (RegExp(
+      r'^\s*(?:final|var|const|\w+)\s+\w+\s*=\s*[A-Z]\w*\s*\(',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
@@ -690,15 +709,16 @@ class FunctionCollector {
     }
 
     // Typed variable declarations
-    if (RegExp(r'^\s*(?:int|double|String|bool|List|Map|Set)\s+\w+\s*[=;]')
-        .hasMatch(trimmed)) {
+    if (RegExp(
+      r'^\s*(?:int|double|String|bool|List|Map|Set)\s+\w+\s*[=;]',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
     // Class member variables (private or public)
     if (RegExp(
-            r'^\s*(?:static\s+)?(?:final\s+|const\s+)?[A-Z]\w*\s+_?\w+\s*[=;]')
-        .hasMatch(trimmed)) {
+      r'^\s*(?:static\s+)?(?:final\s+|const\s+)?[A-Z]\w*\s+_?\w+\s*[=;]',
+    ).hasMatch(trimmed)) {
       return true;
     }
 
@@ -773,8 +793,9 @@ class FunctionCollector {
 
     // Additional validation - check if this is actually a function definition
     // Must have proper function signature: name(params) followed by { or => or ;
-    if (!RegExp(r'\([^)]*\)\s*(?:\{|=>|;)')
-        .hasMatch(line.substring(match.start))) {
+    if (!RegExp(
+      r'\([^)]*\)\s*(?:\{|=>|;)',
+    ).hasMatch(line.substring(match.start))) {
       return false;
     }
 

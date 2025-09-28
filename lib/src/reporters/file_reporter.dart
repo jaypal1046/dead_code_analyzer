@@ -44,11 +44,13 @@ class FileReporter {
     Map<String, int> externalUsages,
     String projectPath,
   ) {
-    final usageFiles = externalUsages.entries.map((entry) {
-      final fileName = _toLibRelativePath(entry.key, projectPath);
-      final count = entry.value;
-      return '$fileName ($count references)';
-    }).join(', ');
+    final usageFiles = externalUsages.entries
+        .map((entry) {
+          final fileName = _toLibRelativePath(entry.key, projectPath);
+          final count = entry.value;
+          return '$fileName ($count references)';
+        })
+        .join(', ');
     return '[$usageFiles]';
   }
 
@@ -153,8 +155,9 @@ class FileReporter {
   ) {
     final sortedClasses = classes.entries.toList()
       ..sort((a, b) {
-        final externalComparison =
-            a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
+        final externalComparison = a.value.totalExternalUsages.compareTo(
+          b.value.totalExternalUsages,
+        );
         return externalComparison != 0
             ? externalComparison
             : a.value.totalUsages.compareTo(b.value.totalUsages);
@@ -217,8 +220,9 @@ class FileReporter {
   ) {
     final sortedFunctions = functions.entries.toList()
       ..sort((a, b) {
-        final externalComparison =
-            a.value.totalExternalUsages.compareTo(b.value.totalExternalUsages);
+        final externalComparison = a.value.totalExternalUsages.compareTo(
+          b.value.totalExternalUsages,
+        );
         return externalComparison != 0
             ? externalComparison
             : a.value.totalUsages.compareTo(b.value.totalUsages);
@@ -289,17 +293,17 @@ class FileReporter {
       (
         'Classes Used Only Internally',
         'internalOnly',
-        'internally used classes'
+        'internally used classes',
       ),
       (
         'Classes Used Only Externally',
         'externalOnly',
-        'externally used classes'
+        'externally used classes',
       ),
       (
         'Classes Used Both Internally and Externally',
         'bothInternalExternal',
-        'internally and externally used classes'
+        'internally and externally used classes',
       ),
       ('Mixin Classes', 'mixing', 'mixin classes'),
       ('Enum Classes', 'enum', 'enum classes'),
@@ -341,32 +345,32 @@ class FileReporter {
       (
         'Functions Used Only Internally',
         'internalOnly',
-        'internally used functions'
+        'internally used functions',
       ),
       (
         'Functions Used Only Externally',
         'externalOnly',
-        'externally used functions'
+        'externally used functions',
       ),
       (
         'Functions Used Both Internally and Externally',
         'bothInternalExternal',
-        'internally and externally used functions'
+        'internally and externally used functions',
       ),
       (
         'Empty Prebuilt Flutter Functions',
         'emptyPrebuilt',
-        'empty prebuilt functions'
+        'empty prebuilt functions',
       ),
       (
         'Commented Prebuilt Flutter Functions',
         'commentedPrebuilt',
-        'commented prebuilt functions'
+        'commented prebuilt functions',
       ),
       (
         'Entry-Point Functions (@pragma)',
         'entryPoint',
-        'entry-point functions'
+        'entry-point functions',
       ),
     ];
 
@@ -567,7 +571,8 @@ This report analyzes class and function usage in a Flutter project.
       File(filePath).writeAsStringSync(buffer.toString());
       print('Analysis report saved to: $filePath');
     } catch (e, stackTrace) {
-      final errorMessage = '''
+      final errorMessage =
+          '''
 Error saving analysis report to $filePath:
 $e
 Ensure the output directory ($outputDirectory) exists and you have write permissions.

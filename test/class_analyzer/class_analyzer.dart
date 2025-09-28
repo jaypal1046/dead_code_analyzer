@@ -4,8 +4,9 @@ import 'text_class_file.dart';
 
 void classAnalyzerTest() {
   final lines = ckassTestFile.split('\n');
-  final pragmaRegex =
-      RegExp(r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''');
+  final pragmaRegex = RegExp(
+    r'''@\s*pragma\s*\(\s*[\'"]vm:entry-point[\'"]\s*\)''',
+  );
   Map<String, ClassInfo> classes = {};
   bool insideStateClass = false;
 
@@ -42,7 +43,8 @@ void classAnalyzerTest() {
   classes.forEach((name, info) {
     if (info.commentedOut) {
       print(
-          ' - $name (in ${info.definedInFile}, internal references: 0, external references: 0, total: 0) []');
+        ' - $name (in ${info.definedInFile}, internal references: 0, external references: 0, total: 0) []',
+      );
     }
   });
 
@@ -51,7 +53,8 @@ void classAnalyzerTest() {
   classes.forEach((name, info) {
     if (!info.commentedOut) {
       print(
-          ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint})');
+        ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint})',
+      );
     }
   });
 
@@ -60,7 +63,8 @@ void classAnalyzerTest() {
   classes.forEach((name, info) {
     if (info.type == 'state_class') {
       print(
-          ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint})');
+        ' - $name (in ${info.definedInFile}, type: ${info.type}, entryPoint: ${info.isEntryPoint})',
+      );
     }
   });
 }

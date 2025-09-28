@@ -12,7 +12,7 @@ class CodeInfo {
   final int startPosition; // New field
   final bool isAbstract;
   final bool
-      isPrebuiltFlutterCommentedOut; // New field to track commented out prebuilt Flutter methods
+  isPrebuiltFlutterCommentedOut; // New field to track commented out prebuilt Flutter methods
   final String className; // New field to track class name
   final bool isStaticFunction; // New field to track static functions
   CodeInfo(
@@ -53,20 +53,21 @@ class CodeInfo {
 
   factory CodeInfo.fromJson(Map<String, dynamic> json) {
     return CodeInfo(
-      json['definedInFile'] as String,
-      isEntryPoint: json['isEntryPoint'] ?? false,
-      type: json['type'] as String,
-      isPrebuiltFlutter: json['isPrebuiltFlutter'] ?? false,
-      isEmpty: json['isEmpty'] ?? false,
-      isConstructor: json['isConstructor'] ?? false,
-      commentedOut: json['commentedOut'] ?? false,
-      lineIndex: json['lineIndex'] as int,
-      startPosition: json['startPosition'] as int,
-      isAbstract: json['isAbstract'] ?? false,
-      isPrebuiltFlutterCommentedOut: json['isPrebuiltFlutterCommentedOut'] ?? false,
-      className: json['className'] ?? '',
-      isStaticFunction: json['isStaticFunction'] ?? false,
-    )
+        json['definedInFile'] as String,
+        isEntryPoint: json['isEntryPoint'] ?? false,
+        type: json['type'] as String,
+        isPrebuiltFlutter: json['isPrebuiltFlutter'] ?? false,
+        isEmpty: json['isEmpty'] ?? false,
+        isConstructor: json['isConstructor'] ?? false,
+        commentedOut: json['commentedOut'] ?? false,
+        lineIndex: json['lineIndex'] as int,
+        startPosition: json['startPosition'] as int,
+        isAbstract: json['isAbstract'] ?? false,
+        isPrebuiltFlutterCommentedOut:
+            json['isPrebuiltFlutterCommentedOut'] ?? false,
+        className: json['className'] ?? '',
+        isStaticFunction: json['isStaticFunction'] ?? false,
+      )
       ..internalUsageCount = json['internalUsageCount'] ?? 0
       ..externalUsages.addAll(
         (json['externalUsages'] as Map?)?.map(

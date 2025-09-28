@@ -121,21 +121,25 @@ class DeadCodeCleaner {
 
   /// Checks for used classes in the specified file
   bool _hasUsedClasses(String filePath) {
-    return classes.values.any((classInfo) =>
-        classInfo.definedInFile == filePath &&
-        classInfo.totalUsages > 0 &&
-        !classInfo.commentedOut);
+    return classes.values.any(
+      (classInfo) =>
+          classInfo.definedInFile == filePath &&
+          classInfo.totalUsages > 0 &&
+          !classInfo.commentedOut,
+    );
   }
 
   /// Checks for used functions in the specified file
   bool _hasUsedFunctions(String filePath) {
     if (!analyzeFunctions) return false;
 
-    return functions.values.any((functionInfo) =>
-        functionInfo.definedInFile == filePath &&
-        functionInfo.totalUsages > 0 &&
-        !functionInfo.commentedOut &&
-        !functionInfo.isPrebuiltFlutter);
+    return functions.values.any(
+      (functionInfo) =>
+          functionInfo.definedInFile == filePath &&
+          functionInfo.totalUsages > 0 &&
+          !functionInfo.commentedOut &&
+          !functionInfo.isPrebuiltFlutter,
+    );
   }
 
   /// Checks for used variables in the specified file
@@ -192,7 +196,8 @@ class DeadCodeCleaner {
   /// Prints files that are eligible for deletion
   void _printFilesEligibleForDeletion(List<String> filesToDelete) {
     print(
-        '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:');
+      '\nThe following files contain only dead or commented-out classes/functions and are eligible for deletion:',
+    );
     for (final filePath in filesToDelete) {
       final relativePath = _toLibRelativePath(filePath);
       print(' - $relativePath');
@@ -201,8 +206,10 @@ class DeadCodeCleaner {
 
   /// Prints deletion warning message
   void _printDeletionWarning() {
-    print('\nWARNING: Deleting files may affect useful code due to edge cases '
-        '(e.g., dynamic calls, reflection, or external references not detected by the analyzer).');
+    print(
+      '\nWARNING: Deleting files may affect useful code due to edge cases '
+      '(e.g., dynamic calls, reflection, or external references not detected by the analyzer).',
+    );
     print('We strongly recommend reviewing and deleting files manually.');
   }
 
@@ -227,8 +234,10 @@ class DeadCodeCleaner {
 
   /// Prints message when no files are eligible for deletion
   void _printNoFilesEligible() {
-    print('\nNo files eligible for deletion (all files with dead or commented '
-        'classes/functions contain other used entities).');
+    print(
+      '\nNo files eligible for deletion (all files with dead or commented '
+      'classes/functions contain other used entities).',
+    );
   }
 
   /// Converts absolute path to lib-relative path

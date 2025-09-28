@@ -68,10 +68,7 @@ class _ClassLineAnalyzer {
       startPosition: _calculateStartPosition(),
     );
 
-    return ClassDefinitionResult(
-      name: matchResult.className,
-      info: classInfo,
-    );
+    return ClassDefinitionResult(name: matchResult.className, info: classInfo);
   }
 
   /// Checks if the class has an entry point pragma annotation
@@ -151,10 +148,7 @@ class _ClassPatternMatcher {
         final className = _extractClassName(match, pattern);
         final classType = _determineClassType(pattern.type);
 
-        return ClassMatchResult(
-          className: className,
-          classType: classType,
-        );
+        return ClassMatchResult(className: className, classType: classType);
       }
     }
 

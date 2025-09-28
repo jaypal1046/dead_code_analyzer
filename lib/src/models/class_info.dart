@@ -32,17 +32,18 @@ class ClassInfo {
 
   factory ClassInfo.fromJson(Map<String, dynamic> json) {
     return ClassInfo(
-      json['definedInFile'] as String,
-      type: json['type'] as String,
-      isEntryPoint: json['isEntryPoint'] as bool? ?? false,
-      commentedOut: json['commentedOut'] as bool? ?? false,
-      lineIndex: json['lineIndex'] as int,
-      startPosition: json['startPosition'] as int,
-    )
+        json['definedInFile'] as String,
+        type: json['type'] as String,
+        isEntryPoint: json['isEntryPoint'] as bool? ?? false,
+        commentedOut: json['commentedOut'] as bool? ?? false,
+        lineIndex: json['lineIndex'] as int,
+        startPosition: json['startPosition'] as int,
+      )
       ..internalUsageCount = json['internalUsageCount'] as int? ?? 0
       ..externalUsages.addAll(
-        (json['externalUsages'] as Map<String, dynamic>? ?? {})
-            .map((k, v) => MapEntry(k, v as int)),
+        (json['externalUsages'] as Map<String, dynamic>? ?? {}).map(
+          (k, v) => MapEntry(k, v as int),
+        ),
       );
   }
 

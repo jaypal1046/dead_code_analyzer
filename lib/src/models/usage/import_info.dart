@@ -8,7 +8,7 @@ class ImportInfo {
   final String? sourceFile;
   final bool isExport; // New field to distinguish exports from imports
   final bool isWildcardExport; // New field for export * statements
-  
+
   ImportInfo({
     required this.path,
     this.asAlias,
@@ -50,15 +50,21 @@ class ImportInfo {
   }
 
   // Helper method to check if this is a selective export
-  bool get isSelectiveExport => isExport && (shownClasses.isNotEmpty || shownFunctions.isNotEmpty);
-  
+  bool get isSelectiveExport =>
+      isExport && (shownClasses.isNotEmpty || shownFunctions.isNotEmpty);
+
   // Helper method to check if this is a hiding export
-  bool get isHidingExport => isExport && (hiddenClasses.isNotEmpty || hiddenFunctions.isNotEmpty);
-  
+  bool get isHidingExport =>
+      isExport && (hiddenClasses.isNotEmpty || hiddenFunctions.isNotEmpty);
+
   // Helper method to check if this is a simple export (no show/hide/wildcard)
-  bool get isSimpleExport => isExport && !isWildcardExport && 
-      shownClasses.isEmpty && hiddenClasses.isEmpty && 
-      shownFunctions.isEmpty && hiddenFunctions.isEmpty;
+  bool get isSimpleExport =>
+      isExport &&
+      !isWildcardExport &&
+      shownClasses.isEmpty &&
+      hiddenClasses.isEmpty &&
+      shownFunctions.isEmpty &&
+      hiddenFunctions.isEmpty;
 
   // Helper methods to get all shown/hidden items
   List<String> get allShownItems => [...shownClasses, ...shownFunctions];
@@ -67,8 +73,8 @@ class ImportInfo {
   @override
   String toString() {
     return 'ImportInfo(path: $path, isExport: $isExport, isWildcardExport: $isWildcardExport, '
-           'shownClasses: $shownClasses, hiddenClasses: $hiddenClasses, '
-           'shownFunctions: $shownFunctions, hiddenFunctions: $hiddenFunctions, '
-           'asAlias: $asAlias, sourceFile: $sourceFile)';
+        'shownClasses: $shownClasses, hiddenClasses: $hiddenClasses, '
+        'shownFunctions: $shownFunctions, hiddenFunctions: $hiddenFunctions, '
+        'asAlias: $asAlias, sourceFile: $sourceFile)';
   }
 }

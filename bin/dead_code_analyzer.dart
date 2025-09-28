@@ -109,7 +109,8 @@ AnalysisConfig _createAnalysisConfig(ArgResults args) {
 
 /// Gets the default output directory (Desktop)
 String _getDefaultOutputDirectory() {
-  final home = Platform.environment['HOME'] ??
+  final home =
+      Platform.environment['HOME'] ??
       Platform.environment['USERPROFILE'] ??
       '.';
   return path.join(home, 'Desktop');
@@ -181,10 +182,7 @@ Future<AnalysisResult> _performCodeAnalysis(
     exportList: exportList,
   );
 
-  return AnalysisResult(
-    classes: classes,
-    functions: functions,
-  );
+  return AnalysisResult(classes: classes, functions: functions);
 }
 
 /// Generates console and file reports

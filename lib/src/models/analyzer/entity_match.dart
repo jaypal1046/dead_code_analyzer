@@ -6,8 +6,5 @@ class EntityMatch {
   /// The regex match containing the entity details.
   final RegExpMatch match;
 
-  const EntityMatch({
-    required this.type,
-    required this.match,
-  });
+  const EntityMatch({required this.type, required this.match});
 }

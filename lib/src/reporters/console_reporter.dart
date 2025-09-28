@@ -8,7 +8,7 @@ import 'package:dead_code_analyzer/src/utils/helper.dart';
 import 'package:path/path.dart' as path;
 
 /// A console reporter for displaying dead code analysis results.
-/// 
+///
 /// This class provides methods to categorize and display information about
 /// unused classes and functions in a Flutter/Dart project.
 class ConsoleReporter {
@@ -16,7 +16,7 @@ class ConsoleReporter {
   ConsoleReporter._();
 
   /// Converts an absolute path to a lib-relative path for cleaner output.
-  /// 
+  ///
   /// Returns a path relative to the lib directory if the file is within lib,
   /// otherwise returns a path relative to the project root.
   static String toLibRelativePath(String absolutePath, String projectPath) {
@@ -28,7 +28,7 @@ class ConsoleReporter {
   }
 
   /// Categorizes classes based on their usage patterns.
-  /// 
+  ///
   /// Returns a [CategorizedClasses] object containing lists of classes
   /// grouped by their usage characteristics.
   static CategorizedClasses categorizeClasses(Map<String, ClassInfo> classes) {
@@ -79,7 +79,7 @@ class ConsoleReporter {
   }
 
   /// Categorizes functions based on their usage patterns.
-  /// 
+  ///
   /// Returns a [CategorizedFunctions] object containing lists of functions
   /// grouped by their usage characteristics.
   static CategorizedFunctions categorizeFunctions(
@@ -149,19 +149,20 @@ class ConsoleReporter {
   ) {
     print('\nAnalysis Summary:');
 
-    final activeClasses =
-        classes.entries.where((entry) => !entry.value.commentedOut).length;
+    final activeClasses = classes.entries
+        .where((entry) => !entry.value.commentedOut)
+        .length;
     print('Total classes analyzed: ${classes.length}');
     print('Commented Classes: ${categorizedClasses.commented.length}');
-    
-    final unusedPercentage = activeClasses > 0 
+
+    final unusedPercentage = activeClasses > 0
         ? (categorizedClasses.unused.length / activeClasses * 100)
         : 0.0;
     print(
       'Unused Classes: ${categorizedClasses.unused.length} '
       '(${unusedPercentage.toStringAsFixed(1)}%)',
     );
-    
+
     print(
       'Classes used only internally: '
       '${categorizedClasses.internalOnly.length}',
@@ -181,11 +182,12 @@ class ConsoleReporter {
     );
 
     if (analyzeFunctions) {
-      final activeFunctions =
-          functions.entries.where((entry) => !entry.value.commentedOut).length;
+      final activeFunctions = functions.entries
+          .where((entry) => !entry.value.commentedOut)
+          .length;
       print('Total functions analyzed: ${functions.length}');
       print('Commented functions: ${categorizedFunctions.commented.length}');
-      
+
       final unusedFuncPercentage = activeFunctions > 0
           ? (categorizedFunctions.unused.length / activeFunctions * 100)
           : 0.0;
@@ -193,7 +195,7 @@ class ConsoleReporter {
         'Unused functions: ${categorizedFunctions.unused.length} '
         '(${unusedFuncPercentage.toStringAsFixed(1)}%)',
       );
-      
+
       print(
         'Functions used only internally: '
         '${categorizedFunctions.internalOnly.length}',
@@ -228,16 +230,19 @@ class ConsoleReporter {
 
     print('\nUnused Classes:');
     final itemsToShow = min(unusedClasses.length, maxUnused);
-    
+
     for (int i = 0; i < itemsToShow; i++) {
       final className = unusedClasses[i];
       final classInfo = classes[className];
       if (classInfo != null) {
-        final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
+        final definedIn = toLibRelativePath(
+          classInfo.definedInFile,
+          projectPath,
+        );
         print(' - $className (in $definedIn)');
       }
     }
-    
+
     if (unusedClasses.length > maxUnused) {
       print(' - ... and ${unusedClasses.length - maxUnused} more');
     }
@@ -254,12 +259,12 @@ class ConsoleReporter {
 
     print('\nCommented Functions:');
     final itemsToShow = min(commentedFunctions.length, maxUnused);
-    
+
     for (int i = 0; i < itemsToShow; i++) {
       final functionName = commentedFunctions[i];
       final cleanName = Helper.cleanFunctionName(functionName);
       final functionInfo = functions[functionName];
-      
+
       if (functionInfo != null) {
         final definedIn = toLibRelativePath(
           functionInfo.definedInFile,
@@ -268,7 +273,7 @@ class ConsoleReporter {
         print(' - $cleanName (in $definedIn) [COMMENTED OUT]');
       }
     }
-    
+
     if (commentedFunctions.length > maxUnused) {
       print(' - ... and ${commentedFunctions.length - maxUnused} more');
     }
@@ -286,7 +291,10 @@ class ConsoleReporter {
     for (final className in entryPointClasses) {
       final classInfo = classes[className];
       if (classInfo != null) {
-        final definedIn = toLibRelativePath(classInfo.definedInFile, projectPath);
+        final definedIn = toLibRelativePath(
+          classInfo.definedInFile,
+          projectPath,
+        );
         final totalUses = classInfo.totalUsages;
         final usageNote = totalUses == 0 ? ' [Used by native code]' : '';
         print(
@@ -307,11 +315,11 @@ class ConsoleReporter {
 
     print('\nUnused Functions:');
     final itemsToShow = min(unusedFunctions.length, maxUnused);
-    
+
     for (int i = 0; i < itemsToShow; i++) {
       final functionName = unusedFunctions[i];
       final functionInfo = functions[functionName];
-      
+
       if (functionInfo != null) {
         final definedIn = toLibRelativePath(
           functionInfo.definedInFile,
@@ -320,7 +328,7 @@ class ConsoleReporter {
         print(' - $functionName (in $definedIn)');
       }
     }
-    
+
     if (unusedFunctions.length > maxUnused) {
       print(' - ... and ${unusedFunctions.length - maxUnused} more');
     }
@@ -337,23 +345,21 @@ class ConsoleReporter {
 
     print('\nEmpty Prebuilt Flutter Functions:');
     final itemsToShow = min(emptyPrebuiltFunctions.length, maxUnused);
-    
+
     for (int i = 0; i < itemsToShow; i++) {
       final functionName = emptyPrebuiltFunctions[i];
       final functionInfo = functions[functionName];
-      
+
       if (functionInfo != null) {
         final definedIn = toLibRelativePath(
           functionInfo.definedInFile,
           projectPath,
         );
         final totalUses = functionInfo.totalUsages;
-        print(
-          ' - $functionName (in $definedIn, total references: $totalUses)',
-        );
+        print(' - $functionName (in $definedIn, total references: $totalUses)');
       }
     }
-    
+
     if (emptyPrebuiltFunctions.length > maxUnused) {
       print(' - ... and ${emptyPrebuiltFunctions.length - maxUnused} more');
     }
@@ -423,11 +429,15 @@ class ConsoleReporter {
         print('  External usage files: $usageFiles');
       }
 
-      final category = _getClassCategory(className, categorizedClasses, classInfo);
+      final category = _getClassCategory(
+        className,
+        categorizedClasses,
+        classInfo,
+      );
       if (category.isNotEmpty) {
         print('  Category: $category');
       }
-      
+
       print('');
     }
   }
@@ -484,7 +494,7 @@ class ConsoleReporter {
       if (category.isNotEmpty) {
         print('  Category: $category');
       }
-      
+
       print('');
     }
   }
@@ -566,9 +576,7 @@ class ConsoleReporter {
     }
 
     if (categorizedFunctions.internalOnly.isNotEmpty) {
-      print(
-        '- Consider reducing the scope of functions used only internally.',
-      );
+      print('- Consider reducing the scope of functions used only internally.');
     }
 
     if (categorizedFunctions.externalOnly.isNotEmpty) {
@@ -582,7 +590,8 @@ class ConsoleReporter {
     }
 
     if (categorizedFunctions.emptyPrebuilt.isNotEmpty) {
-      final firstEmptyFunction = functions[categorizedFunctions.emptyPrebuilt.first];
+      final firstEmptyFunction =
+          functions[categorizedFunctions.emptyPrebuilt.first];
       if (firstEmptyFunction != null) {
         final relativePath = toLibRelativePath(
           firstEmptyFunction.definedInFile,
@@ -652,11 +661,7 @@ class ConsoleReporter {
       );
     }
 
-    printEntryPointClasses(
-      categorizedClasses.entryPoint,
-      classes,
-      projectPath,
-    );
+    printEntryPointClasses(categorizedClasses.entryPoint, classes, projectPath);
 
     if (analyzeFunctions) {
       printUnusedFunctions(
@@ -763,7 +768,9 @@ class ConsoleReporter {
       return 'Internal Only';
     } else if (categorizedFunctions.externalOnly.contains(functionName)) {
       return 'External Only';
-    } else if (categorizedFunctions.bothInternalExternal.contains(functionName)) {
+    } else if (categorizedFunctions.bothInternalExternal.contains(
+      functionName,
+    )) {
       return 'Both Internal and External';
     }
     return '';

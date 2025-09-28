@@ -27,14 +27,16 @@ class ExportCollector {
     final namedMatch = namedExportRegex.firstMatch(line);
     if (namedMatch != null) {
       exportPath = namedMatch.group(1)!;
-      showItems = namedMatch
+      showItems =
+          namedMatch
               .group(2)
               ?.split(',')
               .map((s) => s.trim())
               .where((s) => s.isNotEmpty)
               .toList() ??
           [];
-      hideItems = namedMatch
+      hideItems =
+          namedMatch
               .group(3)
               ?.split(',')
               .map((s) => s.trim())
@@ -55,12 +57,12 @@ class ExportCollector {
     final currentDir = path.dirname(currentFile.path);
     // Normalize and resolve the export path for all OS (Windows, Mac, Linux)
     String resolvedPath = path.normalize(path.join(currentDir, exportPath));
-    
+
     // Handle .dart extension if not present
     if (!resolvedPath.endsWith('.dart')) {
       resolvedPath += '.dart';
     }
-    
+
     // Convert to absolute path if not already
     if (!path.isAbsolute(resolvedPath)) {
       resolvedPath = path.absolute(resolvedPath);
@@ -85,9 +87,17 @@ class ExportCollector {
 
     // Separate classes and functions from show/hide lists using file analysis
     final (showClasses, showFunctions) = _separateClassesAndFunctions(
-      showItems, resolvedPath, classes, functions);
+      showItems,
+      resolvedPath,
+      classes,
+      functions,
+    );
     final (hideClasses, hideFunctions) = _separateClassesAndFunctions(
-      hideItems, resolvedPath, classes, functions);
+      hideItems,
+      resolvedPath,
+      classes,
+      functions,
+    );
 
     // Determine if this is a wildcard export (simple export with no show/hide)
     final isWildcardExport = showItems.isEmpty && hideItems.isEmpty;
@@ -100,14 +110,18 @@ class ExportCollector {
         hiddenClasses: hideClasses,
         shownFunctions: showFunctions,
         hiddenFunctions: hideFunctions,
-        sourceFile: path.absolute(currentFile.path), // Track the source of the export
+        sourceFile: path.absolute(
+          currentFile.path,
+        ), // Track the source of the export
         isExport: true, // Mark this as an export
         isWildcardExport: isWildcardExport, // Mark if it's a wildcard export
       ),
     );
 
     // Optional: Print debug information
-    print('Found export: ${isWildcardExport ? 'wildcard' : 'selective'} from $resolvedPath in ${currentFile.path}');
+    print(
+      'Found export: ${isWildcardExport ? 'wildcard' : 'selective'} from $resolvedPath in ${currentFile.path}',
+    );
     if (showClasses.isNotEmpty || showFunctions.isNotEmpty) {
       print('  - Showing classes: ${showClasses.join(', ')}');
       print('  - Showing functions: ${showFunctions.join(', ')}');
@@ -129,9 +143,11 @@ class ExportCollector {
 
     for (final line in lines) {
       final trimmedLine = line.trim();
-      
+
       // Skip comments and empty lines
-      if (trimmedLine.isEmpty || trimmedLine.startsWith('//') || trimmedLine.startsWith('/*')) {
+      if (trimmedLine.isEmpty ||
+          trimmedLine.startsWith('//') ||
+          trimmedLine.startsWith('/*')) {
         continue;
       }
 
@@ -170,7 +186,9 @@ class ExportCollector {
       // Match function declarations (top-level functions)
       final functionRegex = RegExp(r'(?:Future<\w+>|[\w<>]+)\s+(\w+)\s*\(');
       final functionMatch = functionRegex.firstMatch(trimmedLine);
-      if (functionMatch != null && !trimmedLine.contains('class ') && !trimmedLine.contains('{')) {
+      if (functionMatch != null &&
+          !trimmedLine.contains('class ') &&
+          !trimmedLine.contains('{')) {
         functions.add(functionMatch.group(1)!);
         continue;
       }
@@ -179,7 +197,9 @@ class ExportCollector {
       final varRegex = RegExp(r'(?:final|const|var)\s+(?:\w+\s+)?(\w+)\s*=');
       final varMatch = varRegex.firstMatch(trimmedLine);
       if (varMatch != null) {
-        functions.add(varMatch.group(1)!); // Treat variables as functions for now
+        functions.add(
+          varMatch.group(1)!,
+        ); // Treat variables as functions for now
       }
     }
 
@@ -195,7 +215,7 @@ class ExportCollector {
   ) {
     // First, analyze the exported file to understand what it contains
     final (fileClasses, fileFunctions) = analyzeExportedFile(exportedFilePath);
-    
+
     final classNames = <String>[];
     final functionNames = <String>[];
 
@@ -211,8 +231,7 @@ class ExportCollector {
       // Fallback to current context
       else if (currentClasses.containsKey(item)) {
         classNames.add(item);
-      }
-      else if (currentFunctions.containsKey(item)) {
+      } else if (currentFunctions.containsKey(item)) {
         functionNames.add(item);
       }
     }
@@ -224,7 +243,7 @@ class ExportCollector {
   static List<ImportInfo> getExportsFromFile(File file) {
     final exportList = <ImportInfo>[];
     final lines = file.readAsLinesSync();
-    
+
     for (final line in lines) {
       final trimmedLine = line.trim();
       if (trimmedLine.startsWith('export ')) {
@@ -238,7 +257,7 @@ class ExportCollector {
         );
       }
     }
-    
+
     return exportList;
   }
 

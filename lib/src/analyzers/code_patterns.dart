@@ -11,14 +11,10 @@ class CodePatterns {
     'class': RegExp(
       r'class\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+\w+(?:<[^>]*>)?)?(?:\s+with\s+[\w\s,<>]+)?(?:\s+implements\s+[\w\s,<>]+)?\s*\{',
     ),
-    'enum': RegExp(
-      r'enum\s+(\w+)(?:\s+with\s+[\w\s,<>]+)?\s*\{',
-    ),
+    'enum': RegExp(r'enum\s+(\w+)(?:\s+with\s+[\w\s,<>]+)?\s*\{'),
     'extension': RegExp(
       r'extension\s+(\w+)(?:<[^>]*>)?\s+on\s+[\w<>\s,]+\s*\{',
     ),
-    'mixin': RegExp(
-      r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{',
-    ),
+    'mixin': RegExp(r'mixin\s+(\w+)(?:<[^>]*>)?(?:\s+on\s+[\w\s,<>]+)?\s*\{'),
   };
 }
