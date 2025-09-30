@@ -8,69 +8,57 @@ Dead Code Analyzer is a command-line tool for Dart and Flutter projects that ide
 
 ## Features
 
-- Detects unused classes, functions, and variables.
-- Tracks internal and external references for code elements.
-- Generates detailed reports with recommendations for code removal.
-- Displays interactive progress indicators during analysis.
-- Supports custom exclusion patterns to skip specific files or directories.
-- Experimental support for analyzing multiple projects and flavored `main` functions (e.g., `main_dev.dart`, `main_prod.dart`).
-- Verbose mode for debugging reference counting issues.
-- Detects and categorizes all Dart class types and their usage locations.
+- **Comprehensive Code Detection**: Identifies unused classes, functions, and variables across your entire project
+- **Smart Reference Tracking**: Tracks internal (same-file) and external (cross-file) references with export analysis
+- **Multiple Report Formats**: Generate reports in TXT, HTML, or Markdown formats
+- **Interactive Progress Indicators**: Real-time feedback during analysis (can be disabled with `--quiet`)
+- **Configurable Output Limits**: Control console verbosity with customizable entity display limits
+- **Automatic Cleanup**: Safely remove files containing only dead or commented-out code
+- **Trace Mode**: Debug reference counting with detailed execution logs
+- **Advanced Class Analysis**: Detects and categorizes mixins, enums, extensions, state classes, @pragma classes, and typedefs
 
 **Note**: The current version uses a regex-based analysis, which may misreport references for classes with constructors. An AST-based approach is in development for improved accuracy (see [Limitations](#limitations)).
 
-## How to Use
+## Installation
 
-Take these steps to enable Dead Code Analyzer:
+### As a Dev Dependency
 
-1. **Install the package as a dev dependency**:
+For Dart projects:
+```terminal
+dart pub add --dev dead_code_analyzer
+```
 
-   ```terminal
-   dart pub add --dev dead_code_analyzer
-   ```
+For Flutter projects:
+```terminal
+flutter pub add --dev dead_code_analyzer
+```
 
-   or, for Flutter projects:
+### Global Installation
 
-   ```terminal
-   flutter pub add --dev dead_code_analyzer
-   ```
+```terminal
+dart pub global activate dead_code_analyzer
+```
 
-2. **Run the analyzer**:
+Verify installation:
+```terminal
+dead_code_analyzer --version
+```
 
-   ```terminal
-   # If installed globally
-   dart pub global activate dead_code_analyzer
-   ```
+## Quick Start
 
-   ```terminal
-   # Check version
-   dead_code_analyzer --version
-   ```
+```terminal
+# Analyze current directory
+dead_code_analyzer
 
-   ```terminal
-   # Or run directly from source
-   dart run bin/dead_code_analyzer.dart
-   ```
+# Analyze specific project
+dead_code_analyzer -p /path/to/your/project
 
-   ```terminal
-   # Analyze a specific project
-   dead_code_analyzer -p /path/to/your/project
-   ```
+# Full analysis with functions and HTML report
+dead_code_analyzer -p /path/to/project -o ./reports --funcs -s html
 
-   ```terminal
-   # Analyze with functions and verbose output
-   dead_code_analyzer -p /path/to/flutter/project -o /path/to/save/report --analyze-functions --verbose
-   ```
-
-   ```terminal
-   # Analyze multiple projects (monorepo)
-   dead_code_analyzer -p /path/to/monorepo --analyze-functions --verbose
-   ```
-
-   ```terminal
-   # Clean unused files
-   dead_code_analyzer -p /path/to/project --clean --analyze-functions
-   ```
+# Clean unused files (always backup first!)
+dead_code_analyzer -p /path/to/project --clean --funcs
+```
 
 ## Command Line Options
 
@@ -79,155 +67,345 @@ Usage: dead_code_analyzer [options]
 
 Options:
   -V, --version         Show version number
-  -p, --project-path    Path to the project to analyze (default: current directory)
-  -o, --output-dir      Directory to save the report file (default: Desktop)
-  -v, --verbose         Show detailed output including all usage locations and debug logs
-  -e, --exclude         Comma-separated patterns to exclude (e.g., "test,example,*.g.dart")
-  --no-progress         Disable progress indicators
-  --only-unused         Show only unused elements in the report
-  --analyze-functions   Include function analysis (default: false)
-  --clean               Remove unused files (use with caution)
+  -p, --path            Path to the project to analyze (default: current directory)
+  -o, --out             Directory to save the report file (default: Desktop)
+  -s, --style           Output format: txt, html, or md (default: txt)
+  -l, --limit           Maximum unused entities to display in console (default: 10)
+  -f, --funcs           Include function usage analysis (default: false)
+  -c, --clean           Clean up files with only dead/commented code
+  -t, --trace           Show detailed execution trace for debugging
+  -q, --quiet           Disable progress indicators (useful for CI/CD)
   -h, --help            Show this help message
+```
+
+## Report Formats
+
+### Text Format (Default)
+Simple, readable text output perfect for quick reviews:
+```terminal
+dead_code_analyzer -p . -s txt
+```
+
+### HTML Format
+Rich, interactive reports with styling and better navigation:
+```terminal
+dead_code_analyzer -p . -s html -o ./reports
+```
+
+### Markdown Format
+Documentation-friendly format that integrates with docs:
+```terminal
+dead_code_analyzer -p . -s md -o ./docs
 ```
 
 ## Comprehensive Class Analysis
 
-The analyzer now provides detailed categorization of all Dart class types and their usage patterns:
+The analyzer provides detailed categorization of all Dart class types:
 
 ### Class Categories Analyzed
 
 - **Unused Classes**: Classes with zero internal and external references
 - **Commented Classes**: Classes that are commented out in code
-- **Classes Used Only Internally**: Classes referenced only within the same file
-- **Classes Used Only Externally**: Classes referenced only from other files
-- **Classes Used Both Internally and Externally**: Classes with mixed usage patterns
+- **Classes Used Only Internally**: Referenced only within the same file
+- **Classes Used Only Externally**: Referenced only from other files
+- **Classes Used Both Internally and Externally**: Mixed usage patterns
 - **Mixin Classes**: Dart mixins and their usage tracking
 - **Enum Classes**: Enumerations and their reference counting
 - **Extension Classes**: Extension methods and their usage
-- **State Classes**: StatefulWidget state classes
+- **State Classes**: StatefulWidget state classes and lifecycle tracking
 - **@pragma Classes**: Entry-point classes marked with @pragma annotations
 - **Typedef Classes**: Type aliases and custom type definitions
 
 ## Example Output
 
-_Note: Timestamps, file paths, and counts are illustrative and will vary._
-
 ```
+Analyzing Flutter project at: /path/to/your/project
+
 Dead Code Analysis - [Generated Timestamp]
 ==================================================
 
 Unused Classes
 ------------------------------
- - Active (in lib/sdhf.dart, internal references: 0, external references: 0, total: 0)
- - StateFullClass (in lib/classwithfunct.dart, internal references: 0, external references: 0, total: 0)
+ - Active (in lib/sdhf.dart, internal: 0, external: 0, total: 0)
+ - StateFullClass (in lib/classwithfunct.dart, internal: 0, external: 0, total: 0)
 
 Unused Functions
 ------------------------------
- - myFunction (in lib/classwithfunct.dart, internal references: 0, external references: 0, total: 0)
+ - myFunction (in lib/classwithfunct.dart, internal: 0, external: 0, total: 0)
 
 Summary
 ------------------------------
 Total analyzed files: 32
 Total classes: 15
 Total functions: 42
-Total variables: 128
 
-Unused elements: 8 (4.2% of all code elements)
- - Unused classes: 4 (26.7%)
+Unused elements: 5 (3.5% of all code elements)
+ - Unused classes: 2 (13.3%)
  - Unused functions: 3 (7.1%)
- - Unused variables: 1 (0.8%)
 
-Full analysis saved to: [User Desktop]/dead_code_analysis_[timestamp].txt
+Full analysis saved to: [Desktop]/dead_code_analysis_[timestamp].txt
 
 Recommendations:
-- Remove unused classes and functions listed above.
-- Verify @pragma-annotated classes (e.g., MyClass) before deletion, as they may be used by native code.
-- Run with --verbose to debug reference counting issues.
-- Use --clean to automatically remove unused files (backup your project first).
+- Remove unused classes and functions listed above
+- Verify @pragma-annotated classes before deletion (may be used by native code)
+- Run with --trace to debug reference counting issues
+- Use --clean to automatically remove unused files (backup first!)
 ```
 
-You can visualize the summary statistics with a pie chart by running the tool with a hypothetical `--chart` flag (not yet implemented) or manually generating one using the report data. For example, a pie chart of unused elements might show:
+## Advanced Usage
+
+### Debugging Reference Counts
+
+Use trace mode to understand how references are counted:
+```terminal
+dead_code_analyzer -p . --trace --funcs
+```
+
+This shows:
+- Files being analyzed
+- Entities discovered in each file
+- Reference matches found
+- Export chain resolution
+
+### Limiting Console Output
+
+For large projects, limit console noise:
+```terminal
+# Show only top 5 unused entities
+dead_code_analyzer -p . --funcs --limit 5
+
+# Or run quietly for CI/CD
+dead_code_analyzer -p . --quiet --funcs
+```
+
+### Safe Cleanup Workflow
+
+Always backup before cleaning:
+```terminal
+# 1. Commit current state
+git add .
+git commit -m "Pre-cleanup checkpoint"
+
+# 2. Run cleanup
+dead_code_analyzer -p . --clean --funcs
+
+# 3. Review changes
+git diff
+
+# 4. Test thoroughly before committing
+flutter test  # or dart test
+```
 
 ## Integration with CI/CD
 
-Integrate Dead Code Analyzer into your CI/CD pipeline:
+### GitHub Actions
 
 ```yaml
-# Example GitHub Actions workflow
-name: Dead Code Check
+name: Dead Code Analysis
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
-
-      - name: Install dead_code_analyzer
+      
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+      
+      - name: Install Dependencies
+        run: dart pub get
+      
+      - name: Install Dead Code Analyzer
         run: dart pub global activate dead_code_analyzer
+      
+      - name: Run Analysis
+        run: dead_code_analyzer -p . --quiet --funcs --limit 20 -s md -o ./reports
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dead-code-report
+          path: ./reports/*.md
+```
 
-      - name: Run dead code analysis
-        run: dead_code_analyzer -p . --no-progress --only-unused --analyze-functions --verbose
+### GitLab CI
+
+```yaml
+dead_code_analysis:
+  stage: test
+  image: dart:stable
+  script:
+    - dart pub global activate dead_code_analyzer
+    - dead_code_analyzer -p . --quiet --funcs -s html -o ./reports
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 30 days
 ```
 
 ## How It Works
 
-The analyzer currently uses a regex-based approach to:
+The analyzer performs a multi-phase analysis:
 
-1. Scan all Dart files in the project.
-2. Identify declarations of classes (regular, mixin, enum, extension, state, @pragma, typedef), functions, and variables.
-3. Track references using regular expressions for internal (same file) and external (other files) usages
-4. Generate a report with unused elements and reference counts.
-5. Provide actionable recommendations for code cleanup
+1. **Entity Collection Phase**
+   - Scans all Dart files in the project
+   - Identifies declarations (classes, functions, variables)
+   - Categorizes special class types (mixins, enums, extensions, etc.)
+   - Builds export dependency graph
 
-**Note**: An AST-based analyzer is in development to replace the regex approach, offering better accuracy for complex cases like constructor references.
+2. **Usage Analysis Phase**
+   - Searches for references using optimized regex patterns
+   - Distinguishes internal vs. external references
+   - Tracks export chains to resolve transitive usage
+   - Handles special cases (@pragma annotations, state classes)
+
+3. **Report Generation Phase**
+   - Aggregates usage statistics
+   - Categorizes unused vs. used elements
+   - Generates reports in selected format (TXT/HTML/MD)
+   - Provides actionable recommendations
+
+4. **Cleanup Phase (Optional)**
+   - Identifies files with only dead/commented code
+   - Creates backups (recommended: use git)
+   - Safely removes qualifying files
+
+**Note**: An AST-based analyzer is in development to replace regex for better accuracy with constructors and complex patterns.
 
 ## Best Practices
 
-- Run with `--verbose` to debug reference counting issues (e.g., classes with constructors).
-- Use `--exclude` to skip generated files (e.g., `*.g.dart`, `*.freezed.dart`).
-- Analyze specific projects in a monorepo with `-p /path/to/project`.
-- Backup your project before using `--clean`.
-- Manually verify results before removing code.
+### Analysis Best Practices
+- **Start Small**: Run on a single module before analyzing the entire project
+- **Use Trace Mode**: Enable `--trace` when investigating unexpected results
+- **Version Control**: Always commit before running `--clean`
+- **Regular Analysis**: Integrate into CI/CD for continuous monitoring
+- **Set Realistic Limits**: Use `--limit` to focus on top offenders first
 
-## Supporting Multiple Projects and Flavored `main` Functions
+### Cleanup Best Practices
+- **Backup First**: Use git or create a branch before cleanup
+- **Test After**: Run your test suite after cleanup
+- **Incremental Approach**: Clean a few files at a time
+- **Manual Verification**: Review auto-cleaned files before committing
+- **Team Communication**: Notify team members before large-scale cleanups
 
-- **Multiple Projects**: Run the analyzer on a monorepo root or specify project paths (e.g., `-p /path/to/app1`). Verbose logs include file paths to distinguish projects.
-- **Flavored `main` Functions**: The tool detects `main_dev.dart`, `main_prod.dart`, etc., counting references as external usages. Use `--verbose` to see which files reference elements.
-- **Debugging**: Add a custom `flavors.yaml` for explicit flavor mapping (see [Contributing](#contributing)).
+### CI/CD Best Practices
+- **Use `--quiet`**: Reduce log noise in pipelines
+- **Generate HTML Reports**: Better for artifact storage and review
+- **Set Thresholds**: Fail builds if dead code exceeds acceptable limits
+- **Archive Reports**: Store as build artifacts for tracking trends
+
+## Supporting Multiple Projects and Flavored Apps
+
+### Monorepo Support
+Run the analyzer on multiple projects:
+```terminal
+# Analyze individual projects
+dead_code_analyzer -p ./packages/app1 -o ./reports/app1
+dead_code_analyzer -p ./packages/app2 -o ./reports/app2
+
+# Or analyze from root (limited isolation)
+dead_code_analyzer -p . --trace
+```
+
+### Flavored Main Functions
+The tool automatically detects flavor entry points:
+- `main_dev.dart`, `main_staging.dart`, `main_prod.dart`
+- References from these files count as external usage
+- Use `--trace` to see which flavors reference specific code
+
+```terminal
+# Analyze project with multiple flavors
+dead_code_analyzer -p . --funcs --trace
+```
 
 ## Known Limitations
 
-- **Constructor Reference Counting**: Classes with constructors (e.g., `Active({ ... })`) may be incorrectly counted as having 1 internal reference due to regex limitations. Use `--verbose` to inspect debug logs and report issues.
-- **Dynamic Code**: Reflection or dynamic invocations may lead to false positives.
-- **Unreachable Code**: Not fully supported in the current regex-based version.
-- **Complex Patterns**: Regex may miss callbacks or nested constructor calls.
-- **Monorepo Support**: Limited isolation; run separately for each project if counts are conflated.
+### Current Limitations
+- **Constructor References**: Classes with constructors (e.g., `Active({...})`) may show incorrect internal reference counts due to regex matching the class name in constructor parameters
+- **Dynamic Code**: Reflection, `dart:mirrors`, or dynamic invocations may cause false positives
+- **String References**: Classes referenced only in strings (e.g., JSON serialization) may be marked as unused
+- **Complex Patterns**: Nested callbacks and complex constructor chains might be missed
+- **Generated Code**: `*.g.dart` and `*.freezed.dart` files need careful handling
+- **Monorepo Isolation**: Limited cross-project boundary detection
 
-An AST-based version (in development) will address these issues by parsing the Dart AST for precise reference tracking.
+### Workarounds
+- Use `--trace` to inspect reference counts and understand false positives
+- Manually verify results before removing code
+- Add `// ignore: dead_code` comments for known false positives
+- Exclude generated files from analysis (feature in development)
+
+### Future Improvements
+An AST-based version is in development that will:
+- Parse the full Dart abstract syntax tree
+- Accurately track constructor and method references
+- Handle complex language features (mixins, extensions, etc.)
+- Provide better support for generated code
+- Offer fix suggestions and automated refactoring
 
 ## Contributing
 
-Contributions are welcome! To contribute:
+We welcome contributions! Here's how to get started:
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/fix-constructor-count`).
-3. Commit your changes (`git commit -m 'Fix constructor reference counting'`).
-4. Push to the branch (`git push origin feature/fix-constructor-count`).
-5. Open a Pull Request.
+### Quick Contribution Guide
 
-To help with the constructor issue:
+1. **Fork and Clone**
+   ```terminal
+   git clone https://github.com/YOUR_USERNAME/dead_code_analyzer.git
+   cd dead_code_analyzer
+   ```
 
-- Share debug logs from `--verbose` runs.
-- Provide sample files (e.g., `sdhf.dart`) with problematic classes.
-- Test the AST-based branch when available.
+2. **Create Feature Branch**
+   ```terminal
+   git checkout -b feature/your-feature-name
+   ```
 
-See our [contributing guidelines](CONTRIBUTING.md) for details.
+3. **Make Changes and Test**
+   ```terminal
+   dart test
+   dart run bin/dead_code_analyzer.dart -p ./example_project --trace
+   ```
+
+4. **Submit Pull Request**
+   ```terminal
+   git commit -m "feat: add your feature description"
+   git push origin feature/your-feature-name
+   ```
+
+### Areas for Contribution
+- **AST Parser**: Help build the AST-based analyzer
+- **Constructor Tracking**: Improve constructor reference detection
+- **New Report Formats**: Add JSON, CSV, or custom formats
+- **Exclusion Patterns**: Implement file/folder exclusion rules
+- **Test Coverage**: Add tests for edge cases
+- **Documentation**: Improve examples and guides
+
+### Reporting Issues
+When reporting bugs, please include:
+- Dead Code Analyzer version (`dead_code_analyzer --version`)
+- Dart/Flutter SDK version
+- Sample code that reproduces the issue
+- Output from `--trace` mode
+- Expected vs. actual behavior
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- 📦 [Package on pub.dev](https://pub.dev/packages/dead_code_analyzer)
+- 🐛 [Issue Tracker](https://github.com/jaypal1046/dead_code_analyzer/issues)
+- 💬 [Discussions](https://github.com/jaypal1046/dead_code_analyzer/discussions)
+- 📧 Contact: [Publisher on pub.dev](https://pub.dev/packages/dead_code_analyzer/publisher)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history and breaking changes.

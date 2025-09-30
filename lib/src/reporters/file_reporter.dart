@@ -67,16 +67,40 @@ class FileReporter {
     List<MapEntry<String, ClassInfo>> entries,
     String entityType,
     String projectPath,
+    OutType outType,
   ) {
-    buffer
-      ..writeln(title)
-      ..writeln('-' * title.length)
-      ..writeln();
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('<div class="category">');
+        buffer.writeln('<h3>$title</h3>');
+        break;
+      case OutType.md:
+        buffer.writeln('### $title');
+        buffer.writeln();
+        break;
+      case OutType.txt:
+        buffer
+          ..writeln(title)
+          ..writeln('-' * title.length)
+          ..writeln();
+    }
 
     if (entries.isEmpty) {
-      buffer.writeln('No $entityType found.');
-      buffer.writeln();
+      if (outType == OutType.html) {
+        buffer.writeln('<p class="empty">No $entityType found.</p>');
+      } else {
+        buffer.writeln('No $entityType found.');
+        buffer.writeln();
+      }
+
+      if (outType == OutType.html) {
+        buffer.writeln('</div>');
+      }
       return;
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('<ul class="class-list">');
     }
 
     for (final entry in entries) {
@@ -86,6 +110,7 @@ class FileReporter {
       final externalUses = info.totalExternalUsages;
       final totalUses = internalUses + externalUses;
       final definedIn = _toLibRelativePath(info.definedInFile, projectPath);
+      final absolutePath = info.definedInFile; // Keep absolute path for VS Code
       final usageFilesStr = externalUses > 0
           ? ' ${_formatUsageFiles(info.externalUsages, projectPath)}'
           : '';
@@ -93,11 +118,49 @@ class FileReporter {
           ? ' [Used by native code via @pragma("vm:entry-point")]'
           : '';
 
-      buffer.writeln(
-        '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
-      );
+      switch (outType) {
+        case OutType.html:
+          buffer.writeln('<li>');
+          buffer.writeln('<strong>$name</strong>');
+          buffer.writeln('<span class="details">');
+          // Create clickable link to open in VS Code
+          buffer.writeln(
+            '(in <a href="vscode://file/$absolutePath" class="vscode-link"><code>$definedIn</code></a>, ',
+          );
+          buffer.writeln('internal: $internalUses, ');
+          buffer.writeln('external: $externalUses, ');
+          buffer.writeln('total: $totalUses)');
+          if (usageFilesStr.isNotEmpty) {
+            buffer.writeln(usageFilesStr);
+          }
+          if (entryPointNote.isNotEmpty) {
+            buffer.writeln('<span class="entry-point">$entryPointNote</span>');
+          }
+          buffer.writeln('</span>');
+          buffer.writeln('</li>');
+          break;
+        case OutType.md:
+          buffer.writeln(
+            '- **$name** (in `$definedIn`, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+          );
+          break;
+        case OutType.txt:
+          buffer.writeln(
+            '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+          );
+      }
     }
-    buffer.writeln();
+
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('</ul>');
+        buffer.writeln('</div>');
+        break;
+      case OutType.md:
+        buffer.writeln();
+      case OutType.txt:
+        buffer.writeln();
+    }
   }
 
   /// Writes a categorized section for function entities to the report buffer.
@@ -113,24 +176,50 @@ class FileReporter {
     List<MapEntry<String, CodeInfo>> entries,
     String entityType,
     String projectPath,
+    OutType outType,
   ) {
-    buffer
-      ..writeln(title)
-      ..writeln('-' * title.length)
-      ..writeln();
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('<div class="category">');
+        buffer.writeln('<h3>$title</h3>');
+        break;
+      case OutType.md:
+        buffer.writeln('### $title');
+        buffer.writeln();
+        break;
+      case OutType.txt:
+        buffer
+          ..writeln(title)
+          ..writeln('-' * title.length)
+          ..writeln();
+    }
 
     if (entries.isEmpty) {
-      buffer.writeln('No $entityType found.');
-      buffer.writeln();
+      if (outType == OutType.html) {
+        buffer.writeln('<p class="empty">No $entityType found.</p>');
+      } else {
+        buffer.writeln('No $entityType found.');
+        buffer.writeln();
+      }
+
+      if (outType == OutType.html) {
+        buffer.writeln('</div>');
+      }
       return;
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('<ul class="function-list">');
     }
 
     for (final entry in entries) {
       final name = entry.key;
       final info = entry.value;
+
       final internalUses = info.internalUsageCount;
       final externalUses = info.totalExternalUsages;
       final totalUses = internalUses + externalUses;
+      final absolutePath = info.definedInFile; // Keep absolute path for VS Code
       final definedIn = _toLibRelativePath(info.definedInFile, projectPath);
       final usageFilesStr = externalUses > 0
           ? ' ${_formatUsageFiles(info.externalUsages, projectPath)}'
@@ -139,11 +228,49 @@ class FileReporter {
           ? ' [Used by native code via @pragma]'
           : '';
 
-      buffer.writeln(
-        '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
-      );
+      switch (outType) {
+        case OutType.html:
+          buffer.writeln('<li>');
+          buffer.writeln('<strong>$name</strong>');
+          buffer.writeln('<span class="details">');
+
+          buffer.writeln(
+            '(in <a href="vscode://file/$absolutePath" class="vscode-link"><code>$definedIn</code></a>, ',
+          );
+          buffer.writeln('internal: $internalUses, ');
+          buffer.writeln('external: $externalUses, ');
+          buffer.writeln('total: $totalUses)');
+          if (usageFilesStr.isNotEmpty) {
+            buffer.writeln(usageFilesStr);
+          }
+          if (entryPointNote.isNotEmpty) {
+            buffer.writeln('<span class="entry-point">$entryPointNote</span>');
+          }
+          buffer.writeln('</span>');
+          buffer.writeln('</li>');
+          break;
+        case OutType.md:
+          buffer.writeln(
+            '- **$name** (in `$definedIn`, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+          );
+          break;
+        case OutType.txt:
+          buffer.writeln(
+            '- $name (in $definedIn, internal: $internalUses, external: $externalUses, total: $totalUses)$usageFilesStr$entryPointNote',
+          );
+      }
     }
-    buffer.writeln();
+
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('</ul>');
+        buffer.writeln('</div>');
+        break;
+      case OutType.md:
+        buffer.writeln();
+      case OutType.txt:
+        buffer.writeln();
+    }
   }
 
   /// Categorizes classes based on their usage patterns.
@@ -281,11 +408,23 @@ class FileReporter {
     StringBuffer buffer,
     Map<String, List<MapEntry<String, ClassInfo>>> categories,
     String projectPath,
+    OutType outType,
   ) {
-    buffer
-      ..writeln('Class Analysis')
-      ..writeln('=' * 14)
-      ..writeln();
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('<div class="section">');
+        buffer.writeln('<h2>Class Analysis</h2>');
+        break;
+      case OutType.md:
+        buffer.writeln('## Class Analysis');
+        buffer.writeln();
+        break;
+      case OutType.txt:
+        buffer
+          ..writeln('Class Analysis')
+          ..writeln('=' * 14)
+          ..writeln();
+    }
 
     const classSections = [
       ('Unused Classes', 'unused', 'unused classes'),
@@ -320,7 +459,12 @@ class FileReporter {
         categories[category]!,
         entityType,
         projectPath,
+        outType,
       );
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('</div>');
     }
   }
 
@@ -333,11 +477,23 @@ class FileReporter {
     StringBuffer buffer,
     Map<String, List<MapEntry<String, CodeInfo>>> categories,
     String projectPath,
+    OutType outType,
   ) {
-    buffer
-      ..writeln('Function Analysis')
-      ..writeln('=' * 17)
-      ..writeln();
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('<div class="section">');
+        buffer.writeln('<h2>Function Analysis</h2>');
+        break;
+      case OutType.md:
+        buffer.writeln('## Function Analysis');
+        buffer.writeln();
+        break;
+      case OutType.txt:
+        buffer
+          ..writeln('Function Analysis')
+          ..writeln('=' * 17)
+          ..writeln();
+    }
 
     const functionSections = [
       ('Unused Functions', 'unused', 'unused functions'),
@@ -381,7 +537,12 @@ class FileReporter {
         categories[category]!,
         entityType,
         projectPath,
+        outType,
       );
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('</div>');
     }
   }
 
@@ -408,97 +569,300 @@ class FileReporter {
     Map<String, List<MapEntry<String, ClassInfo>>> classCategories,
     Map<String, List<MapEntry<String, CodeInfo>>> functionCategories,
     bool analyzeFunctions,
+    OutType outType,
   ) {
-    buffer
-      ..writeln('Summary')
-      ..writeln('-' * 7)
-      ..writeln();
+    switch (outType) {
+      case OutType.html:
+        buffer.writeln('<div class="section summary">');
+        buffer.writeln('<h2>Summary</h2>');
+        buffer.writeln('<div class="summary-content">');
+        buffer.writeln('<h3>Class Statistics</h3>');
+        buffer.writeln('<table class="summary-table">');
+        buffer.writeln(
+          '<thead><tr><th>Metric</th><th>Count</th><th>Percentage</th></tr></thead>',
+        );
+        buffer.writeln('<tbody>');
+        break;
+      case OutType.md:
+        buffer.writeln('## Summary');
+        buffer.writeln();
+        buffer.writeln('### Class Statistics');
+        buffer.writeln();
+        break;
+      case OutType.txt:
+        buffer
+          ..writeln('Summary')
+          ..writeln('-' * 7)
+          ..writeln();
+    }
 
     final totalClasses = classes.length;
-    buffer
-      ..writeln('Total classes: $totalClasses')
-      ..writeln(
-        'Unused classes: ${classCategories['unused']!.length} '
-        '(${_calculatePercentage(classCategories['unused']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Classes used only internally: ${classCategories['internalOnly']!.length} '
-        '(${_calculatePercentage(classCategories['internalOnly']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Classes used only externally: ${classCategories['externalOnly']!.length} '
-        '(${_calculatePercentage(classCategories['externalOnly']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Classes used both internally and externally: ${classCategories['bothInternalExternal']!.length} '
-        '(${_calculatePercentage(classCategories['bothInternalExternal']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Mixin classes: ${classCategories['mixing']!.length} '
-        '(${_calculatePercentage(classCategories['mixing']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Enum classes: ${classCategories['enum']!.length} '
-        '(${_calculatePercentage(classCategories['enum']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Extension classes: ${classCategories['extension']!.length} '
-        '(${_calculatePercentage(classCategories['extension']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'State classes: ${classCategories['stateClass']!.length} '
-        '(${_calculatePercentage(classCategories['stateClass']!.length, totalClasses).toStringAsFixed(1)}%)',
-      )
-      ..writeln(
-        'Entry-point classes: ${classCategories['entryPoint']!.length} '
-        '(${_calculatePercentage(classCategories['entryPoint']!.length, totalClasses).toStringAsFixed(1)}%)',
-      );
+
+    final classStats = [
+      ('Total classes', totalClasses, totalClasses),
+      ('Unused classes', classCategories['unused']?.length ?? 0, totalClasses),
+      (
+        'Classes used only internally',
+        classCategories['internalOnly']?.length ?? 0,
+        totalClasses,
+      ),
+      (
+        'Classes used only externally',
+        classCategories['externalOnly']?.length ?? 0,
+        totalClasses,
+      ),
+      (
+        'Classes used both internally and externally',
+        classCategories['bothInternalExternal']?.length ?? 0,
+        totalClasses,
+      ),
+      ('Mixin classes', classCategories['mixing']?.length ?? 0, totalClasses),
+      ('Enum classes', classCategories['enum']?.length ?? 0, totalClasses),
+      (
+        'Extension classes',
+        classCategories['extension']?.length ?? 0,
+        totalClasses,
+      ),
+      (
+        'State classes',
+        classCategories['stateClass']?.length ?? 0,
+        totalClasses,
+      ),
+      (
+        'Entry-point classes',
+        classCategories['entryPoint']?.length ?? 0,
+        totalClasses,
+      ),
+    ];
+
+    for (final (label, count, total) in classStats) {
+      final percentage = total > 0
+          ? _calculatePercentage(count, total).toStringAsFixed(1)
+          : '0.0';
+
+      switch (outType) {
+        case OutType.html:
+          if (label == 'Total classes') {
+            buffer.writeln(
+              '<tr class="total-row"><td><strong>$label</strong></td><td><strong>$count</strong></td><td>-</td></tr>',
+            );
+          } else {
+            buffer.writeln(
+              '<tr><td>$label</td><td>$count</td><td>$percentage%</td></tr>',
+            );
+          }
+          break;
+        case OutType.md:
+          if (label == 'Total classes') {
+            buffer.writeln('- **$label:** $count');
+          } else {
+            buffer.writeln('- **$label:** $count ($percentage%)');
+          }
+          break;
+        case OutType.txt:
+          if (label == 'Total classes') {
+            buffer.writeln('$label: $count');
+          } else {
+            buffer.writeln('$label: $count ($percentage%)');
+          }
+      }
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('</tbody>');
+      buffer.writeln('</table>');
+    }
 
     if (analyzeFunctions) {
       final totalFunctions = functions.length;
-      buffer
-        ..writeln()
-        ..writeln('Total functions: $totalFunctions')
-        ..writeln(
-          'Unused functions: ${functionCategories['unused']!.length} '
-          '(${_calculatePercentage(functionCategories['unused']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Functions used only internally: ${functionCategories['internalOnly']!.length} '
-          '(${_calculatePercentage(functionCategories['internalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Functions used only externally: ${functionCategories['externalOnly']!.length} '
-          '(${_calculatePercentage(functionCategories['externalOnly']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Functions used both internally and externally: ${functionCategories['bothInternalExternal']!.length} '
-          '(${_calculatePercentage(functionCategories['bothInternalExternal']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Empty prebuilt Flutter functions: ${functionCategories['emptyPrebuilt']!.length} '
-          '(${_calculatePercentage(functionCategories['emptyPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Commented prebuilt Flutter functions: ${functionCategories['commentedPrebuilt']!.length} '
-          '(${_calculatePercentage(functionCategories['commentedPrebuilt']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        )
-        ..writeln(
-          'Entry-point functions: ${functionCategories['entryPoint']!.length} '
-          '(${_calculatePercentage(functionCategories['entryPoint']!.length, totalFunctions).toStringAsFixed(1)}%)',
-        );
+
+      switch (outType) {
+        case OutType.html:
+          buffer.writeln('<h3>Function Statistics</h3>');
+          buffer.writeln('<table class="summary-table">');
+          buffer.writeln(
+            '<thead><tr><th>Metric</th><th>Count</th><th>Percentage</th></tr></thead>',
+          );
+          buffer.writeln('<tbody>');
+          break;
+        case OutType.md:
+          buffer.writeln();
+          buffer.writeln('### Function Statistics');
+          buffer.writeln();
+          break;
+        case OutType.txt:
+          buffer.writeln();
+      }
+
+      final functionStats = [
+        ('Total functions', totalFunctions, totalFunctions),
+        (
+          'Unused functions',
+          functionCategories['unused']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Functions used only internally',
+          functionCategories['internalOnly']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Functions used only externally',
+          functionCategories['externalOnly']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Functions used both internally and externally',
+          functionCategories['bothInternalExternal']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Empty prebuilt Flutter functions',
+          functionCategories['emptyPrebuilt']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Commented prebuilt Flutter functions',
+          functionCategories['commentedPrebuilt']?.length ?? 0,
+          totalFunctions,
+        ),
+        (
+          'Entry-point functions',
+          functionCategories['entryPoint']?.length ?? 0,
+          totalFunctions,
+        ),
+      ];
+
+      for (final (label, count, total) in functionStats) {
+        final percentage = total > 0
+            ? _calculatePercentage(count, total).toStringAsFixed(1)
+            : '0.0';
+
+        switch (outType) {
+          case OutType.html:
+            if (label == 'Total functions') {
+              buffer.writeln(
+                '<tr class="total-row"><td><strong>$label</strong></td><td><strong>$count</strong></td><td>-</td></tr>',
+              );
+            } else {
+              buffer.writeln(
+                '<tr><td>$label</td><td>$count</td><td>$percentage%</td></tr>',
+              );
+            }
+            break;
+          case OutType.md:
+            if (label == 'Total functions') {
+              buffer.writeln('- **$label:** $count');
+            } else {
+              buffer.writeln('- **$label:** $count ($percentage%)');
+            }
+            break;
+          case OutType.txt:
+            if (label == 'Total functions') {
+              buffer.writeln('$label: $count');
+            } else {
+              buffer.writeln('$label: $count ($percentage%)');
+            }
+        }
+      }
+
+      if (outType == OutType.html) {
+        buffer.writeln('</tbody>');
+        buffer.writeln('</table>');
+      }
+    }
+
+    if (outType == OutType.html) {
+      buffer.writeln('</div>'); // Close summary-content
+      buffer.writeln('</div>'); // Close section summary
+      buffer.writeln('</body></html>');
     }
   }
 
   /// Generates the report header with a timestamp and description.
   ///
   /// Returns a formatted header string.
-  static String _generateReportHeader() {
+  static String _generateReportHeader(OutType outType) {
     final now = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
     final timestamp = formatter.format(now);
 
-    return '''
+    switch (outType) {
+      case OutType.html:
+        return '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flutter Code Usage Analysis</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0 0 10px 0; }
+        .timestamp { opacity: 0.9; font-size: 0.9em; }
+        .description {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        ul { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Flutter Code Usage Analysis</h1>
+        <div class="timestamp">$timestamp</div>
+    </div>
+    <div class="description">
+        <p><strong>This report analyzes class and function usage in a Flutter project.</strong></p>
+        <ul>
+            <li>Classes and functions are categorized by usage type (e.g., unused, internal, external).</li>
+            <li>Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately.</li>
+            <li>Empty or commented prebuilt Flutter functions (e.g., build, initState) are listed separately.</li>
+            <li>File paths are relative to the lib/ directory or project root.</li>
+        </ul>
+    </div>
+''';
+
+      case OutType.md:
+        return '''
+# Flutter Code Usage Analysis
+
+**Generated:** $timestamp
+
+---
+
+## Overview
+
+This report analyzes class and function usage in a Flutter project.
+
+- Classes and functions are categorized by usage type (e.g., unused, internal, external).
+- Entry-point entities (@pragma("vm:entry-point")) and state classes are reported separately.
+- Empty or commented prebuilt Flutter functions (e.g., build, initState) are listed separately.
+- File paths are relative to the lib/ directory or project root.
+
+---
+
+''';
+
+      case OutType.txt:
+        return '''
 Flutter Code Usage Analysis - $timestamp
 ${'=' * 50}
 This report analyzes class and function usage in a Flutter project.
@@ -508,14 +872,20 @@ This report analyzes class and function usage in a Flutter project.
 - File paths are relative to the lib/ directory or project root.
 
 ''';
+    }
   }
 
   /// Generates a filename for the report based on the current timestamp.
   ///
   /// Returns a filename string in the format `flutter_code_analysis_YYYY-MM-DD_HH-mm-ss.txt`.
-  static String _generateFilename() {
+  static String _generateFilename(OutType outType) {
     final now = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
+    if (outType == OutType.html) {
+      return 'flutter_code_analysis_${formatter.format(now)}.html';
+    } else if (outType == OutType.md) {
+      return 'flutter_code_analysis_${formatter.format(now)}.md';
+    }
     return 'flutter_code_analysis_${formatter.format(now)}.txt';
   }
 
@@ -534,8 +904,11 @@ This report analyzes class and function usage in a Flutter project.
     required String outputDirectory,
     required String projectPath,
     required bool analyzeFunctions,
+    required OutType outType,
   }) {
-    final filename = _generateFilename();
+    final filename = _generateFilename(
+      outType,
+    ); // Pass outType for correct extension
     final filePath = path.join(outputDirectory, filename);
     final buffer = StringBuffer();
 
@@ -546,17 +919,25 @@ This report analyzes class and function usage in a Flutter project.
         dir.createSync(recursive: true);
       }
 
-      // Generate report content
-      buffer.write(_generateReportHeader());
+      // Generate report content based on output type
+
+      buffer.write(_generateReportHeader(outType));
 
       Map<String, List<MapEntry<String, ClassInfo>>> classCategories =
           _categorizeClasses(classes);
       Map<String, List<MapEntry<String, CodeInfo>>> functionCategories =
           analyzeFunctions ? _categorizeFunctions(functions) : {};
 
-      _writeClassAnalysis(buffer, classCategories, projectPath);
+      // Write analysis sections
+
+      _writeClassAnalysis(buffer, classCategories, projectPath, outType);
       if (analyzeFunctions) {
-        _writeFunctionAnalysis(buffer, functionCategories, projectPath);
+        _writeFunctionAnalysis(
+          buffer,
+          functionCategories,
+          projectPath,
+          outType,
+        );
       }
       _writeSummary(
         buffer,
@@ -565,11 +946,21 @@ This report analyzes class and function usage in a Flutter project.
         classCategories,
         functionCategories,
         analyzeFunctions,
+        outType,
       );
 
       // Write to file
       File(filePath).writeAsStringSync(buffer.toString());
-      print('Analysis report saved to: $filePath');
+      // Print a clickable file URI for HTML reports, otherwise just the path
+      if (outType == OutType.html) {
+        final uri = Uri.file(filePath).toString();
+
+        print('Analysis report saved to: $uri');
+        print('Opening in browser...');
+        _openInBrowser(filePath);
+      } else {
+        print('Analysis report saved to: $filePath');
+      }
     } catch (e, stackTrace) {
       final errorMessage =
           '''
@@ -583,4 +974,22 @@ $stackTrace
       rethrow;
     }
   }
+
+  static void _openInBrowser(String filePath) {
+    try {
+      if (Platform.isWindows) {
+        Process.run('cmd', ['/c', 'start', '', filePath]);
+      } else if (Platform.isMacOS) {
+        Process.run('open', [filePath]);
+      } else if (Platform.isLinux) {
+        Process.run('xdg-open', [filePath]);
+      }
+      print('Report opened in browser successfully.');
+    } catch (e) {
+      print('Error opening browser: $e');
+      print('Please open manually: $filePath');
+    }
+  }
 }
+
+enum OutType { txt, html, md }

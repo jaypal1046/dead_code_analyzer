@@ -49,6 +49,13 @@ ArgParser _createArgParser() {
       defaultsTo: '',
     )
     ..addOption(
+      'style',
+      abbr: 's',
+      help: 'Output format for the report (txt, html, md)',
+      allowed: ['txt', 'html', 'md'],
+      defaultsTo: 'txt',
+    )
+    ..addOption(
       'limit',
       abbr: 'l',
       help: 'Maximum number of unused entities to display in console',
@@ -87,6 +94,7 @@ ArgParser _createArgParser() {
 }
 
 /// Creates analysis configuration from parsed arguments
+/// Creates analysis configuration from parsed arguments
 AnalysisConfig _createAnalysisConfig(ArgResults args) {
   final projectPathStr = args['path'] as String;
   final projectPath = path.normalize(path.absolute(projectPathStr));
@@ -96,6 +104,16 @@ AnalysisConfig _createAnalysisConfig(ArgResults args) {
     outputDir = _getDefaultOutputDirectory();
   }
 
+  // Parse the format option and convert to OutType enum
+  final formatStr = args['style'] as String? ?? 'html';
+  print('Selected output format: $formatStr');
+  final OutType outType = switch (formatStr) {
+    'html' => OutType.html,
+    'md' => OutType.md,
+    'txt' => OutType.txt,
+    _ => OutType.html,
+  };
+
   return AnalysisConfig(
     projectPath: projectPath,
     outputDir: outputDir,
@@ -104,6 +122,7 @@ AnalysisConfig _createAnalysisConfig(ArgResults args) {
     shouldClean: args['clean'] as bool,
     showTrace: args['trace'] as bool,
     showProgress: !(args['quiet'] as bool),
+    outType: outType, // Add this parameter
   );
 }
 
@@ -207,6 +226,7 @@ Future<void> _generateReports(
     outputDirectory: config.outputDir,
     projectPath: config.projectPath,
     analyzeFunctions: config.includeFunctions,
+    outType: config.outType, // Changed from hardcoded OutType.html
   );
 }
 

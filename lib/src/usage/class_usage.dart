@@ -329,9 +329,9 @@ class ClassUsage {
     Map<String, LibraryInfo>? libraryCache,
     bool checkPrivateMembers = true,
   }) {
-    print(
-      "Checking accessibility: $className from $classDefinedInFile in $currentFile",
-    );
+    // print(
+    //   "Checking accessibility: $className from $classDefinedInFile in $currentFile",
+    // );
 
     // Rule 0: Check if class name suggests it's private (starts with _)
     if (checkPrivateMembers && className.startsWith('_')) {
@@ -341,14 +341,14 @@ class ClassUsage {
         currentFile,
         currentLibraryInfo,
       )) {
-        print("Private class access denied: different libraries");
+        // print("Private class access denied: different libraries");
         return false;
       }
     }
 
     // Rule 1: If class is defined in the same file, it's always accessible
     if (_pathsAreEquivalent(classDefinedInFile, currentFile)) {
-      print("Same file access: true");
+      // print("Same file access: true");
       return true;
     }
 
@@ -359,7 +359,7 @@ class ClassUsage {
         currentFile,
         currentLibraryInfo,
       )) {
-        print("Same library access (part/library): true");
+        // print("Same library access (part/library): true");
         return true;
       }
     }
@@ -372,7 +372,7 @@ class ClassUsage {
           className,
           importItem,
         );
-        print("Import check for ${importItem.path}: $accessible");
+        // print("Import check for ${importItem.path}: $accessible");
         if (accessible) return true;
       }
     }
@@ -381,24 +381,24 @@ class ClassUsage {
     for (final export in exportList) {
       if (export.isExport && _isImportMatching(export, classDefinedInFile)) {
         bool accessible = _isClassAccessibleThroughImport(className, export);
-        print("Export check for ${export.path}: $accessible");
+        // print("Export check for ${export.path}: $accessible");
         if (accessible) return true;
       }
     }
 
     // Rule 5: Check if it's a core Dart/Flutter library (implicitly available)
     if (_isCoreLibrary(classDefinedInFile)) {
-      print("Core library access: true");
+      // print("Core library access: true");
       return true;
     }
 
     // Rule 6: Check if it's available through implicit dart:core imports
     if (_isImplicitlyAvailable(className)) {
-      print("Implicitly available class: true");
+      // print("Implicitly available class: true");
       return true;
     }
 
-    print("Class not accessible");
+    // debugPrint("Class not accessible");
     return false;
   }
 
