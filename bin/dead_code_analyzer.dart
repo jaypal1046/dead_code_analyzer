@@ -105,8 +105,8 @@ AnalysisConfig _createAnalysisConfig(ArgResults args) {
   }
 
   // Parse the format option and convert to OutType enum
-  final formatStr = args['style'] as String? ?? 'html';
-  print('Selected output format: $formatStr');
+  final formatStr = args['style'] as String? ?? 'txt';
+
   final OutType outType = switch (formatStr) {
     'html' => OutType.html,
     'md' => OutType.md,

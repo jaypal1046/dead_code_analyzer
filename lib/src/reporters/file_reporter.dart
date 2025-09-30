@@ -1,27 +1,15 @@
-/// A utility class for generating and saving detailed reports of Flutter code usage analysis.
-///
-/// The [FileReporter] class processes class and function information, categorizes them based on usage,
-/// and generates a formatted text report. The report includes summaries, detailed sections for classes
-/// and functions, and relative file paths for better readability. It adheres to Flutter package guidelines
-/// for documentation, error handling, and code style.
-///
-/// Example usage:
-/// ```dart
-/// FileReporter.saveResultsToFile(
-///   classes: classMap,
-///   functions: functionMap,
-///   outputDirectory: 'reports',
-///   projectPath: '/path/to/project',
-///   analyzeFunctions: true,
-/// );
-/// ```
-
 import 'dart:io';
 
 import 'package:dead_code_analyzer/dead_code_analyzer.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 
+/// library dead_code_analyzer.src.reporters.file_reporter;
+/// The [FileReporter] class processes class and function information, categorizes them based on usage,
+/// and generates a formatted text report. The report includes summaries, detailed sections for classes
+/// and functions, and relative file paths for better readability. It adheres to Flutter package guidelines
+/// for documentation, error handling, and code style.
+///
 class FileReporter {
   /// Converts an absolute file path to a path relative to the project's `lib` directory or root.
   ///
