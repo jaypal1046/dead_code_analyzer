@@ -1,5 +1,5 @@
-//analyzers
 export 'src/analyzers/code_analyzer.dart';
+//analyzers
 export 'src/analyzers/usage_analyzer.dart';
 // Collectors
 export 'src/collectors/class_collector.dart';

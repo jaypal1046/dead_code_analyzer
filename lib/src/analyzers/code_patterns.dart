@@ -1,5 +1,5 @@
-/// Container class for regular expression patterns used in code analysis.
 class CodePatterns {
+  /// Container class for regular expression patterns used in code analysis.
   /// Regex for matching pragma annotations.
   final RegExp pragmaRegex = RegExp(
     r'''^\s*@pragma\s*\(\s*[\'"]((?:vm:entry-point)|(?:vm:external-name)|(?:vm:prefer-inline)|(?:vm:exact-result-type)|(?:vm:never-inline)|(?:vm:non-nullable-by-default)|(?:flutter:keep-to-string)|(?:flutter:keep-to-string-in-subtypes))[\'"]\s*(?:,\s*[^)]+)?\s*\)\s*$''',
