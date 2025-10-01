@@ -1,3 +1,8 @@
+import 'dart:io';
+
+import 'package:args/args.dart';
+import 'package:dead_code_analyzer/dead_code_analyzer.dart';
+
 /// Utility functions for analyzing Dart and Flutter code in the dead code analyzer.
 ///
 /// The [Helper] class provides methods for file handling, comment detection, and
@@ -10,12 +15,6 @@
 /// final dartFiles = Helper.getDartFiles(Directory('lib'));
 /// final isCommented = Helper.isLineCommented('// void main() {}');
 /// ```
-
-import 'dart:io';
-
-import 'package:args/args.dart';
-import 'package:dead_code_analyzer/dead_code_analyzer.dart';
-
 /// Utility class for code analysis tasks in Flutter projects.
 class Helper {
   /// Retrieves all Dart files in a directory, excluding certain paths.
